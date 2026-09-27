@@ -1,10 +1,10 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { Navigator, formatHash, parseHash, type Direction, type Move, type Position } from '../core/navigator.ts'
-  import type { Deck } from '../core/types.ts'
+  import type { Deck, DeckNode } from '../core/types.ts'
   import initial from 'virtual:strata/deck'
   import Slide from './Slide.svelte'
-  import Overview from './Overview.svelte'
+  import NavOverview from './NavOverview.svelte'
   import { enter, leave } from './transitions.ts'
 
   type Payload = { deck: Deck } | { error: string }
@@ -38,14 +38,25 @@
     pos = move.pos
   }
 
-  function jump(id: string) {
+  function jump(id: string, slide = 0) {
     const target = nav.find(id)
     if (!target || !pos) return
     overview = false
-    if (target.id === pos.id) return
-    const d: Direction = nav.parent(target.id)?.id === pos.id ? 'down' : target.id === nav.parent(pos.id)?.id ? 'up' : 'jump'
-    go({ pos: { id: target.id, slide: 0 }, dir: d })
+    slide = Math.min(slide, target.slides.length - 1)
+    if (target.id === pos.id && slide === pos.slide) return
+    const d: Direction =
+      target.id === pos.id ? (slide > pos.slide ? 'right' : 'left')
+      : nav.parent(target.id)?.id === pos.id ? 'down'
+      : target.id === nav.parent(pos.id)?.id ? 'up'
+      : 'jump'
+    go({ pos: { id: target.id, slide }, dir: d })
   }
+
+  const layoutOf = (n: DeckNode) => n.attrs.layout ?? deck?.layout ?? 'default'
+
+  /** Navigations-Übersicht: Ctrl+Shift+O (oder kurz O) */
+  const isOverviewKey = (e: KeyboardEvent) =>
+    (e.key === 'o' || e.key === 'O') && !e.altKey && !e.metaKey && (!e.ctrlKey || e.shiftKey)
 
   // Deep-Link im URL-Fragment mitführen
   $effect(() => {
@@ -59,13 +70,15 @@
   })
 
   function onkeydown(e: KeyboardEvent) {
-    if (e.ctrlKey || e.metaKey || e.altKey) return
+    // bei offener Übersicht übernimmt NavOverview die Tasten
+    if (overview || !pos) return
     if ((e.target as HTMLElement).closest('input, textarea, [contenteditable]')) return
-    if (overview) {
-      if (e.key === 'Escape' || e.key === 'o' || e.key === 'O') { overview = false; e.preventDefault() }
+    if (isOverviewKey(e)) {
+      overview = true
+      e.preventDefault()
       return
     }
-    if (!pos) return
+    if (e.ctrlKey || e.metaKey || e.altKey) return
     const handlers: Record<string, () => Move | null> = {
       ArrowRight: () => nav.next(pos!),
       PageDown: () => nav.next(pos!),
@@ -77,11 +90,6 @@
       ArrowUp: () => nav.up(pos!),
       Escape: () => nav.up(pos!),
       Home: () => (nav.first ? { pos: nav.first, dir: 'jump' } : null),
-    }
-    if (e.key === 'o' || e.key === 'O') {
-      overview = true
-      e.preventDefault()
-      return
     }
     const handler = handlers[e.key]
     if (!handler) return
@@ -97,7 +105,7 @@
     fit()
     const onHash = () => {
       const p = parseHash(location.hash)
-      if (p && pos && p.id !== pos.id) jump(p.id)
+      if (p && pos && (p.id !== pos.id || p.slide !== pos.slide)) jump(p.id, p.slide)
     }
     window.addEventListener('hashchange', onHash)
 
@@ -153,7 +161,14 @@
   {/if}
 
   {#if overview && deck && pos}
-    <Overview nodes={deck.nodes} current={pos.id} trail={trail.map((t) => t.id)} onjump={jump} onclose={() => (overview = false)} />
+    <NavOverview
+      nodes={deck.nodes}
+      current={pos}
+      trail={trail.map((t) => t.id)}
+      {layoutOf}
+      onjump={(p) => jump(p.id, p.slide)}
+      onclose={() => (overview = false)}
+    />
   {/if}
 
   {#if error}

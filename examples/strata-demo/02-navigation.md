@@ -10,7 +10,7 @@ Nach rechts geht die Story weiter, nach unten geht es ins Detail.
 | ← | zurück |
 | ↓ / Enter | abtauchen |
 | ↑ / Esc | auftauchen, Position wird gemerkt |
-| O | Übersicht |
+| Ctrl+Shift+O / O | Navigations-Übersicht |
 | Home | zum Anfang |
 
 ## Deep-Links

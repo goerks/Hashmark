@@ -13,4 +13,4 @@ Eine Quelle, zwei Arten zu präsentieren: linear auf dem Hauptpfad oder in die T
 
 ## Danke {layout=title}
 
-Fragen? Drücke **O** für die Übersicht.
+Fragen? **Ctrl+Shift+O** öffnet die Navigations-Übersicht.

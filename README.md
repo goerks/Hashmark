@@ -45,7 +45,7 @@ Voraussetzungen: Windows x64 und GNU Make (z. B. `choco install make`).
 | ← / Shift+Space / PageUp | zurück |
 | ↓ / Enter | in den ersten Kindknoten abtauchen |
 | ↑ / Esc | zum Elternknoten, an die Sub-Slide, von der aus abgetaucht wurde |
-| O | Baum-Übersicht, Klick springt |
+| Ctrl+Shift+O (kurz: O) | Navigations-Übersicht: Hierarchie mit Miniatur jeder Folie; Klick oder Pfeiltasten + Enter springt direkt dorthin, Esc schließt |
 | Home | zum Anfang |
 
 Deep-Links: `#architektur/parser` bzw. `#architektur/parser:2` für die zweite Sub-Slide.
