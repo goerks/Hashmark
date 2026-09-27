@@ -23,6 +23,9 @@ make dev DECK=decks/mein-vortrag
 | `make dev` / `make dev-open` | Dev-Server mit Hot Reload (`DECK=…`, `PORT=…`) |
 | `make build` | Statisches HTML nach `dist/` (`OUT=…`) |
 | `make preview` | Gebautes Deck lokal ausliefern |
+| `make dev-lan` / `make preview-lan` | Wie `dev` / `preview`, aber im Netzwerk (LAN/VPN) erreichbar |
+| `make export` | Eine einzelne HTML-Datei nach `export/<deck>.html`, läuft offline per Doppelklick |
+| `make docker` / `make docker-run` | Build und Docker-Image mit nginx (`IMAGE=…`), starten auf `DOCKER_PORT` (8080) |
 | `make test` | Tests (Parser, Deck-Baum, Navigator) |
 | `make deps-update` | Pakete online aktualisieren und im Cache ablegen |
 | `make clean` / `make distclean` | `dist/` bzw. zusätzlich `node_modules/` löschen |
@@ -36,6 +39,25 @@ Es muss nichts global installiert werden:
 - Zur Laufzeit gibt es keine CDNs und keine Web-Fonts. Mermaid und Shiki werden mitgebündelt, Schriften kommen aus dem System.
 
 Voraussetzungen: Windows x64 und GNU Make (z. B. `choco install make`).
+
+## Präsentieren: lokal und remote
+
+| Situation | Befehl | Ergebnis |
+| --- | --- | --- |
+| Am eigenen Laptop, noch am Schreiben | `make dev` | http://localhost:3030, Hot Reload. Im Browser F11 für Vollbild. |
+| Am eigenen Laptop, stabile Fassung | `make build` + `make preview` | http://localhost:4173, ohne File-Watcher |
+| Auf einem fremden Rechner / USB-Stick / per Mail | `make export` | `export/<deck>.html` per Doppelklick öffnen. Braucht weder Server noch Internet, alles ist eingebettet (~5 MB). |
+| Kollegen im selben Netz/VPN öffnen mit | `make dev-lan` oder `make preview-lan` | Vite zeigt die Netzwerk-URL (`Network: http://<ip>:3030/`) |
+| Dauerhaft auf einem Server | `make docker` + `make docker-run` | nginx-Container, http://<server>:8080 |
+| Beliebiges statisches Hosting (GitLab/GitHub Pages, IIS, S3 …) | `make build` | Inhalt von `dist/` hochladen. Funktioniert auch in Unterverzeichnissen. |
+
+Hinweise:
+
+- **Windows-Firewall:** Beim ersten `*-lan`-Start fragt Windows, ob `node.exe` im Netzwerk lauschen darf.
+- **Vertraulichkeit:** Build und Export enthalten den ganzen Deck-Inhalt samt Sprechernotizen im Klartext. Für interne Vorträge nur intern hosten. Für Docker gibt es einen vorbereiteten Basic-Auth-Block in [docker/nginx.conf](docker/nginx.conf).
+- **Docker** braucht beim ersten `make docker` Internet, um das Basis-Image `nginx:alpine` zu laden. Das Image enthält nur das gebaute Deck. Gebaut wird vorher lokal mit dem Node aus `vendor/`.
+- **CI unter Linux:** `vendor/` enthält nur Windows-Pakete (Node und die nativen Binaries von Vite/Rolldown). Auf einem Linux-Runner braucht es `npm ci` mit Registry-Zugriff. Alternativ lokal bauen und nur `dist/` veröffentlichen.
+- **Remote-Vortrag** (Teams/Zoom): Bildschirm bzw. Browserfenster teilen. Dass das Publikum der Position live im eigenen Browser folgt, ist noch nicht umgesetzt.
 
 ## Tastatur
 

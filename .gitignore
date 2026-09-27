@@ -2,3 +2,4 @@
 /dist/
 *.log
 # vendor/ (Node.js + npm-Cache) wird bewusst mit eingecheckt
+/export/

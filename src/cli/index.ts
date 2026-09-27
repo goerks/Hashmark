@@ -1,38 +1,43 @@
 #!/usr/bin/env node
-// CLI: strata dev | build | preview
+// CLI: strata dev | build | preview | export
 
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import cac from 'cac'
 import { build, createServer, preview, type InlineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
-import { strata } from '../vite/plugin.ts'
+import { strata, type StrataOptions } from '../vite/plugin.ts'
+import { exportSingleFile } from './export.ts'
 
 const PROJECT_ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const RUNTIME_DIR = path.join(PROJECT_ROOT, 'src/runtime')
 
-function config(deckDir: string, extra: InlineConfig = {}): InlineConfig {
+function config(deckDir: string, extra: InlineConfig = {}, plugin: Partial<StrataOptions> = {}): InlineConfig {
   const dir = path.resolve(deckDir)
   return {
     configFile: false,
     root: RUNTIME_DIR,
     base: './',
     cacheDir: path.join(PROJECT_ROOT, 'node_modules/.vite'),
-    plugins: [svelte({ configFile: false }), strata({ deckDir: dir })],
-    server: { fs: { allow: [PROJECT_ROOT, dir] } },
+    plugins: [svelte({ configFile: false }), strata({ deckDir: dir, ...plugin })],
     build: { chunkSizeWarningLimit: 4000 },
     ...extra,
+    server: { fs: { allow: [PROJECT_ROOT, dir] }, ...extra.server },
   }
 }
+
+/** `--host` ohne Wert = alle Netzwerk-Interfaces, sonst die angegebene Adresse */
+const hostOf = (host: string | boolean | undefined) => (host === '' || host === true ? true : host || undefined)
 
 const cli = cac('strata')
 
 cli
   .command('dev [deck]', 'Dev-Server mit Hot Reload starten')
   .option('--port <port>', 'Port', { default: 3030 })
+  .option('--host [host]', 'Im Netzwerk erreichbar machen (ohne Wert: alle Interfaces)')
   .option('--open', 'Browser öffnen')
-  .action(async (deck = '.', opts: { port: number; open?: boolean }) => {
-    const server = await createServer(config(deck, { server: { port: Number(opts.port), open: opts.open, fs: { allow: [PROJECT_ROOT, path.resolve(deck)] } } }))
+  .action(async (deck = '.', opts: { port: number; host?: string | boolean; open?: boolean }) => {
+    const server = await createServer(config(deck, { server: { port: Number(opts.port), host: hostOf(opts.host), open: opts.open } }))
     await server.listen()
     server.printUrls()
     server.bindCLIShortcuts({ print: true })
@@ -49,9 +54,21 @@ cli
   .command('preview [deck]', 'Gebautes Deck lokal ausliefern')
   .option('--out <dir>', 'Ausgabeordner des Builds', { default: 'dist' })
   .option('--port <port>', 'Port', { default: 4173 })
-  .action(async (deck = '.', opts: { out: string; port: number }) => {
-    const server = await preview(config(deck, { build: { outDir: path.resolve(opts.out) }, preview: { port: Number(opts.port) } }))
+  .option('--host [host]', 'Im Netzwerk erreichbar machen (ohne Wert: alle Interfaces)')
+  .action(async (deck = '.', opts: { out: string; port: number; host?: string | boolean }) => {
+    const server = await preview(config(deck, {
+      build: { outDir: path.resolve(opts.out) },
+      preview: { port: Number(opts.port), host: hostOf(opts.host) },
+    }))
     server.printUrls()
+  })
+
+cli
+  .command('export [deck]', 'Eine einzelne HTML-Datei erzeugen (läuft offline per Doppelklick)')
+  .option('--out <file>', 'Zieldatei (Standard: export/<deck>.html)')
+  .action(async (deck = '.', opts: { out?: string }) => {
+    const out = path.resolve(opts.out ?? path.join('export', `${path.basename(path.resolve(deck))}.html`))
+    await exportSingleFile(config(deck, {}, { inlineAssets: true }), out)
   })
 
 cli.help()

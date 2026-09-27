@@ -17,7 +17,13 @@ const MIME: Record<string, string> = {
 /** Payload für den Client: entweder ein Deck oder eine Fehlermeldung. */
 type Payload = { deck: LoadResult['deck'] } | { error: string }
 
-export function strata(options: { deckDir: string }): Plugin {
+export interface StrataOptions {
+  deckDir: string
+  /** Bilder als Data-URI in den Deck-Baum einbetten (Single-File-Export) */
+  inlineAssets?: boolean
+}
+
+export function strata(options: StrataOptions): Plugin {
   const deckDir = path.resolve(options.deckDir)
   let current: Promise<LoadResult> = loadDeck(deckDir)
   let lastTheme: string | undefined
@@ -60,7 +66,10 @@ export function strata(options: { deckDir: string }): Plugin {
     },
 
     async load(id) {
-      if (id === RESOLVED_DECK) return `export default ${JSON.stringify(await payload())}`
+      if (id !== RESOLVED_DECK) return
+      let json = JSON.stringify(await payload())
+      if (options.inlineAssets) json = inlineAssets(json, deckDir, (msg) => this.warn(msg))
+      return `export default ${json}`
     },
 
     configureServer(server) {
@@ -90,6 +99,7 @@ export function strata(options: { deckDir: string }): Plugin {
     },
 
     async generateBundle() {
+      if (options.inlineAssets) return
       for (const asset of (await current).assets) {
         if (!fs.existsSync(asset)) {
           this.warn(`Bild nicht gefunden: ${path.relative(deckDir, asset)}`)
@@ -103,4 +113,19 @@ export function strata(options: { deckDir: string }): Plugin {
       }
     },
   }
+}
+
+/** Ersetzt `deck-assets/…`-Verweise im Deck-JSON durch Data-URIs. */
+function inlineAssets(json: string, deckDir: string, warn: (msg: string) => void): string {
+  // im JSON endet der Pfad am escapten Anführungszeichen (\") bzw. an ")" in style-URLs
+  const pattern = new RegExp(ASSET_PREFIX + String.raw`([^"\\)\s]+)`, 'g')
+  return json.replace(pattern, (match, rel: string) => {
+    const file = path.resolve(deckDir, decodeURIComponent(rel))
+    if (path.relative(deckDir, file).startsWith('..') || !fs.existsSync(file)) {
+      warn(`Bild nicht gefunden: ${rel}`)
+      return match
+    }
+    const type = MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream'
+    return `data:${type};base64,${fs.readFileSync(file).toString('base64')}`
+  })
 }

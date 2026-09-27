@@ -1,0 +1,4 @@
+# Build-Kontext nur mit dem gebauten Deck und der nginx-Konfiguration
+*
+!dist/**
+!docker/**
