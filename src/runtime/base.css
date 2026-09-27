@@ -77,14 +77,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .code-block code { font-family: inherit; }
 
 /* Mermaid */
-.mermaid-block { display: flex; justify-content: center; min-height: 0; flex: 1; }
-.mermaid-block svg { max-width: 100%; max-height: 100%; height: auto; }
+.mermaid-block { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; flex: 1; }
+/* feste Maximalhöhe statt %: in Spalten würde sich das SVG sonst an die Nachbarspalte anpassen */
+.mermaid-block svg { max-width: 100%; height: auto; max-height: 460px; }
 .mermaid-src { visibility: hidden; margin: 0; }
 .mermaid-error { color: var(--color-danger); font-size: 18px; white-space: pre-wrap; }
 
 /* ---------- Container-Direktiven ---------- */
 
-.d-columns { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--space-4); min-height: 0; flex: 0 1 auto; }
+.d-columns { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; align-items: start; gap: var(--space-4); min-height: 0; flex: 0 1 auto; }
 .d-grid { display: grid; gap: var(--space-3); min-height: 0; }
 .d-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .d-col > * { margin: 0; }
@@ -115,7 +116,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .layout-section .slide-title { font-size: 60px; }
 .layout-section .content { flex: none; color: var(--color-muted); }
 
-.layout-two-col .content { display: grid; grid-template-columns: 1fr 1fr; align-content: start; gap: var(--space-2) var(--space-4); }
+.layout-two-col .content { display: grid; grid-template-columns: 1fr 1fr; align-content: start; align-items: start; gap: var(--space-2) var(--space-4); }
 .layout-two-col .content > :not(.d-col) { grid-column: 1 / -1; }
 
 /* ---------- Bedienelemente ---------- */
@@ -207,3 +208,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 .error pre { margin: 6px 0 0; white-space: pre-wrap; font-family: var(--font-code); }
 .empty { color: var(--color-muted); }
+
+/* ---------- Schritte (::: steps, Code steps="…", Mermaid %% step) ---------- */
+
+[data-step] { transition: opacity 0.35s ease, visibility 0.35s; }
+.step-hidden { opacity: 0; visibility: hidden; }
+/* Code: neu hinzugekommene Zeilen kurz hervorheben */
+.code-block pre:has(.line[data-step]) .line { display: inline-block; width: 100%; }
+.code-block .line.step-current { background: color-mix(in srgb, var(--color-accent) 14%, transparent); }
+.content li.step-current::marker { color: var(--color-heading); }
+
+/* Mermaid-Versionen liegen übereinander, damit der Platz stabil bleibt */
+.mermaid-block > * { grid-area: 1 / 1; min-width: 0; }
+.mermaid-block svg { display: block; margin: 0 auto; }
+
+.step-dots { display: inline-flex; gap: 5px; margin-right: 10px; vertical-align: middle; }
+.step-dots i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--color-muted); }
+.step-dots i.done { background: var(--color-accent); border-color: var(--color-accent); }

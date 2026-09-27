@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import { Navigator, formatHash, parseHash, type Direction, type Move, type Position } from '../core/navigator.ts'
+  import { Navigator, formatHash, parseHash, stepsOf, type Direction, type Move, type Position } from '../core/navigator.ts'
   import type { Deck, DeckNode } from '../core/types.ts'
   import initial from 'virtual:strata/deck'
   import Slide from './Slide.svelte'
@@ -23,6 +23,7 @@
   const node = $derived(pos ? nav.node(pos.id) : undefined)
   const trail = $derived(pos ? nav.path(pos.id) : [])
   const layout = $derived(node ? (node.attrs.layout ?? deck?.layout ?? 'default') : 'default')
+  const stepCount = $derived(pos ? stepsOf(node, pos.slide) : 0)
   const topIndex = $derived(trail[0] ? nav.nodes.indexOf(trail[0]) : -1)
 
   function fromHash(navigator: Navigator): Position | null {
@@ -134,7 +135,7 @@
     <div class="stage" style="--scale:{scale}">
       {#key `${node.id}:${pos.slide}`}
         <div class="stage-slide" in:enter={{ dir, kind: node.attrs.transition }} out:leave={{ dir, kind: node.attrs.transition }}>
-          <Slide {node} slide={pos.slide} {layout} />
+          <Slide {node} slide={pos.slide} {layout} step={pos.step ?? 0} />
         </div>
       {/key}
 
@@ -143,7 +144,14 @@
           {#if i > 0}<span class="sep">›</span>{/if}
           <button class:active={crumb.id === node.id} onclick={() => jump(crumb.id)}>{crumb.title}</button>
         {/each}
-        {#if node.slides.length > 1}<span class="subslide">{pos.slide + 1}/{node.slides.length}</span>{/if}
+        <span class="subslide">
+          {#if stepCount}
+            <span class="step-dots" title="Schritt {pos.step ?? 0} von {stepCount}">
+              {#each { length: stepCount } as _, i (i)}<i class:done={i < (pos.step ?? 0)}></i>{/each}
+            </span>
+          {/if}
+          {#if node.slides.length > 1}{pos.slide + 1}/{node.slides.length}{/if}
+        </span>
       </nav>
 
       <footer class="status">

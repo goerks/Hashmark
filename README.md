@@ -41,8 +41,8 @@ Voraussetzungen: Windows x64 und GNU Make (z. B. `choco install make`).
 
 | Taste | Wirkung |
 | --- | --- |
-| → / Space / PageDown | weiter: Sub-Slide, dann Geschwister, am Ende einer Ebene Nachfolger des Elternknotens |
-| ← / Shift+Space / PageUp | zurück |
+| → / Space / PageDown | weiter: nächster Schritt, dann Sub-Slide, dann Geschwister, am Ende einer Ebene Nachfolger des Elternknotens |
+| ← / Shift+Space / PageUp | zurück (auf vorherigen Folien landet man vollständig aufgedeckt) |
 | ↓ / Enter | in den ersten Kindknoten abtauchen |
 | ↑ / Esc | zum Elternknoten, an die Sub-Slide, von der aus abgetaucht wurde |
 | Ctrl+Shift+O (kurz: O) | Navigations-Übersicht: Hierarchie mit Miniatur jeder Folie; Klick oder Pfeiltasten + Enter springt direkt dorthin, Esc schließt |
@@ -87,6 +87,28 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
 - **Container:** `::: columns`/`::: col`, `::: grid cols="2fr 1fr" gap=2`, `::: children`, `::: notes`. Verschachtelung im Pandoc-Stil mit gleicher Anzahl Doppelpunkte.
 - **Code:** ` ```ts {title="auth.ts" lines="3-5|all"} ` mit Shiki. Die Farben kommen aus den `--shiki-token-*`-Tokens des Themes. `lines` wird bereits übernommen und in Phase 3 animiert.
 - **Mermaid:** ` ```mermaid `, gerendert im Browser. Die Farben kommen aus den Theme-Tokens.
+- **Schritt für Schritt:** Die Schritte einer Folie werden über ihre Nummer synchronisiert. Gleiche Nummer bedeutet gleichzeitig: Links erscheint Bullet 2, rechts Code-Teil 2. Oben rechts zeigen Punkte den Fortschritt.
+  - `::: steps` um eine Liste: Jeder Listenpunkt (bzw. jeder Block) ist ein Schritt. `::: steps start=2` beginnt später.
+  - Code ` ```ts {steps="1,6|2-3|4-5"} `: Je `|`-Abschnitt kommen Zeilen hinzu, neue Zeilen werden kurz hervorgehoben. Zeilen ohne Schritt sind sofort sichtbar (Gerüst), leere Abschnitte bedeuten keine Änderung.
+  - Mermaid: Eine Zeile `%% step` beginnt den nächsten Abschnitt, und das Diagramm wächst kumulativ.
+
+  ```markdown
+  ## Login {layout=two-col}
+  ::: col
+  ::: steps
+  - Funktion anlegen
+  - Zugangsdaten prüfen
+  :::
+  :::
+  ::: col
+  ```ts {steps="1,4|2-3"}
+  export function login(user) {
+    const ok = verify(user)
+    if (!ok) throw new AuthError()
+  }
+  ```
+  :::
+  ```
 - **Theme** = CSS-Datei mit Tokens (`--color-*`, `--font-*`, `--radius`, `--space-*`, `--shiki-*`), siehe `src/runtime/themes/`
 
 ## Aufbau
@@ -101,4 +123,4 @@ examples/      Beispiel-Deck (5 Dateien, 3 Ebenen)
 
 ## Nicht im MVP (siehe Roadmap im Konzept)
 
-Includes, `hidden`, Suche, Presenter-View, Linear-Modus, PDF-Export, PlantUML, Auto-Layout/Auto-Fit, Hell/Dunkel-Umschaltung, Fragmente/Animationen, eigene Layouts.
+Includes, `hidden`, Suche, Presenter-View, Linear-Modus, PDF-Export, PlantUML, Auto-Layout/Auto-Fit, Hell/Dunkel-Umschaltung, Code-Hervorhebung per `lines=`, Magic Move, Diagramm-Morphing (stabile Knotenpositionen), eigene Layouts.

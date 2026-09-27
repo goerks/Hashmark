@@ -39,24 +39,39 @@ export async function renderMermaid(root: HTMLElement) {
   const vars = themeVariables()
   const key = JSON.stringify(vars)
   if (key !== configured) {
-    mermaid.initialize({ startOnLoad: false, theme: 'base', themeVariables: vars, securityLevel: 'strict', fontFamily: vars.fontFamily })
+    mermaid.initialize({
+      startOnLoad: false, theme: 'base', themeVariables: vars, securityLevel: 'strict', fontFamily: vars.fontFamily,
+      // Sequenzdiagramme haben eigene (kleine) Schriftgrößen
+      sequence: { actorFontSize: 20, messageFontSize: 20, noteFontSize: 18, actorFontFamily: vars.fontFamily, messageFontFamily: vars.fontFamily, width: 180, height: 56 },
+    })
     configured = key
     cache.clear()
   }
 
   for (const block of blocks) {
-    const src = block.querySelector('.mermaid-src')?.textContent ?? ''
-    let svg = cache.get(src)
-    if (!svg) {
-      try {
-        svg = (await mermaid.render(`strata-mermaid-${counter++}`, src)).svg
-      } catch (e) {
-        svg = `<pre class="mermaid-error">Mermaid-Fehler:\n${escape((e as Error).message)}</pre>`
+    // mehrere Quellen = eine Version je Schritt (`%% step`), übereinander im selben Rasterfeld
+    const sources = [...block.querySelectorAll<HTMLElement>('.mermaid-src')]
+    const stepped = sources.length > 1
+    for (const pre of sources) {
+      const src = pre.textContent ?? ''
+      let svg = cache.get(src)
+      if (svg === undefined) {
+        try {
+          svg = (await mermaid.render(`strata-mermaid-${counter++}`, src)).svg
+        } catch (e) {
+          // leere Anfangsversion (nur Diagramm-Typ) ist bei Schritten erlaubt
+          svg = stepped ? '' : `<pre class="mermaid-error">Mermaid-Fehler:\n${escape((e as Error).message)}</pre>`
+        }
+        cache.set(src, svg)
       }
-      cache.set(src, svg)
+      if (!pre.isConnected) continue
+      const state = document.createElement('div')
+      state.className = 'mermaid-state'
+      if (pre.dataset.step) state.dataset.step = pre.dataset.step
+      if (pre.dataset.until) state.dataset.until = pre.dataset.until
+      state.innerHTML = svg
+      pre.replaceWith(state)
     }
-    if (!block.isConnected) continue
-    block.innerHTML = svg
     block.dataset.rendered = ''
   }
 }

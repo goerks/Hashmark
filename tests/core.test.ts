@@ -120,3 +120,58 @@ describe('Navigator', () => {
     expect(parseHash('#einf%C3%BChrung')).toEqual({ id: 'einführung', slide: 0 })
   })
 })
+
+describe('Schritte', () => {
+  it('parst Zeilen-Schritte und Mermaid-Versionen', async () => {
+    const { parseLineSteps, mermaidVersions } = await import('../src/core/render.ts')
+    expect([...parseLineSteps('2-3|5||1,7')]).toEqual([[2, 1], [3, 1], [5, 2], [1, 4], [7, 4]])
+    expect(mermaidVersions('flowchart LR\n  a\n%% step\n  a --> b\n%% step 2\n  b --> c')).toEqual([
+      'flowchart LR\n  a', 'flowchart LR\n  a\n  a --> b', 'flowchart LR\n  a\n  a --> b\n  b --> c',
+    ])
+  })
+
+  it('synchronisiert Liste, Code und Mermaid über die Schrittnummer', async () => {
+    const dir = await tempDeck({
+      'a.md': [
+        '# Schritte {layout=two-col}',
+        '::: col', '::: steps', '- Eins', '- Zwei', '- Drei', ':::', ':::',
+        '::: col', '```ts {steps="2|3-4"}', 'function f() {', '  const a = 1', '  return a', '}', '```', ':::',
+        '---',
+        '```mermaid', 'flowchart LR', '  a', '%% step', '  a --> b', '```',
+      ].join('\n'),
+    })
+    const { deck } = await loadDeck(dir)
+    const [first, second] = deck.nodes[0].slides
+    expect(first.steps).toHaveLength(3)
+    expect(first.html).toMatch(/<li data-step="1">Eins/)
+    expect(first.html).toMatch(/<li data-step="3">Drei/)
+    expect(first.html.match(/class="line" data-step="2"/g)).toHaveLength(2)
+    expect(second.steps).toHaveLength(1)
+    expect(second.html).toContain('data-step="0" data-until="1"')
+  })
+})
+
+describe('Navigator mit Schritten', () => {
+  const withSteps = (id: string, steps: number[], children: DeckNode[] = []): DeckNode => ({
+    ...n(id, children, steps.length),
+    slides: steps.map((k) => ({ html: '', steps: Array.from({ length: k }, () => ({ selector: '', state: {} })) })),
+  })
+  const nav = new Navigator([withSteps('a', [2, 0], [n('a/kind')]), withSteps('b', [1])])
+
+  it('spielt Schritte vor der nächsten Folie ab', () => {
+    expect(nav.next({ id: 'a', slide: 0 })).toEqual({ pos: { id: 'a', slide: 0, step: 1 }, dir: 'step' })
+    expect(nav.next({ id: 'a', slide: 0, step: 1 })?.pos).toEqual({ id: 'a', slide: 0, step: 2 })
+    expect(nav.next({ id: 'a', slide: 0, step: 2 })?.pos).toEqual({ id: 'a', slide: 1 })
+    expect(nav.next({ id: 'a', slide: 1 })?.pos).toEqual({ id: 'b', slide: 0 })
+  })
+  it('landet rückwärts vollständig aufgedeckt', () => {
+    expect(nav.prev({ id: 'a', slide: 1 })?.pos).toEqual({ id: 'a', slide: 0, step: 2 })
+    expect(nav.prev({ id: 'b', slide: 0, step: 1 })).toEqual({ pos: { id: 'b', slide: 0 }, dir: 'step' })
+    expect(nav.prev({ id: 'b', slide: 0 })?.pos).toEqual({ id: 'a', slide: 1 })
+  })
+  it('merkt sich den Schritt beim Abtauchen', () => {
+    nav.down({ id: 'a', slide: 0, step: 1 })
+    expect(nav.up({ id: 'a/kind', slide: 0 })?.pos).toEqual({ id: 'a', slide: 0, step: 1 })
+    expect(nav.relocate({ id: 'a', slide: 0, step: 9 })).toEqual({ id: 'a', slide: 0, step: 2 })
+  })
+})

@@ -6,10 +6,18 @@ export interface Position {
   id: string
   /** Index der Sub-Slide */
   slide: number
+  /** abgespielte Schritte der Sub-Slide (0 = Ausgangszustand) */
+  step?: number
 }
 
+/** Position bauen; `step` wird nur mitgeführt, wenn er nicht 0 ist. */
+const at = (id: string, slide: number, step = 0): Position => (step ? { id, slide, step } : { id, slide })
+
+/** Anzahl Schritte einer Sub-Slide */
+export const stepsOf = (node: DeckNode | undefined, slide: number) => node?.slides[slide]?.steps.length ?? 0
+
 /** Richtung einer Bewegung, steuert den Übergang (horizontal = Slide, vertikal = Zoom). */
-export type Direction = 'right' | 'left' | 'down' | 'up' | 'jump'
+export type Direction = 'right' | 'left' | 'down' | 'up' | 'jump' | 'step'
 
 export interface Move {
   pos: Position
@@ -26,8 +34,8 @@ interface Entry {
 export class Navigator {
   readonly nodes: DeckNode[]
   private entries = new Map<string, Entry>()
-  /** Sub-Slide des Elternknotens beim Abtauchen, damit ↑ dorthin zurückkehrt */
-  private memory = new Map<string, number>()
+  /** Position im Elternknoten beim Abtauchen, damit ↑ dorthin zurückkehrt */
+  private memory = new Map<string, { slide: number; step: number }>()
 
   constructor(nodes: DeckNode[]) {
     this.nodes = nodes
@@ -71,25 +79,32 @@ export class Navigator {
     return !!n && pos.slide >= 0 && pos.slide < n.slides.length
   }
 
-  /** → / Space: nächste Sub-Slide, dann nächster Geschwisterknoten, am Ende einer Ebene Nachfolger des Elternknotens. */
+  /** → / Space: nächster Schritt, dann nächste Sub-Slide, dann nächster Geschwisterknoten, am Ende einer Ebene Nachfolger des Elternknotens. */
   next(pos: Position): Move | null {
     const e = this.entries.get(pos.id)
     if (!e) return null
-    if (pos.slide < e.node.slides.length - 1) return { pos: { id: pos.id, slide: pos.slide + 1 }, dir: 'right' }
+    const step = pos.step ?? 0
+    if (step < stepsOf(e.node, pos.slide)) return { pos: at(pos.id, pos.slide, step + 1), dir: 'step' }
+    if (pos.slide < e.node.slides.length - 1) return { pos: at(pos.id, pos.slide + 1), dir: 'right' }
     for (let cur: Entry | undefined = e; cur; cur = cur.parent && this.entries.get(cur.parent.id)) {
       const sib = cur.siblings[cur.index + 1]
-      if (sib) return { pos: { id: sib.id, slide: 0 }, dir: cur === e ? 'right' : 'up' }
+      if (sib) return { pos: at(sib.id, 0), dir: cur === e ? 'right' : 'up' }
     }
     return null
   }
 
-  /** ← : vorherige Sub-Slide, dann vorheriger Geschwisterknoten, am Anfang einer Ebene zurück zum Elternknoten. */
+  /** ← : vorheriger Schritt, dann vorherige Sub-Slide (vollständig aufgedeckt), dann vorheriger Geschwisterknoten, am Anfang einer Ebene zurück zum Elternknoten. */
   prev(pos: Position): Move | null {
     const e = this.entries.get(pos.id)
     if (!e) return null
-    if (pos.slide > 0) return { pos: { id: pos.id, slide: pos.slide - 1 }, dir: 'left' }
+    const step = pos.step ?? 0
+    if (step > 0) return { pos: at(pos.id, pos.slide, step - 1), dir: 'step' }
+    if (pos.slide > 0) return { pos: at(pos.id, pos.slide - 1, stepsOf(e.node, pos.slide - 1)), dir: 'left' }
     const sib = e.siblings[e.index - 1]
-    if (sib) return { pos: { id: sib.id, slide: sib.slides.length - 1 }, dir: 'left' }
+    if (sib) {
+      const last = sib.slides.length - 1
+      return { pos: at(sib.id, last, stepsOf(sib, last)), dir: 'left' }
+    }
     if (e.parent) return this.up(pos)
     return null
   }
@@ -98,16 +113,19 @@ export class Navigator {
   down(pos: Position): Move | null {
     const child = this.node(pos.id)?.children[0]
     if (!child) return null
-    this.memory.set(pos.id, pos.slide)
-    return { pos: { id: child.id, slide: 0 }, dir: 'down' }
+    this.memory.set(pos.id, { slide: pos.slide, step: pos.step ?? 0 })
+    return { pos: at(child.id, 0), dir: 'down' }
   }
 
   /** ↑ / Esc: zum Elternknoten, an die Sub-Slide, von der aus abgetaucht wurde. */
   up(pos: Position): Move | null {
     const parent = this.parent(pos.id)
     if (!parent) return null
-    const slide = Math.min(this.memory.get(parent.id) ?? 0, parent.slides.length - 1)
-    return { pos: { id: parent.id, slide }, dir: 'up' }
+    const mem = this.memory.get(parent.id)
+    const slide = Math.min(mem?.slide ?? 0, parent.slides.length - 1)
+    // ohne gemerkte Position: Elternfolie vollständig aufgedeckt zeigen
+    const step = Math.min(mem?.step ?? stepsOf(parent, slide), stepsOf(parent, slide))
+    return { pos: at(parent.id, slide, step), dir: 'up' }
   }
 
   jump(pos: Position): Move | null {
@@ -120,7 +138,10 @@ export class Navigator {
    */
   relocate(pos: Position, previous?: Navigator): Position | null {
     const n = this.node(pos.id)
-    if (n) return { id: n.id, slide: Math.min(pos.slide, n.slides.length - 1) }
+    if (n) {
+      const slide = Math.min(pos.slide, n.slides.length - 1)
+      return at(n.id, slide, Math.min(pos.step ?? 0, stepsOf(n, slide)))
+    }
     if (previous) {
       for (let e = previous.entries.get(pos.id); e; e = e.parent && previous.entries.get(e.parent.id)) {
         const siblings = e.parent ? this.node(e.parent.id)?.children : this.nodes

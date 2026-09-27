@@ -4,6 +4,7 @@ maxDepth: 3           # tiefere Überschriften werden Abschnitte innerhalb der F
 mount:
   - file: 01-einfuehrung.md
   - file: 02-navigation.md
+  - file: schritte.md
   - file: 03-architektur.md
   - file: details/parser.md
     under: "Architektur > Parser"   # hängt die Datei unter einen bestehenden Knoten
