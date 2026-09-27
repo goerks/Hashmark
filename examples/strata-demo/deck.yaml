@@ -1,0 +1,10 @@
+title: Strata – Präsentieren in die Tiefe
+theme: minimal        # minimal | dark-tech | ./pfad/zu/eigenem.css
+maxDepth: 3           # tiefere Überschriften werden Abschnitte innerhalb der Folie
+mount:
+  - file: 01-einfuehrung.md
+  - file: 02-navigation.md
+  - file: 03-architektur.md
+  - file: details/parser.md
+    under: "Architektur > Parser"   # hängt die Datei unter einen bestehenden Knoten
+  - file: 04-fazit.md

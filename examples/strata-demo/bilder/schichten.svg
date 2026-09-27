@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360" viewBox="0 0 720 360" font-family="Segoe UI, Arial, sans-serif" font-size="22">
+  <rect x="40" y="20" width="640" height="80" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="360" y="68" text-anchor="middle" fill="#1e3a8a">Runtime · Navigator · Layouts · Übergänge</text>
+  <rect x="40" y="140" width="640" height="80" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="2"/>
+  <text x="360" y="188" text-anchor="middle" fill="#4c1d95">Render-Plugins · Shiki · Mermaid</text>
+  <rect x="40" y="260" width="640" height="80" rx="10" fill="#f3f4f6" stroke="#6b7280" stroke-width="2"/>
+  <text x="360" y="308" text-anchor="middle" fill="#111827">Parser · Deck-Baum (JSON)</text>
+</svg>

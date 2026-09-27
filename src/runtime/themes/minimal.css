@@ -1,0 +1,37 @@
+/* Theme "minimal": hell, ruhig. Nur Design-Tokens – sie speisen Folien, Shiki und Mermaid. */
+:root {
+  --color-bg: #ffffff;
+  --color-fg: #1f2328;
+  --color-heading: #0b0f14;
+  --color-muted: #667085;
+  --color-accent: #2563eb;
+  --color-surface: #f3f5f8;
+  --color-surface-2: #e7ebf1;
+  --color-border: #d5dbe3;
+  --color-frame: #dfe3e8;
+  --color-danger: #c62828;
+
+  --font-heading: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-code: "Cascadia Code", "JetBrains Mono", Consolas, "SF Mono", Menlo, monospace;
+  --radius: 10px;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 48px;
+
+  --shiki-foreground: #24292f;
+  --shiki-background: #f6f8fa;
+  --shiki-token-keyword: var(--color-accent);
+  --shiki-token-constant: #0550ae;
+  --shiki-token-string: #0a3069;
+  --shiki-token-string-expression: #116329;
+  --shiki-token-comment: #6e7781;
+  --shiki-token-parameter: #953800;
+  --shiki-token-function: #8250df;
+  --shiki-token-punctuation: #57606a;
+  --shiki-token-link: var(--color-accent);
+}
+
+/* Detail-Ebenen dezenter */
+.slide[data-depth="3"], .slide[data-depth="4"] { --color-heading: #344054; }

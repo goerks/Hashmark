@@ -1,0 +1,173 @@
+/* Grundgerüst, Layouts und Bedienelemente. Farben/Schriften kommen ausschließlich aus Theme-Tokens. */
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--color-frame); }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+.viewport {
+  position: fixed; inset: 0; overflow: hidden;
+  display: grid; place-items: center;
+  font-family: var(--font-body); color: var(--color-fg);
+}
+
+/* Feste 16:9-Bühne, per transform auf das Fenster skaliert */
+.stage {
+  position: relative; width: 1280px; height: 720px; flex-shrink: 0;
+  transform: scale(var(--scale, 1));
+  overflow: hidden; background: var(--color-bg);
+}
+.stage-slide { position: absolute; inset: 0; }
+
+/* ---------- Folie ---------- */
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: 72px 80px 76px;
+  background: var(--color-bg); color: var(--color-fg);
+  font-size: 28px; line-height: 1.45;
+}
+.slide-title {
+  margin: 0; font-family: var(--font-heading); font-weight: 700;
+  font-size: 52px; line-height: 1.12; color: var(--color-heading); letter-spacing: -0.01em;
+}
+.slide[data-depth="2"] .slide-title { font-size: 46px; }
+.slide[data-depth="3"] .slide-title,
+.slide[data-depth="4"] .slide-title,
+.slide[data-depth="5"] .slide-title,
+.slide[data-depth="6"] .slide-title { font-size: 40px; }
+
+.content { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: var(--space-2); }
+.content > * { margin: 0; }
+.content h2, .content h3, .content h4, .content h5, .content h6 {
+  font-family: var(--font-heading); color: var(--color-heading); line-height: 1.2; margin: var(--space-1) 0 0;
+}
+.content h2 { font-size: 34px; }
+.content h3 { font-size: 30px; }
+.content h4, .content h5, .content h6 { font-size: 28px; }
+.content ul, .content ol { padding-left: 1.2em; }
+.content li + li { margin-top: 0.3em; }
+.content li::marker { color: var(--color-accent); }
+.content a { color: var(--color-accent); }
+.content strong { color: var(--color-heading); }
+.content blockquote {
+  margin: 0; padding: var(--space-1) var(--space-3);
+  border-left: 4px solid var(--color-accent); color: var(--color-muted); font-style: italic;
+}
+.content img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.content :not(pre) > code {
+  font-family: var(--font-code); font-size: 0.88em;
+  background: var(--color-surface); border-radius: calc(var(--radius) / 2); padding: 0.08em 0.3em;
+}
+.content table { border-collapse: collapse; font-size: 24px; }
+.content th, .content td { border-bottom: 1px solid var(--color-border); padding: 8px 16px; text-align: left; }
+.content th { color: var(--color-heading); }
+
+/* Code (Shiki, Farben aus --shiki-*-Tokens) */
+.code-block { margin: 0; display: flex; flex-direction: column; min-height: 0; }
+.code-block figcaption {
+  align-self: flex-start; font-family: var(--font-code); font-size: 16px; color: var(--color-muted);
+  background: var(--shiki-background); border-radius: var(--radius) var(--radius) 0 0; padding: 6px 16px 0;
+}
+.code-block figcaption + pre { border-top-left-radius: 0; }
+.code-block pre {
+  margin: 0; padding: 20px 24px; border-radius: var(--radius); overflow: hidden;
+  font-family: var(--font-code); font-size: 22px; line-height: 1.5;
+}
+.code-block code { font-family: inherit; }
+
+/* Mermaid */
+.mermaid-block { display: flex; justify-content: center; min-height: 0; flex: 1; }
+.mermaid-block svg { max-width: 100%; max-height: 100%; height: auto; }
+.mermaid-src { visibility: hidden; margin: 0; }
+.mermaid-error { color: var(--color-danger); font-size: 18px; white-space: pre-wrap; }
+
+/* ---------- Container-Direktiven ---------- */
+
+.d-columns { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: var(--space-4); min-height: 0; flex: 0 1 auto; }
+.d-grid { display: grid; gap: var(--space-3); min-height: 0; }
+.d-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.d-col > * { margin: 0; }
+
+.d-children { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-2); margin-top: auto; }
+.tile {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 18px 22px; border-radius: var(--radius);
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  color: var(--color-fg); text-decoration: none; font-size: 24px; line-height: 1.25;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.tile:hover { border-color: var(--color-accent); transform: translateY(-2px); }
+.tile-title { font-weight: 600; color: var(--color-heading); }
+.tile-count { font-size: 16px; color: var(--color-muted); }
+
+/* ---------- Layouts ---------- */
+
+.layout-title { justify-content: center; }
+.layout-title .title-wrap { display: flex; flex-direction: column; gap: var(--space-3); max-width: 960px; }
+.layout-title .slide-title { font-size: 76px; }
+.layout-title .content { color: var(--color-muted); font-size: 32px; flex: none; }
+.layout-title::after {
+  content: ""; position: absolute; left: 80px; bottom: 76px; width: 96px; height: 6px;
+  border-radius: 3px; background: var(--color-accent);
+}
+
+.layout-section .slide-title { font-size: 60px; }
+.layout-section .content { flex: none; color: var(--color-muted); }
+
+.layout-two-col .content { display: grid; grid-template-columns: 1fr 1fr; align-content: start; gap: var(--space-2) var(--space-4); }
+.layout-two-col .content > :not(.d-col) { grid-column: 1 / -1; }
+
+/* ---------- Bedienelemente ---------- */
+
+.breadcrumb {
+  position: absolute; top: 22px; left: 80px; right: 80px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 16px; color: var(--color-muted); white-space: nowrap; overflow: hidden;
+}
+.breadcrumb button:hover { color: var(--color-accent); }
+.breadcrumb button.active { color: var(--color-fg); }
+.breadcrumb .sep { opacity: 0.6; }
+.breadcrumb .subslide { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.status {
+  position: absolute; left: 80px; right: 80px; bottom: 22px;
+  display: flex; align-items: center; gap: 16px; font-size: 16px; color: var(--color-muted);
+}
+.status .progress { margin-left: auto; font-variant-numeric: tabular-nums; }
+.children-hint { display: flex; align-items: center; gap: 10px; color: var(--color-accent); }
+.children-hint .dots { display: flex; gap: 5px; }
+.children-hint .dots i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+.overview {
+  position: fixed; inset: 0; z-index: 10;
+  background: color-mix(in srgb, var(--color-frame) 70%, transparent);
+  display: grid; place-items: center; padding: 32px;
+}
+.overview-panel {
+  width: min(1200px, 100%); max-height: 100%; overflow: auto;
+  background: var(--color-bg); border: 1px solid var(--color-border); border-radius: var(--radius);
+  padding: 24px 28px; box-shadow: 0 20px 60px rgb(0 0 0 / 0.35);
+}
+.overview-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 16px; font-size: 18px; }
+.overview-head .hint { color: var(--color-muted); font-size: 14px; }
+.overview-tree ul { list-style: none; margin: 0; padding: 0; }
+.overview-tree > ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.overview-tree > ul > li { background: var(--color-surface); border-radius: var(--radius); padding: 8px; }
+.overview-tree ul ul { margin-left: 12px; border-left: 2px solid var(--color-border); padding-left: 6px; }
+.overview-tree button {
+  display: flex; justify-content: space-between; gap: 8px; width: 100%; text-align: left;
+  padding: 5px 8px; border-radius: calc(var(--radius) / 2); font-size: 15px;
+}
+.overview-tree button[data-depth="1"] { font-weight: 700; font-size: 17px; color: var(--color-heading); }
+.overview-tree button:hover { background: var(--color-surface-2); }
+.overview-tree button.trail { color: var(--color-accent); }
+.overview-tree button.current { background: var(--color-accent); color: var(--color-bg); }
+.ov-meta { font-size: 12px; opacity: 0.7; white-space: nowrap; }
+
+.error {
+  position: fixed; left: 16px; right: 16px; bottom: 16px; z-index: 20;
+  background: var(--color-danger); color: #fff; border-radius: var(--radius); padding: 12px 16px; font-size: 14px;
+}
+.error pre { margin: 6px 0 0; white-space: pre-wrap; font-family: var(--font-code); }
+.empty { color: var(--color-muted); }

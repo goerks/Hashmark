@@ -1,0 +1,38 @@
+/* Theme "dark-tech": dunkel, Mono-Überschriften, Cyan-Akzent. */
+:root {
+  --color-bg: #0d1117;
+  --color-fg: #e6edf3;
+  --color-heading: #ffffff;
+  --color-muted: #8b949e;
+  --color-accent: #22d3ee;
+  --color-surface: #161b22;
+  --color-surface-2: #1f2630;
+  --color-border: #30363d;
+  --color-frame: #000000;
+  --color-danger: #d32f2f;
+
+  --font-heading: "Cascadia Code", "JetBrains Mono", Consolas, "SF Mono", Menlo, monospace;
+  --font-body: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-code: "Cascadia Code", "JetBrains Mono", Consolas, "SF Mono", Menlo, monospace;
+  --radius: 6px;
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 48px;
+
+  --shiki-foreground: #e6edf3;
+  --shiki-background: #161b22;
+  --shiki-token-keyword: #ff7b72;
+  --shiki-token-constant: #79c0ff;
+  --shiki-token-string: #a5d6ff;
+  --shiki-token-string-expression: #7ee787;
+  --shiki-token-comment: #8b949e;
+  --shiki-token-parameter: #ffa657;
+  --shiki-token-function: #d2a8ff;
+  --shiki-token-punctuation: #c9d1d9;
+  --shiki-token-link: var(--color-accent);
+}
+
+.slide[data-depth="3"], .slide[data-depth="4"] { --color-heading: #c9d1d9; }
+.slide .slide-title::before { content: "> "; color: var(--color-accent); }
+.layout-title .slide-title::before { content: none; }
