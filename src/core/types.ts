@@ -41,6 +41,8 @@ export interface Manifest {
   title?: string
   theme?: string
   maxDepth?: number
+  /** alle lokalen Bilder als Base64 in den Deck-Baum einbetten */
+  embedImages?: boolean
   layout?: string
   mount?: MountEntry[]
 }

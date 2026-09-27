@@ -131,6 +131,14 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   ```
   :::
   ```
+- **Bilder:**
+  - `![Alt](bilder/x.png)`: Eine Datei im Deck-Ordner wird beim Build mitkopiert.
+  - Dateien außerhalb des Decks (`../shared/logo.png`) werden automatisch als Base64 eingebettet.
+  - Base64 direkt: `![Alt](data:image/png;base64,…)` oder lesbarer als Referenz `![Logo][logo]` mit `[logo]: data:image/png;base64,…` am Dateiende. Die Referenz gilt in der ganzen Datei, über Folien hinweg.
+  - `embedImages: true` in `deck.yaml` bettet alle Bilder ein.
+  - Größe/Klasse direkt hinter dem Bild: `![](x.png){width=60% height=200 .rund}`
+  - Fehlende Bilder meldet das Terminal als Warnung.
+- **`---` als Folientrenner** funktioniert auch ohne Leerzeile darüber. CommonMark würde daraus sonst eine Überschrift machen.
 - **Theme** = CSS-Datei mit Tokens (`--color-*`, `--font-*`, `--radius`, `--space-*`, `--shiki-*`), siehe `src/runtime/themes/`
 
 ## Aufbau

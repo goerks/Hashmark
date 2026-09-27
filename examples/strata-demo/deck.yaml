@@ -5,6 +5,7 @@ mount:
   - file: 01-einfuehrung.md
   - file: 02-navigation.md
   - file: schritte.md
+  - file: bilder.md
   - file: 03-architektur.md
   - file: details/parser.md
     under: "Architektur > Parser"   # hängt die Datei unter einen bestehenden Knoten

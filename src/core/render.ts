@@ -1,5 +1,6 @@
 // Render-Plugins: mdast-Blöcke eines Knotens → HTML je Sub-Slide.
 
+import fs from 'node:fs'
 import path from 'node:path'
 import { unified } from 'unified'
 import remarkRehype from 'remark-rehype'
@@ -20,6 +21,10 @@ export interface RenderContext {
   deckDir: string
   /** gesammelte lokale Assets (absolute Pfade) */
   assets: Set<string>
+  /** alle lokalen Bilder als Data-URI einbetten (deck.yaml: embedImages) */
+  embedImages?: boolean
+  /** Hinweise, z. B. fehlende Bilder */
+  warnings?: string[]
 }
 
 export interface CodeBlockPlugin {
@@ -30,6 +35,36 @@ export interface CodeBlockPlugin {
 
 /** relativ, damit der statische Build auch in Unterverzeichnissen läuft */
 export const ASSET_PREFIX = 'deck-assets/'
+
+export const IMAGE_MIME: Record<string, string> = {
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif', '.ico': 'image/x-icon', '.bmp': 'image/bmp',
+}
+
+export function toDataUri(file: string): string {
+  const type = IMAGE_MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream'
+  return `data:${type};base64,${fs.readFileSync(file).toString('base64')}`
+}
+
+/** Web-URL (http:, data:, /pfad, #anker) statt Dateipfad? Windows-Laufwerke (C:\…) zählen als Dateipfad. */
+const isUrl = (url: string) => !/^[a-z]:[\\/]/i.test(url) && /^([a-z][a-z0-9+.-]*:|\/|#)/i.test(url)
+
+/**
+ * Lokales Bild auflösen: im Deck-Ordner → deck-assets/ (der Build kopiert die Datei),
+ * außerhalb des Decks oder mit embedImages → Base64-Data-URI.
+ */
+function resolveImage(url: string, ctx: RenderContext): string {
+  if (isUrl(url)) return url
+  const abs = path.resolve(path.dirname(ctx.file), decodeURI(url))
+  if (!fs.existsSync(abs)) {
+    ctx.warnings?.push(`Bild nicht gefunden: ${url} (${path.relative(ctx.deckDir, ctx.file)})`)
+    return url
+  }
+  const rel = path.relative(ctx.deckDir, abs)
+  if (ctx.embedImages || rel.startsWith('..') || path.isAbsolute(rel)) return toDataUri(abs)
+  ctx.assets.add(abs)
+  return ASSET_PREFIX + rel.split(path.sep).map(encodeURIComponent).join('/')
+}
 
 const escape = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -127,6 +162,27 @@ function codeAttrs(meta: string | null | undefined) {
 
 type AnyNode = RootContent & { name?: string; attributes?: Record<string, string>; data?: Record<string, unknown>; children?: AnyNode[] }
 
+/** `![](x.png){width=60% .rund}`: Attribute im Text direkt nach dem Bild */
+function imageAttrs(node: AnyNode, index: number, parent: AnyNode) {
+  const next = parent.children?.[index + 1] as { type: string; value: string } | undefined
+  const m = next?.type === 'text' ? next.value.match(/^\{([^{}]*)\}/) : null
+  if (!m) return
+  next!.value = next!.value.slice(m[0].length)
+  const attrs = parseAttrs(m[1])
+  const props: Record<string, unknown> = {}
+  const style: string[] = []
+  for (const key of ['width', 'height']) {
+    const v = attrs[key]
+    if (v) style.push(`${key}:${/^\d+$/.test(v) ? `${v}px` : v}`)
+  }
+  if (attrs.style) style.push(attrs.style)
+  if (style.length) props.style = style.join(';')
+  if (attrs.class) props.className = attrs.class.split(/\s+/)
+  if (attrs.id) props.id = attrs.id
+  const existing = (node.data as { hProperties?: Record<string, unknown> } | undefined)?.hProperties
+  node.data = { ...node.data, hProperties: { ...existing, ...props } }
+}
+
 /** `::: steps`: jeder Listenpunkt (bzw. jeder andere Block) erscheint in einem eigenen Schritt. */
 function markSteps(children: AnyNode[], start: number) {
   let step = start
@@ -170,14 +226,8 @@ function applyDirectives(root: Root, ctx: RenderContext) {
     }
     if (node.type === 'image') {
       const img = node as unknown as { url: string }
-      if (!/^([a-z]+:|\/|#|data:)/i.test(img.url)) {
-        const abs = path.resolve(path.dirname(ctx.file), decodeURI(img.url))
-        const rel = path.relative(ctx.deckDir, abs)
-        if (!rel.startsWith('..')) {
-          ctx.assets.add(abs)
-          img.url = ASSET_PREFIX + rel.split(path.sep).map(encodeURIComponent).join('/')
-        }
-      }
+      img.url = resolveImage(img.url, ctx)
+      if (parent && index !== undefined) imageAttrs(node, index, parent)
     }
   })
 }

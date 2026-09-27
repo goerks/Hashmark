@@ -6,7 +6,8 @@ import remarkGfm from 'remark-gfm'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkDirective from 'remark-directive'
 import { toString } from 'mdast-util-to-string'
-import type { Heading, Root, RootContent, PhrasingContent, Text } from 'mdast'
+import { visit, SKIP } from 'unist-util-visit'
+import type { Definition, Heading, Image, Link, Root, RootContent, PhrasingContent, Text } from 'mdast'
 import { normalizeContainers, parseAttrs, splitHeadingAttrs } from './syntax.ts'
 
 export interface RawNode {
@@ -23,7 +24,54 @@ export interface RawNode {
 const parser = unified().use(remarkParse).use(remarkGfm).use(remarkFrontmatter, ['yaml']).use(remarkDirective)
 
 export function parseMarkdown(markdown: string): Root {
-  return parser.parse(normalizeContainers(markdown))
+  const root = parser.parse(normalizeContainers(markdown))
+  fixSetextBreaks(root, markdown)
+  resolveReferences(root)
+  return root
+}
+
+/**
+ * `---` direkt unter einer Textzeile ist in CommonMark eine Setext-Überschrift (H2).
+ * In Präsentationen ist fast immer ein Folientrenner gemeint → Absatz + Trenner.
+ * Arbeitet nach dem Parsen, damit Zeilennummern (Editor-Sync) stimmen.
+ */
+function fixSetextBreaks(root: Root, markdown: string) {
+  const lines = markdown.split(/\r?\n/)
+  root.children = root.children.flatMap((node): RootContent[] => {
+    const pos = node.position
+    if (node.type !== 'heading' || node.depth !== 2 || !pos || pos.start.line === pos.end.line) return [node]
+    if (!/^ {0,3}-+\s*$/.test(lines[pos.end.line - 1] ?? '')) return [node]
+    const breakStart = { line: pos.end.line, column: 1 }
+    return [
+      { type: 'paragraph', children: node.children, position: { start: pos.start, end: { line: pos.end.line - 1, column: 1 } } },
+      { type: 'thematicBreak', position: { start: breakStart, end: pos.end } },
+    ]
+  })
+}
+
+/**
+ * Löst `![Logo][logo]` / `[Text][ref]` mit `[logo]: data:image/png;base64,…` dateiweit auf.
+ * Nötig, weil jede Folie später einzeln gerendert wird und Definitionen sonst fehlen.
+ */
+function resolveReferences(root: Root) {
+  const defs = new Map<string, Definition>()
+  visit(root, 'definition', (d) => { if (!defs.has(d.identifier)) defs.set(d.identifier, d) })
+  if (!defs.size) return
+  visit(root, (node, index, parent) => {
+    if (!parent || index === undefined) return
+    if (node.type === 'definition') {
+      parent.children.splice(index, 1)
+      return [SKIP, index]
+    }
+    if (node.type === 'imageReference' || node.type === 'linkReference') {
+      const d = defs.get(node.identifier)
+      if (!d) return
+      const replacement = node.type === 'imageReference'
+        ? ({ type: 'image', url: d.url, title: d.title, alt: node.alt, position: node.position } satisfies Image)
+        : ({ type: 'link', url: d.url, title: d.title, children: node.children, position: node.position } satisfies Link)
+      ;(parent.children as RootContent[])[index] = replacement
+    }
+  })
 }
 
 /** Entfernt `{…}` am Ende der Überschrift und liefert die Attribute. */

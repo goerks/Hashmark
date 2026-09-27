@@ -4,15 +4,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import type { Plugin, ViteDevServer } from 'vite'
 import { loadDeck, type LoadResult } from '../core/deck.ts'
-import { ASSET_PREFIX } from '../core/render.ts'
+import { ASSET_PREFIX, IMAGE_MIME, toDataUri } from '../core/render.ts'
 
 export const DECK_ID = 'virtual:strata/deck'
 export const THEME_ID = 'virtual:strata/theme.css'
 const RESOLVED_DECK = '\0strata-deck'
-const MIME: Record<string, string> = {
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif',
-}
 
 /** Payload für den Client: entweder ein Deck oder eine Fehlermeldung. */
 type Payload = { deck: LoadResult['deck'] } | { error: string }
@@ -36,6 +32,9 @@ export function strata(options: StrataOptions): Plugin {
     }
   }
 
+  const logWarnings = (log: (msg: string) => void) =>
+    current.then((r) => r.warnings.forEach((w) => log(`[strata] ${w}`)), () => {})
+
   async function reload(server: ViteDevServer) {
     current = loadDeck(deckDir)
     const mod = server.moduleGraph.getModuleById(RESOLVED_DECK)
@@ -50,6 +49,7 @@ export function strata(options: StrataOptions): Plugin {
     server.ws.send({ type: 'custom', event: 'strata:deck', data })
     const msg = 'error' in data ? `Fehler: ${data.error}` : `Deck neu geladen (${data.deck.nodes.length} Kapitel)`
     server.config.logger.info(`[strata] ${msg}`, { timestamp: true })
+    logWarnings((m) => server.config.logger.warn(m, { timestamp: true }))
   }
 
   return {
@@ -74,6 +74,7 @@ export function strata(options: StrataOptions): Plugin {
 
     configureServer(server) {
       server.watcher.add(deckDir)
+      logWarnings((m) => server.config.logger.warn(m))
       let timer: NodeJS.Timeout | undefined
       const onFile = (file: string) => {
         const rel = path.relative(deckDir, file)
@@ -88,7 +89,7 @@ export function strata(options: StrataOptions): Plugin {
         const rel = decodeURIComponent((req.url ?? '').split('?')[0]).replace(/^\/+/, '')
         const file = path.resolve(deckDir, rel)
         if (path.relative(deckDir, file).startsWith('..') || !fs.existsSync(file)) return next()
-        const type = MIME[path.extname(file).toLowerCase()]
+        const type = IMAGE_MIME[path.extname(file).toLowerCase()]
         if (type) res.setHeader('Content-Type', type)
         fs.createReadStream(file).pipe(res)
       })
@@ -96,6 +97,7 @@ export function strata(options: StrataOptions): Plugin {
 
     async buildStart() {
       await current // Fehler brechen den Build ab
+      await logWarnings((m) => this.warn(m))
     },
 
     async generateBundle() {
@@ -125,7 +127,6 @@ function inlineAssets(json: string, deckDir: string, warn: (msg: string) => void
       warn(`Bild nicht gefunden: ${rel}`)
       return match
     }
-    const type = MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream'
-    return `data:${type};base64,${fs.readFileSync(file).toString('base64')}`
+    return toDataUri(file)
   })
 }

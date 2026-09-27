@@ -18,6 +18,8 @@ export interface LoadResult {
   themePath: string
   /** referenzierte lokale Bilder */
   assets: string[]
+  /** Hinweise beim Laden, z. B. fehlende Bilder */
+  warnings: string[]
 }
 
 export class DeckError extends Error {
@@ -122,7 +124,8 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
   }
 
   const assets = new Set<string>()
-  const nodes = await finalize(top, '', { deckDir, assets })
+  const warnings: string[] = []
+  const nodes = await finalize(top, '', { deckDir, assets, warnings, embedImages: manifest.embedImages === true })
   return {
     deck: {
       title: manifest.title ?? nodes[0]?.title ?? 'Strata',
@@ -133,5 +136,6 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
     },
     themePath: resolveTheme(deckDir, manifest.theme),
     assets: [...assets],
+    warnings,
   }
 }

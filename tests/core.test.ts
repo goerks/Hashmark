@@ -175,3 +175,67 @@ describe('Navigator mit Schritten', () => {
     expect(nav.relocate({ id: 'a', slide: 0, step: 9 })).toEqual({ id: 'a', slide: 0, step: 2 })
   })
 })
+
+describe('Bilder', () => {
+  // 1×1-PNG
+  const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64')
+  const DATA = `data:image/png;base64,${PNG.toString('base64')}`
+
+  async function deckWithImages(manifest = '') {
+    const dir = await tempDeck({
+      'deck/deck.yaml': manifest + 'mount:\n  - file: a.md\n',
+      'deck/a.md': [
+        '# Bilder',
+        '![lokal](bilder/x.png){width=60% .rund}',
+        '',
+        '![aussen](../shared/logo.png)',
+        '',
+        `![inline](${DATA})`,
+        '---',
+        '![Referenz][logo]',
+        '',
+        '![fehlt](nicht-da.png)',
+        '',
+        `[logo]: ${DATA}`,
+      ].join('\n'),
+    })
+    await fs.mkdir(path.join(dir, 'deck/bilder'), { recursive: true })
+    await fs.mkdir(path.join(dir, 'shared'), { recursive: true })
+    await fs.writeFile(path.join(dir, 'deck/bilder/x.png'), PNG)
+    await fs.writeFile(path.join(dir, 'shared/logo.png'), PNG)
+    return loadDeck(path.join(dir, 'deck'))
+  }
+
+  it('verlinkt Deck-Bilder, bettet externe und Data-URIs ein, löst Referenzen folienübergreifend auf', async () => {
+    const { deck, assets, warnings } = await deckWithImages()
+    const [s1, s2] = deck.nodes[0].slides
+    expect(s1.html).toContain('src="deck-assets/bilder/x.png"')
+    expect(s1.html).toContain('style="width:60%"')
+    expect(s1.html).toContain('class="rund"')
+    expect(s1.html).not.toContain('{width')
+    expect(s1.html).toContain(`src="${DATA}" alt="aussen"`) // außerhalb des Decks → eingebettet
+    expect(s1.html).toContain(`src="${DATA}" alt="inline"`)
+    expect(s2.html).toContain(`src="${DATA}" alt="Referenz"`) // Definition stand auf einer anderen Folie
+    expect(s2.html).not.toContain('[logo]')
+    expect(assets.map((a) => path.basename(a))).toEqual(['x.png'])
+    expect(warnings).toEqual([expect.stringContaining('nicht-da.png')])
+  })
+
+  it('bettet mit embedImages alle Bilder als Base64 ein', async () => {
+    const { deck, assets } = await deckWithImages('embedImages: true\n')
+    expect(deck.nodes[0].slides[0].html).toContain(`src="${DATA}" alt="lokal"`)
+    expect(assets).toEqual([])
+  })
+})
+
+describe('Folientrenner', () => {
+  it('macht aus Text + --- keinen Setext-Titel und behält die Zeilennummern', () => {
+    const nodes = buildNodes(parseMarkdown('# A\nEins\n---\nZwei\n## B'), { file: 'x.md', baseDepth: 1, maxDepth: 6 })
+    expect(nodes).toHaveLength(1)
+    expect(nodes[0].content.map((b) => b.type)).toEqual(['paragraph', 'thematicBreak', 'paragraph'])
+    expect(nodes[0].children[0].source.line).toBe(5)
+    // echte Setext-Überschrift mit === bleibt, Frontmatter ebenso
+    expect(parseMarkdown('Titel\n===').children[0].type).toBe('heading')
+    expect(parseMarkdown('---\ntitle: x\n---\n# A').children[0].type).toBe('yaml')
+  })
+})
