@@ -239,3 +239,29 @@ describe('Folientrenner', () => {
     expect(parseMarkdown('---\ntitle: x\n---\n# A').children[0].type).toBe('yaml')
   })
 })
+
+describe('Editor-Sync', () => {
+  it('ordnet Zeilen Knoten und Sub-Slides zu und zurück', async () => {
+    const { nodeAtLine, lineOfSlide } = await import('../src/core/sourcemap.ts')
+    const text = ['Vorwort', '# A', 'eins', '---', 'zwei', '```', '---', '```', '## B', 'b'].join('\n')
+    const dir = await tempDeck({ 'a.md': text })
+    const { deck } = await loadDeck(dir)
+    expect(nodeAtLine(deck.nodes, 'a.md', text, 1)).toEqual({ id: 'a', slide: 0 })
+    expect(nodeAtLine(deck.nodes, 'a.md', text, 3)).toEqual({ id: 'a', slide: 0 })
+    expect(nodeAtLine(deck.nodes, 'a.md', text, 5)).toEqual({ id: 'a', slide: 1 })
+    expect(nodeAtLine(deck.nodes, 'a.md', text, 8)).toEqual({ id: 'a', slide: 1 }) // --- im Codeblock zählt nicht
+    expect(nodeAtLine(deck.nodes, 'a.md', text, 10)).toEqual({ id: 'a/b', slide: 0 })
+    expect(nodeAtLine(deck.nodes, 'andere.md', text, 1)).toBeNull()
+    expect(lineOfSlide(deck.nodes, 'a/b', 0)).toEqual({ file: 'a.md', line: 9 })
+    expect(lineOfSlide(deck.nodes, 'a', 1, text)).toEqual({ file: 'a.md', line: 5 })
+  })
+})
+
+describe('Editor-Hilfen', () => {
+  it('bildet Bildpfade relativ zur bearbeiteten Datei', async () => {
+    const { relativeTo } = await import('../src/runtime/editor/api.ts')
+    expect(relativeTo('a.md', 'bilder/x.png')).toBe('bilder/x.png')
+    expect(relativeTo('details/parser.md', 'bilder/x.png')).toBe('../bilder/x.png')
+    expect(relativeTo('details/tief/b.md', 'details/bild.png')).toBe('../bild.png')
+  })
+})

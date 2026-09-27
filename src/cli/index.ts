@@ -44,6 +44,21 @@ cli
   })
 
 cli
+  .command('edit [deck]', 'Editor starten: links Markdown, rechts Live-Vorschau (nur localhost)')
+  .option('--port <port>', 'Port', { default: 3030 })
+  .option('--no-open', 'Browser nicht öffnen')
+  .action(async (deck = '.', opts: { port: number; open: boolean }) => {
+    // bewusst ohne --host: die Datei-API darf nur lokal erreichbar sein
+    const server = await createServer(config(deck, {
+      server: { port: Number(opts.port), host: 'localhost', open: opts.open ? '/editor.html' : false },
+    }, { editor: true }))
+    await server.listen()
+    const url = server.resolvedUrls?.local[0]
+    server.config.logger.info(`\n  Editor:        ${url}editor.html\n  Präsentation:  ${url}\n`)
+    server.bindCLIShortcuts({ print: true })
+  })
+
+cli
   .command('build [deck]', 'Statisches HTML bauen')
   .option('--out <dir>', 'Ausgabeordner', { default: 'dist' })
   .action(async (deck = '.', opts: { out: string }) => {

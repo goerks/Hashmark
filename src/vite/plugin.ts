@@ -5,6 +5,7 @@ import path from 'node:path'
 import type { Plugin, ViteDevServer } from 'vite'
 import { loadDeck, type LoadResult } from '../core/deck.ts'
 import { ASSET_PREFIX, IMAGE_MIME, toDataUri } from '../core/render.ts'
+import { editorApi } from './editor-api.ts'
 
 export const DECK_ID = 'virtual:strata/deck'
 export const THEME_ID = 'virtual:strata/theme.css'
@@ -17,6 +18,8 @@ export interface StrataOptions {
   deckDir: string
   /** Bilder als Data-URI in den Deck-Baum einbetten (Single-File-Export) */
   inlineAssets?: boolean
+  /** Datei-API für den Editor aktivieren (nur `strata edit`, nur localhost) */
+  editor?: boolean
 }
 
 export function strata(options: StrataOptions): Plugin {
@@ -74,6 +77,7 @@ export function strata(options: StrataOptions): Plugin {
 
     configureServer(server) {
       server.watcher.add(deckDir)
+      if (options.editor) server.middlewares.use(editorApi(deckDir))
       logWarnings((m) => server.config.logger.warn(m))
       let timer: NodeJS.Timeout | undefined
       const onFile = (file: string) => {

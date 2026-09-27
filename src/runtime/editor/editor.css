@@ -1,0 +1,115 @@
+/* Editor-Oberfläche. Eigene, neutrale Tokens – unabhängig vom Deck-Theme (das nur die Vorschau betrifft). */
+
+:root {
+  --ed-bg: #ffffff;
+  --ed-fg: #1f2328;
+  --ed-muted: #6b7280;
+  --ed-accent: #2563eb;
+  --ed-surface: #f6f7f9;
+  --ed-surface-2: #eceff3;
+  --ed-border: #dde1e6;
+  --ed-danger: #c62828;
+  --ed-ok: #15803d;
+  --ed-font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --ed-font-code: "Cascadia Code", "JetBrains Mono", Consolas, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ed-bg: #16181d;
+    --ed-fg: #e6e8eb;
+    --ed-muted: #9aa1ab;
+    --ed-accent: #60a5fa;
+    --ed-surface: #1d2027;
+    --ed-surface-2: #262a33;
+    --ed-border: #30343d;
+    --ed-danger: #f87171;
+    --ed-ok: #4ade80;
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--ed-bg); color: var(--ed-fg); font-family: var(--ed-font); font-size: 14px; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+
+.ed-app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+.ed-app.dragging { cursor: col-resize; user-select: none; }
+.ed-app.dragging iframe { pointer-events: none; }
+
+/* ---------- Leiste ---------- */
+
+.ed-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 8px 14px; border-bottom: 1px solid var(--ed-border); background: var(--ed-surface);
+}
+.ed-brand { font-size: 15px; }
+.ed-deck { color: var(--ed-muted); max-width: 22ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ed-tools { display: flex; flex-wrap: wrap; gap: 4px; margin-left: 8px; }
+.ed-tools button {
+  padding: 4px 9px; border-radius: 6px; border: 1px solid var(--ed-border); background: var(--ed-bg);
+  font-size: 13px; white-space: nowrap;
+}
+.ed-tools button:hover { border-color: var(--ed-accent); color: var(--ed-accent); }
+.ed-tools .sep { width: 1px; background: var(--ed-border); margin: 2px 4px; }
+.ed-follow { display: flex; align-items: center; gap: 5px; margin-left: auto; color: var(--ed-muted); cursor: pointer; }
+.ed-status { font-size: 12px; color: var(--ed-muted); min-width: 11ch; text-align: right; }
+.ed-status[data-status="saved"] { color: var(--ed-ok); }
+.ed-status[data-status="error"] { color: var(--ed-danger); font-weight: 600; }
+.ed-present {
+  padding: 5px 12px; border-radius: 6px; background: var(--ed-accent); color: #fff; font-weight: 600;
+}
+
+/* ---------- Hauptbereich ---------- */
+
+.ed-main { flex: 1; min-height: 0; display: grid; }
+.ed-side {
+  display: flex; flex-direction: column; min-height: 0; overflow: hidden;
+  border-right: 1px solid var(--ed-border); background: var(--ed-surface);
+}
+.ed-side section { display: flex; flex-direction: column; min-height: 0; }
+.ed-side .ed-outline { flex: 1; overflow: auto; border-top: 1px solid var(--ed-border); }
+.ed-side-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 12px 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ed-muted);
+}
+.ed-side-head button { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--ed-accent); font-size: 12px; }
+.ed-side ul { list-style: none; margin: 0; padding: 0; }
+.ed-files { max-height: 30vh; overflow: auto; padding-bottom: 8px !important; }
+.ed-files button, .ol-item {
+  display: flex; justify-content: space-between; gap: 6px; width: 100%; text-align: left;
+  padding: 4px 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ed-files button { font-family: var(--ed-font-code); font-size: 12.5px; }
+.ed-files button[data-kind="yaml"] { color: var(--ed-muted); }
+.ed-files button:hover, .ol-item:hover { background: var(--ed-surface-2); }
+.ed-files button.active { background: var(--ed-surface-2); color: var(--ed-accent); font-weight: 600; }
+.ed-outline ul ul { padding-left: 12px; }
+.ol-item[data-depth="1"] { font-weight: 600; }
+.ol-item:not(.here) { color: var(--ed-muted); }
+.ol-item.active { color: var(--ed-accent); background: color-mix(in srgb, var(--ed-accent) 12%, transparent); }
+.ol-meta { font-size: 11px; color: var(--ed-muted); }
+
+.ed-editor { min-width: 0; min-height: 0; overflow: hidden; }
+.ed-divider { cursor: col-resize; background: var(--ed-border); }
+.ed-divider:hover, .ed-app.dragging .ed-divider { background: var(--ed-accent); }
+
+.ed-preview { position: relative; min-width: 0; min-height: 0; background: #000; }
+.ed-preview iframe { width: 100%; height: 100%; border: 0; display: block; }
+.ed-error {
+  position: absolute; left: 12px; right: 12px; bottom: 12px;
+  background: var(--ed-danger); color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 13px;
+}
+.ed-error pre { margin: 4px 0 0; white-space: pre-wrap; font-family: var(--ed-font-code); }
+
+.ed-toast {
+  position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+  background: var(--ed-fg); color: var(--ed-bg); padding: 8px 14px; border-radius: 8px; font-size: 13px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+}
+
+/* CodeMirror im dunklen Modus lesbar halten */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .cm-editor { background: var(--ed-bg); color: var(--ed-fg); }
+  :root:not([data-theme="light"]) .cm-cursor { border-left-color: var(--ed-fg); }
+  :root:not([data-theme="light"]) .cm-activeLine { background: color-mix(in srgb, var(--ed-fg) 5%, transparent); }
+  :root:not([data-theme="light"]) .cm-selectionBackground { background: color-mix(in srgb, var(--ed-accent) 30%, transparent) !important; }
+}

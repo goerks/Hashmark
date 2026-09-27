@@ -20,6 +20,7 @@ make dev DECK=decks/mein-vortrag
 | Befehl | Wirkung |
 | --- | --- |
 | `make setup` | Node.js nach `vendor/node` (falls fehlend) und `npm ci --offline` aus `vendor/npm-cache` |
+| `make edit` | Editor mit Live-Vorschau im Browser (`DECK=…`), siehe unten |
 | `make dev` / `make dev-open` | Dev-Server mit Hot Reload (`DECK=…`, `PORT=…`) |
 | `make build` | Statisches HTML nach `dist/` (`OUT=…`) |
 | `make preview` | Gebautes Deck lokal ausliefern |
@@ -39,6 +40,27 @@ Es muss nichts global installiert werden:
 - Zur Laufzeit gibt es keine CDNs und keine Web-Fonts. Mermaid und Shiki werden mitgebündelt, Schriften kommen aus dem System.
 
 Voraussetzungen: Windows x64 und GNU Make (z. B. `choco install make`).
+
+## Editor
+
+```sh
+make edit                          # Beispiel-Deck
+make edit DECK=decks/mein-vortrag  # eigenes Deck
+```
+
+Der Browser öffnet `http://localhost:3030/editor.html`:
+
+- **Links** stehen Dateien und Gliederung des Decks, in der Mitte der Markdown-Editor (CodeMirror, mit Hervorhebung, Suchen/Ersetzen Ctrl+F und Undo).
+- **Rechts** ist die Live-Vorschau. Jede Änderung wird nach 0,4 s automatisch gespeichert und sofort angezeigt. Ctrl+S speichert direkt.
+- **Synchron** (Schalter oben): Die Vorschau zeigt die Folie unter dem Cursor, inklusive Sub-Slide, vollständig aufgedeckt. Umgekehrt scrollt der Editor mit, wenn du in der Vorschau mit den Pfeiltasten oder der Übersicht navigierst.
+- **Gliederung:** Ein Klick öffnet die Datei an der Überschrift und zeigt die Folie.
+- **Werkzeugleiste:** Bausteine für Kapitel, Detail, Sub-Slide, Zwei Spalten, Schritte, Code, Mermaid, Notizen und Kacheln.
+- **Bilder:** *Bild* kopiert die Datei nach `bilder/` und fügt den Link ein. Das geht auch per **Drag & Drop** oder **Einfügen (Ctrl+V)** eines Screenshots. *Bild (Base64)* bettet das Bild direkt in die Markdown-Datei ein, als Referenz am Dateiende.
+- **+ Datei** legt eine neue Markdown-Datei an und trägt sie in `deck.yaml` ein. Kommentare dort bleiben erhalten.
+- **Präsentieren ↗** öffnet die Präsentation an der aktuellen Folie in einem neuen Tab.
+- **Externe Änderungen** (z. B. in VS Code) übernimmt der Editor automatisch, solange er selbst nichts Ungespeichertes hat.
+
+Sicherheit: Die Datei-API existiert nur mit `make edit`. Sie ist nur über localhost erreichbar, schreibt nur innerhalb des Deck-Ordners und nur `.md`/`.yaml` bzw. Bilder. `make dev-lan` hat bewusst keinen Editor.
 
 ## Präsentieren: lokal und remote
 
@@ -147,6 +169,7 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
 src/core/      Parser (remark), Deck-Baum, Render-Plugins (Shiki, Mermaid), Navigator – ohne UI, getestet
 src/vite/      Vite-Plugin: Deck als virtuelles Modul, Datei-Watcher, Hot Reload, Bild-Assets
 src/runtime/   Svelte-5-App: Bühne, Layouts, Übergänge, Breadcrumb, Übersicht, Themes
+src/runtime/editor/  Editor (editor.html): CodeMirror, Vorschau-Sync, Bild-Upload
 src/cli/       strata dev | build | preview
 examples/      Beispiel-Deck (5 Dateien, 3 Ebenen)
 ```

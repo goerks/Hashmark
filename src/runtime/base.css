@@ -11,9 +11,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 }
 
 /* Feste 16:9-Bühne, per transform auf das Fenster skaliert */
+/* absolut zentriert: bei Fenstern < 1280 px würde das Grid die Bühne sonst links ausrichten */
 .stage {
-  position: relative; width: 1280px; height: 720px; flex-shrink: 0;
-  transform: scale(var(--scale, 1));
+  position: absolute; left: 50%; top: 50%; width: 1280px; height: 720px;
+  transform: translate(-50%, -50%) scale(var(--scale, 1));
   overflow: hidden; background: var(--color-bg);
 }
 .stage-slide { position: absolute; inset: 0; }

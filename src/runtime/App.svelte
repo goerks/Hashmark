@@ -66,6 +66,12 @@
     if (location.hash !== hash) history.replaceState(null, '', hash)
   })
 
+  // Im Editor (Vorschau-Iframe): Position an den Editor melden
+  const embedded = window.parent !== window
+  $effect(() => {
+    if (embedded && pos) window.parent.postMessage({ type: 'strata:position', pos }, location.origin)
+  })
+
   $effect(() => {
     document.title = node && deck ? `${node.title} · ${deck.title}` : (deck?.title ?? 'Strata')
   })
@@ -73,7 +79,7 @@
   function onkeydown(e: KeyboardEvent) {
     // bei offener Übersicht übernimmt NavOverview die Tasten
     if (overview || !pos) return
-    if ((e.target as HTMLElement).closest('input, textarea, [contenteditable]')) return
+    if ((e.target as HTMLElement | null)?.closest?.('input, textarea, [contenteditable]')) return
     if (isOverviewKey(e)) {
       overview = true
       e.preventDefault()
@@ -110,6 +116,19 @@
     }
     window.addEventListener('hashchange', onHash)
 
+    // Editor → Vorschau: zur Folie unter dem Cursor springen (step 'all' = vollständig aufgedeckt)
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== location.origin || e.data?.type !== 'strata:goto') return
+      const target = nav.node(e.data.id)
+      if (!target) return
+      const slide = Math.max(0, Math.min(Number(e.data.slide) || 0, target.slides.length - 1))
+      const step = e.data.step === 'all' ? stepsOf(target, slide) : 0
+      if (pos && pos.id === target.id && pos.slide === slide && (pos.step ?? 0) === step) return
+      overview = false
+      go({ pos: step ? { id: target.id, slide, step } : { id: target.id, slide }, dir: 'jump' })
+    }
+    window.addEventListener('message', onMessage)
+
     // Hot Reload: neuer Baum, Position bleibt (oder die nächstliegende)
     import.meta.hot?.on('strata:deck', (payload: Payload) => {
       if ('error' in payload) {
@@ -124,7 +143,10 @@
       nav = next
       pos = relocated
     })
-    return () => window.removeEventListener('hashchange', onHash)
+    return () => {
+      window.removeEventListener('hashchange', onHash)
+      window.removeEventListener('message', onMessage)
+    }
   })
 </script>
 

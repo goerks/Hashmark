@@ -25,12 +25,13 @@ NODE     := $(RUN) vendor\node\node.exe
 NPM      := $(RUN) vendor\node\npm.cmd
 STRATA   := $(NODE) src\cli\index.ts
 
-.PHONY: help setup node install deps-update dev dev-open dev-lan build preview preview-lan export docker docker-run test new clean distclean
+.PHONY: help setup node install deps-update edit edit-no-open dev dev-open dev-lan build preview preview-lan export docker docker-run test new clean distclean
 
 help:
 	@echo Strata - Markdown-Praesentationen als navigierbarer Baum
 	@echo.
 	@echo   make setup         Node.js nach vendor/node holen und Pakete offline installieren
+	@echo   make edit          Editor: links Markdown, rechts Live-Vorschau (DECK=...)
 	@echo   make dev           Dev-Server starten           (DECK=$(DECK) PORT=$(PORT))
 	@echo   make dev-open      Dev-Server starten und Browser oeffnen
 	@echo   make dev-lan       Dev-Server im Netzwerk erreichbar (LAN/VPN)
@@ -63,6 +64,12 @@ deps-update: $(NODE_EXE)
 
 node_modules: | $(NODE_EXE)
 	$(NPM) ci --offline
+
+edit: node_modules
+	$(STRATA) edit "$(DECK)" --port $(PORT)
+
+edit-no-open: node_modules
+	$(STRATA) edit "$(DECK)" --port $(PORT) --no-open
 
 dev: node_modules
 	$(STRATA) dev "$(DECK)" --port $(PORT)
