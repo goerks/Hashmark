@@ -77,6 +77,10 @@
     document.title = node && deck ? `${node.title} · ${deck.title}` : (deck?.title ?? 'Strata')
   })
 
+  function openPrintView() {
+    window.open(location.pathname + printQuery({}, { autoprint: '1' }), '_blank')
+  }
+
   function onkeydown(e: KeyboardEvent) {
     // bei offener Übersicht übernimmt NavOverview die Tasten
     if (overview || !pos) return
@@ -86,13 +90,14 @@
       e.preventDefault()
       return
     }
-    if (e.ctrlKey || e.metaKey || e.altKey) return
-    // P: Druckansicht / PDF in neuem Tab
-    if (e.key === 'p' || e.key === 'P') {
+    // P bzw. Ctrl+P / Cmd+P: statt der Bildschirmansicht die Druckansicht drucken
+    const isPrintKey = (e.key === 'p' || e.key === 'P') && !e.altKey && !e.shiftKey
+    if (isPrintKey) {
       e.preventDefault()
-      window.open(location.pathname + printQuery({}, { autoprint: '1' }), '_blank')
+      openPrintView()
       return
     }
+    if (e.ctrlKey || e.metaKey || e.altKey) return
     const handlers: Record<string, () => Move | null> = {
       ArrowRight: () => nav.next(pos!),
       PageDown: () => nav.next(pos!),

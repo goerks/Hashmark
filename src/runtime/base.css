@@ -226,3 +226,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .step-dots { display: inline-flex; gap: 5px; margin-right: 10px; vertical-align: middle; }
 .step-dots i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--color-muted); }
 .step-dots i.done { background: var(--color-accent); border-color: var(--color-accent); }
+
+/* ---------- Druck über das Browsermenü ----------
+ * Ctrl+P / P öffnen die Druckansicht (alle Folien). Druckt man die Präsentation trotzdem direkt
+ * (Menü „Drucken“), kommt wenigstens die aktuelle Folie sauber auf eine 16:9-Seite.
+ * Die Druckansicht setzt ihr eigenes @page und überschreibt dieses.
+ */
+@page { size: 1280px 720px; margin: 0; }
+@media print {
+  html, body { height: auto; background: none; }
+  .viewport { position: static; display: block; place-items: normal; container-type: inline-size; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; }
+  .viewport .stage { position: relative; left: 0; top: 0; transform: none; transform-origin: 0 0; }
+  @supports (scale: calc(100cqw / 1280px)) {
+    .viewport .stage { scale: calc(100cqw / 1280px); }
+  }
+  .breadcrumb, .status, .nav-overview, .error { display: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

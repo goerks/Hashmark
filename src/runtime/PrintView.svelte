@@ -53,7 +53,7 @@
     document.documentElement.classList.add(options.notes ? 'print-handout' : 'print-slides')
     // Seitenformat: Folien 16:9 (1280 × 720 px = 13,33 × 7,5 Zoll), Handout A4 hoch
     const page = document.createElement('style')
-    page.textContent = options.notes ? '@page { size: A4 portrait; margin: 0 }' : '@page { size: 1280px 720px; margin: 0 }'
+    page.textContent = options.notes ? '@page { size: A4 portrait; margin: 12mm }' : '@page { size: 1280px 720px; margin: 0 }'
     document.head.append(page)
     ;(async () => {
       await waitUntilRendered()

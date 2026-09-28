@@ -32,14 +32,23 @@
 .print-crumb { left: 80px; right: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .print-num { right: 80px; font-variant-numeric: tabular-nums; }
 
-/* Folien: Seite = Bühne */
-.print-slides .print-page { width: 1280px; height: 720px; zoom: var(--fit); }
+/*
+ * Die Bühne (1280 × 720) skaliert auf die Breite ihres Containers (100cqw / 1280px).
+ * So passt jede Folie auch dann, wenn der Druckdialog ein anderes Papier als 16:9 wählt
+ * (A4, Letter, Hochformat …). Ohne Unterstützung bleibt es bei 1280 px – das passt zur CSS-Seitengröße.
+ */
+.print-slide { container-type: inline-size; width: 100%; aspect-ratio: 16 / 9; overflow: hidden; }
+.print-stage { transform-origin: 0 0; }
+@supports (scale: calc(100cqw / 1280px)) {
+  .print-stage { scale: calc(100cqw / 1280px); }
+}
 
-/* Handout: A4 hoch (794 × 1123 px bei 96 dpi), Folie oben verkleinert, Notizen darunter */
-.print-handout .print-page { width: 210mm; height: 296.8mm; padding: 12mm; zoom: var(--fit); display: flex; flex-direction: column; gap: 8mm; }
-.print-handout .print-slide { width: 100%; aspect-ratio: 16 / 9; overflow: hidden; outline: 1px solid var(--color-border); flex: none; }
-/* 186 mm Inhaltsbreite = 703 px → 703 / 1280 */
-.print-handout .print-stage { transform: scale(0.549); transform-origin: 0 0; }
+/* Folien: Seite = Bühne */
+.print-slides .print-page { width: 1280px; zoom: var(--fit); }
+
+/* Handout: A4 hoch, Folie oben, Notizen darunter */
+.print-handout .print-page { width: 210mm; min-height: 296.8mm; padding: 12mm; zoom: var(--fit); display: flex; flex-direction: column; gap: 8mm; }
+.print-handout .print-slide { outline: 1px solid var(--color-border); flex: none; }
 .print-notes { flex: 1; overflow: hidden; font-size: 14px; line-height: 1.5; color: var(--color-fg); }
 .print-notes p { margin: 0 0 0.6em; }
 .print-notes ul { margin: 0 0 0.6em; padding-left: 1.2em; }
@@ -51,7 +60,10 @@
   html, body { background: none; }
   .print-root { padding: 0; background: none; min-height: 0; }
   .print-bar, .print-error { display: none; }
-  .print-page { margin: 0; box-shadow: none; zoom: 1 !important; break-after: page; page-break-after: always; }
+  .print-page { margin: 0; box-shadow: none; zoom: 1 !important; break-after: page; page-break-after: always; break-inside: avoid; }
   .print-page:last-child { break-after: auto; page-break-after: auto; }
+  /* Seite füllt die Papierbreite, Höhe folgt aus 16:9 bzw. dem Inhalt → keine abgeschnittenen Folien */
+  .print-slides .print-page { width: 100%; }
+  .print-handout .print-page { width: 100%; min-height: 0; padding: 0; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
