@@ -4,6 +4,7 @@
   import type { Deck, DeckNode } from '../../core/types.ts'
   import { formatHash, type Position } from '../../core/navigator.ts'
   import { lineOfSlide, nodeAtLine } from '../../core/sourcemap.ts'
+  import { printQuery } from '../../core/print.ts'
   import { api, relativeTo, type FileEntry } from './api.ts'
   import { createEditor, type Editor } from './codemirror.ts'
   import { SNIPPETS, expand } from './snippets.ts'
@@ -197,6 +198,10 @@
     window.addEventListener('pointerup', up)
   }
 
+  function exportPdf() {
+    window.open('./' + printQuery({}, { autoprint: '1' }), '_blank')
+  }
+
   function present() {
     window.open('./' + (previewPos ? formatHash(previewPos) : ''), '_blank')
   }
@@ -301,6 +306,7 @@
       <input type="checkbox" bind:checked={follow} /> Synchron
     </label>
     <span class="ed-status" data-status={status}>{statusText[status]}</span>
+    <button class="ed-pdf" onclick={exportPdf} title="Druckansicht öffnen: drucken oder als PDF speichern">PDF</button>
     <button class="ed-present" onclick={present} title="Präsentation in neuem Tab öffnen">Präsentieren ↗</button>
   </header>
 

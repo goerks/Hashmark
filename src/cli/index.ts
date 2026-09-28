@@ -8,6 +8,8 @@ import { build, createServer, preview, type InlineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { strata, type StrataOptions } from '../vite/plugin.ts'
 import { exportSingleFile } from './export.ts'
+import { exportPdf } from './pdf.ts'
+import { printQuery } from '../core/print.ts'
 
 const PROJECT_ROOT = fileURLToPath(new URL('../../', import.meta.url))
 const RUNTIME_DIR = path.join(PROJECT_ROOT, 'src/runtime')
@@ -84,6 +86,21 @@ cli
   .action(async (deck = '.', opts: { out?: string }) => {
     const out = path.resolve(opts.out ?? path.join('export', `${path.basename(path.resolve(deck))}.html`))
     await exportSingleFile(config(deck, {}, { inlineAssets: true }), out)
+  })
+
+cli
+  .command('pdf [deck]', 'PDF erzeugen (nutzt installiertes Edge/Chrome, offline)')
+  .option('--out <file>', 'Zieldatei (Standard: export/<deck>.pdf)')
+  .option('--depth <n>', 'nur bis Ebene n (1 = Hauptpfad)')
+  .option('--steps', 'jeder Schritt eine eigene Seite')
+  .option('--notes', 'Handout: A4 hoch mit Sprechernotizen')
+  .option('--no-footer', 'ohne Breadcrumb und Seitenzahl')
+  .option('--browser <path>', 'Pfad zu Edge/Chrome (sonst automatisch, oder STRATA_BROWSER)')
+  .action(async (deck = '.', opts: { out?: string; depth?: string; steps?: boolean; notes?: boolean; footer: boolean; browser?: string }) => {
+    const name = path.basename(path.resolve(deck)) + (opts.notes ? '-handout' : '')
+    const out = path.resolve(opts.out ?? path.join('export', `${name}.pdf`))
+    const query = printQuery({ depth: opts.depth ? Number(opts.depth) : undefined, steps: opts.steps, notes: opts.notes, footer: opts.footer })
+    await exportPdf(config(deck), { out, query, browser: opts.browser })
   })
 
 cli.help()

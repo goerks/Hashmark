@@ -54,6 +54,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .ed-status { font-size: 12px; color: var(--ed-muted); min-width: 11ch; text-align: right; }
 .ed-status[data-status="saved"] { color: var(--ed-ok); }
 .ed-status[data-status="error"] { color: var(--ed-danger); font-weight: 600; }
+.ed-pdf { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--ed-border); background: var(--ed-bg); font-weight: 600; }
+.ed-pdf:hover { border-color: var(--ed-accent); color: var(--ed-accent); }
 .ed-present {
   padding: 5px 12px; border-radius: 6px; background: var(--ed-accent); color: #fff; font-weight: 600;
 }

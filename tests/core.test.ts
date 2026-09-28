@@ -265,3 +265,31 @@ describe('Editor-Hilfen', () => {
     expect(relativeTo('details/tief/b.md', 'details/bild.png')).toBe('../bild.png')
   })
 })
+
+describe('Druck', () => {
+  const withSteps = (id: string, steps: number[], children: DeckNode[] = []): DeckNode => ({
+    ...n(id, children, steps.length),
+    slides: steps.map((k) => ({ html: '', steps: Array.from({ length: k }, () => ({ selector: '', state: {} })) })),
+  })
+  const tree = [withSteps('a', [2, 0], [n('a/x', [n('a/x/y')])]), n('b')]
+
+  it('liefert Seiten in Lesereihenfolge, Endzustand, mit Tiefenfilter', async () => {
+    const { printPages, DEFAULT_PRINT } = await import('../src/core/print.ts')
+    const all = printPages(tree, DEFAULT_PRINT)
+    expect(all.map((p) => `${p.node.id}:${p.slide}:${p.step}`)).toEqual(['a:0:2', 'a:1:0', 'a/x:0:0', 'a/x/y:0:0', 'b:0:0'])
+    expect(all.map((p) => p.first)).toEqual([true, false, true, true, true])
+    expect(all[3].trail.map((t) => t.id)).toEqual(['a', 'a/x', 'a/x/y'])
+    expect(printPages(tree, { ...DEFAULT_PRINT, depth: 1 }).map((p) => p.node.id)).toEqual(['a', 'a', 'b'])
+  })
+  it('erzeugt mit steps eine Seite pro Schritt', async () => {
+    const { printPages, DEFAULT_PRINT } = await import('../src/core/print.ts')
+    const pages = printPages(tree, { ...DEFAULT_PRINT, steps: true, depth: 1 })
+    expect(pages.map((p) => `${p.node.id}:${p.slide}:${p.step}`)).toEqual(['a:0:0', 'a:0:1', 'a:0:2', 'a:1:0', 'b:0:0'])
+  })
+  it('liest und schreibt die Optionen als URL-Parameter', async () => {
+    const { parsePrintOptions, printQuery } = await import('../src/core/print.ts')
+    expect(parsePrintOptions(new URLSearchParams('print&depth=2&steps=1&footer=0'))).toEqual({ depth: 2, steps: true, notes: false, footer: false })
+    expect(parsePrintOptions(new URLSearchParams('print'))).toEqual({ depth: Infinity, steps: false, notes: false, footer: true })
+    expect(printQuery({ depth: 2, notes: true }, { autoprint: '1' })).toBe('?print&autoprint=1&depth=2&notes=1')
+  })
+})

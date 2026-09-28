@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { printQuery } from '../core/print.ts'
   import { Navigator, formatHash, parseHash, stepsOf, type Direction, type Move, type Position } from '../core/navigator.ts'
   import type { Deck, DeckNode } from '../core/types.ts'
   import initial from 'virtual:strata/deck'
@@ -86,6 +87,12 @@
       return
     }
     if (e.ctrlKey || e.metaKey || e.altKey) return
+    // P: Druckansicht / PDF in neuem Tab
+    if (e.key === 'p' || e.key === 'P') {
+      e.preventDefault()
+      window.open(location.pathname + printQuery({}, { autoprint: '1' }), '_blank')
+      return
+    }
     const handlers: Record<string, () => Move | null> = {
       ArrowRight: () => nav.next(pos!),
       PageDown: () => nav.next(pos!),

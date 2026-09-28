@@ -25,7 +25,7 @@ NODE     := $(RUN) vendor\node\node.exe
 NPM      := $(RUN) vendor\node\npm.cmd
 STRATA   := $(NODE) src\cli\index.ts
 
-.PHONY: help setup node install deps-update edit edit-no-open dev dev-open dev-lan build preview preview-lan export docker docker-run test new clean distclean
+.PHONY: help setup node install deps-update edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf docker docker-run test new clean distclean
 
 help:
 	@echo Strata - Markdown-Praesentationen als navigierbarer Baum
@@ -39,6 +39,7 @@ help:
 	@echo   make preview       Gebautes Deck lokal ausliefern
 	@echo   make preview-lan   Gebautes Deck im Netzwerk ausliefern
 	@echo   make export        Eine HTML-Datei, laeuft offline per Doppelklick (export/)
+	@echo   make pdf           PDF nach export/ (DEPTH=1 Hauptpfad, STEPS=1 je Schritt, NOTES=1 Handout)
 	@echo   make docker        Build + Docker-Image mit nginx  (IMAGE=$(IMAGE))
 	@echo   make docker-run    Image starten                (DOCKER_PORT=$(DOCKER_PORT))
 	@echo   make test          Tests ausfuehren
@@ -91,6 +92,10 @@ preview-lan: node_modules
 
 export: node_modules
 	$(STRATA) export "$(DECK)"
+
+# Optionen: DEPTH=n, STEPS=1, NOTES=1, PDF=pfad.pdf, BROWSER=pfad-zu-edge-oder-chrome
+pdf: node_modules
+	$(STRATA) pdf "$(DECK)" $(if $(DEPTH),--depth $(DEPTH)) $(if $(STEPS),--steps) $(if $(NOTES),--notes) $(if $(PDF),--out "$(PDF)") $(if $(BROWSER),--browser "$(BROWSER)")
 
 docker: build
 	docker build -f docker/Dockerfile -t $(IMAGE) .

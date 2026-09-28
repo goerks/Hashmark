@@ -26,6 +26,7 @@ make dev DECK=decks/mein-vortrag
 | `make preview` | Gebautes Deck lokal ausliefern |
 | `make dev-lan` / `make preview-lan` | Wie `dev` / `preview`, aber im Netzwerk (LAN/VPN) erreichbar |
 | `make export` | Eine einzelne HTML-Datei nach `export/<deck>.html`, läuft offline per Doppelklick |
+| `make pdf` | PDF nach `export/<deck>.pdf` (Optionen siehe „PDF und Druck“) |
 | `make docker` / `make docker-run` | Build und Docker-Image mit nginx (`IMAGE=…`), starten auf `DOCKER_PORT` (8080) |
 | `make test` | Tests (Parser, Deck-Baum, Navigator) |
 | `make deps-update` | Pakete online aktualisieren und im Cache ablegen |
@@ -62,6 +63,29 @@ Der Browser öffnet `http://localhost:3030/editor.html`:
 
 Sicherheit: Die Datei-API existiert nur mit `make edit`. Sie ist nur über localhost erreichbar, schreibt nur innerhalb des Deck-Ordners und nur `.md`/`.yaml` bzw. Bilder. `make dev-lan` hat bewusst keinen Editor.
 
+## PDF und Druck
+
+**Per Befehl** (reproduzierbar, ohne Druckdialog):
+
+```sh
+make pdf                          # alle Folien → export/strata-demo.pdf
+make pdf DEPTH=1                  # nur Hauptpfad (Kurzfassung)
+make pdf STEPS=1                  # jeder Schritt eine eigene Seite
+make pdf NOTES=1                  # Handout A4: Folie + Sprechernotizen → export/<deck>-handout.pdf
+make pdf DECK=decks/x PDF=vortrag.pdf
+```
+
+`make pdf` baut das Deck und druckt es mit dem installierten **Edge oder Chrome** im Headless-Modus. Es braucht keine zusätzliche Software und läuft offline. Einen anderen Browser gibst du mit `BROWSER=pfad` oder der Umgebungsvariable `STRATA_BROWSER` an.
+
+**Im Browser:** Taste **P** in der Präsentation, Button **PDF** im Editor oder die URL `?print`. Das öffnet die Druckansicht mit Optionen (Tiefe, Schritte, Handout, Fußzeile) und dem Druckdialog. Dort „Als PDF speichern“ wählen, Ränder „Keine“, Kopf- und Fußzeilen aus. Das funktioniert auch im Single-File-Export.
+
+Das PDF hat:
+- **Format:** eine Folie pro Seite im Format 16:9 (13,33 × 7,5 Zoll wie PowerPoint), bzw. A4 hoch beim Handout
+- **Inhalt:** Folien in Lesereihenfolge (Kapitel, dann seine Details), Schritte vollständig aufgedeckt, Diagramme gerendert
+- **Fußzeile:** Breadcrumb und Seitenzahl, abschaltbar mit `footer=0` bzw. `--no-footer`
+- **Klickbare interne Links:** Querverweise und Kacheln springen zur Zielfolie im PDF
+- **Lesezeichen** nach der Hierarchie des Decks
+
 ## Präsentieren: lokal und remote
 
 | Situation | Befehl | Ergebnis |
@@ -89,6 +113,7 @@ Hinweise:
 | ← / Shift+Space / PageUp | zurück (auf vorherigen Folien landet man vollständig aufgedeckt) |
 | ↓ / Enter | in den ersten Kindknoten abtauchen |
 | ↑ / Esc | zum Elternknoten, an die Sub-Slide, von der aus abgetaucht wurde |
+| P | Druckansicht / PDF in neuem Tab |
 | Ctrl+Shift+O (kurz: O) | Navigations-Übersicht: Hierarchie mit Miniatur jeder Folie; Klick oder Pfeiltasten + Enter springt direkt dorthin, Esc schließt |
 | Home | zum Anfang |
 
@@ -176,4 +201,4 @@ examples/      Beispiel-Deck (5 Dateien, 3 Ebenen)
 
 ## Nicht im MVP (siehe Roadmap im Konzept)
 
-Includes, `hidden`, Suche, Presenter-View, Linear-Modus, PDF-Export, PlantUML, Auto-Layout/Auto-Fit, Hell/Dunkel-Umschaltung, Code-Hervorhebung per `lines=`, Magic Move, Diagramm-Morphing (stabile Knotenpositionen), eigene Layouts.
+Includes, `hidden`, Suche, Presenter-View, PlantUML, Auto-Layout/Auto-Fit, Hell/Dunkel-Umschaltung, Code-Hervorhebung per `lines=`, Magic Move, Diagramm-Morphing (stabile Knotenpositionen), eigene Layouts.

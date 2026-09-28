@@ -3,12 +3,14 @@
   import type { DeckNode } from '../core/types.ts'
   import { renderMermaid } from './mermaid.ts'
 
-  let { node, slide, layout, step = Infinity }: {
+  let { node, slide, layout, step = Infinity, titleTag = 'h1' }: {
     node: DeckNode
     slide: number
     layout: string
     /** abgespielte Schritte; Infinity = alles sichtbar (z. B. Miniaturen) */
     step?: number
+    /** Element des Titels, z. B. h2 im PDF (Lesezeichen-Hierarchie) oder div für Folgeseiten */
+    titleTag?: string
   } = $props()
 
   let el: HTMLElement
@@ -49,11 +51,11 @@
 <section class="slide layout-{layout} {node.attrs.class ?? ''}" data-depth={node.depth} bind:this={el}>
   {#if layout === 'title'}
     <div class="title-wrap">
-      <h1 class="slide-title">{node.title}</h1>
+      <svelte:element this={titleTag} class="slide-title">{node.title}</svelte:element>
       <div class="content">{@html html}</div>
     </div>
   {:else}
-    <header><h1 class="slide-title">{node.title}</h1></header>
+    <header><svelte:element this={titleTag} class="slide-title">{node.title}</svelte:element></header>
     <div class="content">{@html html}</div>
     {#if showTiles}
       <div class="d-children">{@html tiles(node.children)}</div>
