@@ -61,7 +61,8 @@
 /* ---------- Druck ---------- */
 
 @media print {
-  html, body { background: none; }
+  /* height: 100% aus base.css würde im Druck eine leere Schlussseite begünstigen */
+  html, body { background: none; height: auto !important; margin: 0; }
   .print-root, .print-view { padding: 0; background: none; min-height: 0; }
   .print-bar, .print-error { display: none; }
   .print-only { display: block; }
@@ -69,7 +70,10 @@
   .print-page { margin: 0; box-shadow: none; zoom: 1 !important; break-after: page; page-break-after: always; break-inside: avoid; }
   .print-page:last-child { break-after: auto; page-break-after: auto; }
   /* Seite füllt die Papierbreite, Höhe folgt aus 16:9 bzw. dem Inhalt → keine abgeschnittenen Folien */
+  /* Folie minimal niedriger als 16:9 (718 statt 720): Rundung/Skalierung im Druckdialog erzeugt
+     sonst Bruchteile eines Pixels Überhang → leere Zusatzseiten. Die 2 px fehlen unsichtbar unten. */
   .print-slides .print-page { width: 100%; }
+  .print-slides .print-slide { aspect-ratio: 1280 / 718; }
   .print-handout .print-page { width: 100%; min-height: 0; padding: 0; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
