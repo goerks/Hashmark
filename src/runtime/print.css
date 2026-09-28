@@ -1,6 +1,7 @@
 /* Druckansicht (?print): eine Folie pro Seite (16:9) oder Handout (A4 hoch mit Notizen). */
 
-.print-root { padding: 104px 24px 48px; background: var(--color-frame); min-height: 100vh; font-family: var(--font-body); }
+.print-view { padding: 104px 24px 48px; background: var(--color-frame); min-height: 100vh; }
+.print-root { font-family: var(--font-body); }
 .print-root [data-step] { transition: none; }
 
 /* ---------- Leiste (nur Bildschirm) ---------- */
@@ -54,12 +55,17 @@
 .print-notes ul { margin: 0 0 0.6em; padding-left: 1.2em; }
 .print-empty { color: var(--color-muted); font-style: italic; }
 
+/* In der Präsentation: auf dem Bildschirm unsichtbar, beim Drucken statt der Bühne */
+.print-only { display: none; }
+
 /* ---------- Druck ---------- */
 
 @media print {
   html, body { background: none; }
-  .print-root { padding: 0; background: none; min-height: 0; }
+  .print-root, .print-view { padding: 0; background: none; min-height: 0; }
   .print-bar, .print-error { display: none; }
+  .print-only { display: block; }
+  .viewport { display: none !important; }
   .print-page { margin: 0; box-shadow: none; zoom: 1 !important; break-after: page; page-break-after: always; break-inside: avoid; }
   .print-page:last-child { break-after: auto; page-break-after: auto; }
   /* Seite füllt die Papierbreite, Höhe folgt aus 16:9 bzw. dem Inhalt → keine abgeschnittenen Folien */

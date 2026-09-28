@@ -77,9 +77,11 @@ make pdf DECK=decks/x PDF=vortrag.pdf
 
 `make pdf` baut das Deck und druckt es mit dem installierten **Edge oder Chrome** im Headless-Modus. Es braucht keine zusätzliche Software und läuft offline. Einen anderen Browser gibst du mit `BROWSER=pfad` oder der Umgebungsvariable `STRATA_BROWSER` an.
 
-**Im Browser:** Taste **P** oder **Ctrl+P** in der Präsentation, Button **PDF** im Editor oder die URL `?print`. Das öffnet die Druckansicht mit Optionen (Tiefe, Schritte, Handout, Fußzeile) und dem Druckdialog. Dort „Als PDF speichern“ wählen. Die Folien passen sich jedem Papierformat an (16:9 ist Standard, A4/Letter werden auf die Breite skaliert). Das funktioniert auch im Single-File-Export.
+**Im Browser:**
 
-Druckt man die Präsentation über das Browsermenü, kommt die aktuelle Folie auf eine 16:9-Seite. Für alle Folien immer P bzw. Ctrl+P verwenden.
+- **Ctrl+P** (oder Menü „Drucken“) direkt in der Präsentation druckt **alle Folien**, eine pro Seite. Im Druckdialog lässt sich unter „Seiten“ ein Bereich wählen, z. B. `5-12`. Die Seitenzahlen stehen unten rechts auf jeder Folie.
+- **P** in der Präsentation, der Button **PDF** im Editor oder die URL `?print` öffnen die **Druckansicht mit Optionen** (Tiefe, jeder Schritt eine Seite, Handout, Fußzeile) und danach den Druckdialog.
+- Die Folien passen sich jedem Papierformat an (16:9 ist Standard, A4/Letter werden auf die Breite skaliert). Das funktioniert auch im Single-File-Export.
 
 Das PDF hat:
 - **Format:** eine Folie pro Seite im Format 16:9 (13,33 × 7,5 Zoll wie PowerPoint), bzw. A4 hoch beim Handout
@@ -115,7 +117,8 @@ Hinweise:
 | ← / Shift+Space / PageUp | zurück (auf vorherigen Folien landet man vollständig aufgedeckt) |
 | ↓ / Enter | in den ersten Kindknoten abtauchen |
 | ↑ / Esc | zum Elternknoten, an die Sub-Slide, von der aus abgetaucht wurde |
-| P / Ctrl+P | Druckansicht / PDF in neuem Tab (alle Folien) |
+| Ctrl+P | alle Folien drucken, Seitenbereich im Dialog wählbar |
+| P | Druckansicht mit Optionen (Tiefe, Schritte, Handout) in neuem Tab |
 | Ctrl+Shift+O (kurz: O) | Navigations-Übersicht: Hierarchie mit Miniatur jeder Folie; Klick oder Pfeiltasten + Enter springt direkt dorthin, Esc schließt |
 | Home | zum Anfang |
 

@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { onMount } from 'svelte'
-  import { printQuery } from '../core/print.ts'
+  import { flushSync, onMount } from 'svelte'
+  import { DEFAULT_PRINT, printQuery } from '../core/print.ts'
+  import PrintPages from './PrintPages.svelte'
   import { Navigator, formatHash, parseHash, stepsOf, type Direction, type Move, type Position } from '../core/navigator.ts'
   import type { Deck, DeckNode } from '../core/types.ts'
   import initial from 'virtual:strata/deck'
@@ -69,6 +70,10 @@
 
   // Im Editor (Vorschau-Iframe): Position an den Editor melden
   const embedded = window.parent !== window
+
+  // Druckseiten aller Folien: nach dem Start im Hintergrund vorbereiten (Diagramme brauchen Zeit),
+  // spätestens beim Drucken. Nicht in der Editor-Vorschau.
+  let printMounted = $state(false)
   $effect(() => {
     if (embedded && pos) window.parent.postMessage({ type: 'strata:position', pos }, location.origin)
   })
@@ -90,8 +95,9 @@
       e.preventDefault()
       return
     }
-    // P bzw. Ctrl+P / Cmd+P: statt der Bildschirmansicht die Druckansicht drucken
-    const isPrintKey = (e.key === 'p' || e.key === 'P') && !e.altKey && !e.shiftKey
+    // P: Druckansicht mit Optionen (Tiefe, Schritte, Handout) in neuem Tab.
+    // Ctrl+P bleibt beim Browser: gedruckt werden die unsichtbar vorbereiteten Seiten aller Folien.
+    const isPrintKey = (e.key === 'p' || e.key === 'P') && !e.altKey && !e.shiftKey && !e.ctrlKey && !e.metaKey
     if (isPrintKey) {
       e.preventDefault()
       openPrintView()
@@ -128,6 +134,10 @@
     }
     window.addEventListener('hashchange', onHash)
 
+    const idle = embedded ? undefined : setTimeout(() => (printMounted = true), 1500)
+    const beforePrint = () => { if (!embedded) flushSync(() => (printMounted = true)) }
+    window.addEventListener('beforeprint', beforePrint)
+
     // Editor → Vorschau: zur Folie unter dem Cursor springen (step 'all' = vollständig aufgedeckt)
     const onMessage = (e: MessageEvent) => {
       if (e.origin !== location.origin || e.data?.type !== 'strata:goto') return
@@ -158,6 +168,8 @@
     return () => {
       window.removeEventListener('hashchange', onHash)
       window.removeEventListener('message', onMessage)
+      window.removeEventListener('beforeprint', beforePrint)
+      clearTimeout(idle)
     }
   })
 </script>
@@ -217,3 +229,10 @@
     <div class="error" role="alert"><strong>Deck-Fehler</strong><pre>{error}</pre></div>
   {/if}
 </main>
+
+<!-- außerhalb von .viewport: die Bühne wird beim Drucken ausgeblendet, diese Seiten eingeblendet -->
+{#if printMounted && deck}
+  <div class="print-root print-slides print-only" aria-hidden="true">
+    <PrintPages {deck} options={DEFAULT_PRINT} />
+  </div>
+{/if}
