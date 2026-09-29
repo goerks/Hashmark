@@ -10,18 +10,18 @@ Eine Quelle, zwei Arten zu präsentieren: linear auf dem Hauptpfad oder in die T
 ::: col
 ### Layouts
 ::: steps
-- Agenda mit aktuellem Kapitel
-- Statement, Bild links/rechts
-- Hinweiskästen, Kennzahlen
-- Zeitleiste, Vorher/Nachher
+- Kennzahlen, Zeitleiste
+- Vorher/Nachher
+- Auto-Fit mit Überlauf-Warnung
+- Themes: Corporate, Hell/Dunkel
 :::
 :::
 
 ::: col
 ### Animationen
 ::: steps
-- Code-Zeilen hervorheben
 - Effekte für Schritte
+- Auto-Animate (View Transitions)
 - Zoom aus der Kachel beim Abtauchen
 - Stabile Diagramm-Schritte, Magic Move
 :::
@@ -29,9 +29,9 @@ Eine Quelle, zwei Arten zu präsentieren: linear auf dem Hauptpfad oder in die T
 
 ## Nächste Schritte – Plattform
 
-1. PlantUML, Presenter-View, Suche
-2. Auto-Layout und Auto-Fit
-3. Öffentliche Plugin-API
+1. Plugin-API: PlantUML, D2, Graphviz, KaTeX
+2. Editor: Inspector, Autovervollständigung, Outliner
+3. Desktop-App, offline und standalone
 
 ## Danke {layout=title}
 

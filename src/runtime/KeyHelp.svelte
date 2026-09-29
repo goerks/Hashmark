@@ -10,6 +10,7 @@
         ['↑ / Esc', 'auftauchen – zurück zum Elternknoten'],
         ['Space / Shift+Space', 'der Linie nach: alles in Lesereihenfolge, inklusive Details'],
         ['Home', 'zum Anfang'],
+        ['Ctrl+K / /', 'Suche: Folie per Titel oder Inhalt finden und hinspringen'],
       ],
     },
     {
@@ -18,6 +19,8 @@
         ['▶ / ◀ (PageDown / PageUp)', 'wie Space / Shift+Space'],
         ['Play (F5)', 'Vollbild an/aus'],
         ['Schwarzbild (B / .)', 'Bildschirm schwarz / zurück'],
+        ['S', 'Presenter-View im zweiten Fenster: Notizen, nächste Folie, Timer, Baum'],
+        ['N', 'Notizen unten einblenden (zum Üben mit einem Bildschirm)'],
       ],
     },
     {

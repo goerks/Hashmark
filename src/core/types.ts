@@ -4,6 +4,8 @@ export interface Slide {
   html: string
   /** Animations-Steps (Phase 3). Im MVP immer leer, aber schon Teil des Modells. */
   steps: Step[]
+  /** Sprechernotizen dieser Sub-Slide (HTML); `::: notes step=2` steckt in `[data-note-step]` */
+  notes?: string
 }
 
 export interface Step {
@@ -21,7 +23,12 @@ export interface DeckNode {
   attrs: Record<string, string>
   /** Sub-Slides (durch `---` getrennt), mindestens eine */
   slides: Slide[]
+  /** alle Notizen des Knotens zusammen (Handout); pro Sub-Slide siehe `Slide.notes` */
   notes?: string
+  /** wirksames Layout (Attribut, sonst `layouts` je Ebene, sonst Deck-Default) – setzt `loadDeck` */
+  layout?: string
+  /** geplante Redezeit in Sekunden (`{duration=5m}`) */
+  duration?: number
   children: DeckNode[]
   /** für Editor-Sync */
   source: { file: string; line: number }
@@ -32,6 +39,8 @@ export interface Deck {
   maxDepth: number
   /** Default-Layout, wenn der Knoten keins setzt */
   layout: string
+  /** geplante Gesamtdauer in Sekunden (deck.yaml: `duration: 30m`) */
+  duration?: number
   nodes: DeckNode[]
   /** alle eingelesenen Dateien (für den File-Watcher) */
   files: string[]
@@ -44,6 +53,10 @@ export interface Manifest {
   /** alle lokalen Bilder als Base64 in den Deck-Baum einbetten */
   embedImages?: boolean
   layout?: string
+  /** Default-Layout je Ebene, z. B. `{ 1: section, 2: default }` */
+  layouts?: Record<string, string>
+  /** geplante Gesamtdauer, z. B. `30m` */
+  duration?: string | number
   mount?: MountEntry[]
 }
 

@@ -9,7 +9,10 @@
   import initial from 'virtual:strata/deck'
   import Slide from './Slide.svelte'
   import NavOverview from './NavOverview.svelte'
+  import Search from './Search.svelte'
+  import Notes from './Notes.svelte'
   import { enter, leave } from './transitions.ts'
+  import { isTrusted, send, type PresenterMessage } from './presenter-link.ts'
 
   type Payload = { deck: Deck } | { error: string }
 
@@ -26,12 +29,17 @@
 
   const node = $derived(pos ? nav.node(pos.id) : undefined)
   const trail = $derived(pos ? nav.path(pos.id) : [])
-  const layout = $derived(node ? (node.attrs.layout ?? deck?.layout ?? 'default') : 'default')
+  const layout = $derived(node ? (node.layout ?? node.attrs.layout ?? deck?.layout ?? 'default') : 'default')
   const stepCount = $derived(pos ? stepsOf(node, pos.slide) : 0)
   let controlsHidden = $state(false)
   let black = $state(false)
   let help = $state(false)
   let dimmed = $state(false)
+  let searching = $state(false)
+  /** Notizen unten einblenden (N) – zum Üben mit nur einem Bildschirm */
+  let notesOpen = $state(false)
+  /** Fenster der Presenter-View (S), sonst null */
+  let presenter: Window | null = null
 
   /** Beschriftung eines Ziels: Schritt, Sub-Slide oder Titel des Zielknotens */
   function describe(move: Move | null, key: ControlKey): string {
@@ -93,7 +101,7 @@
     go({ pos: { id: target.id, slide }, dir: d })
   }
 
-  const layoutOf = (n: DeckNode) => n.attrs.layout ?? deck?.layout ?? 'default'
+  const layoutOf = (n: DeckNode) => n.layout ?? n.attrs.layout ?? deck?.layout ?? 'default'
 
   /** Navigations-Übersicht: Ctrl+Shift+O (oder kurz O) */
   const isOverviewKey = (e: KeyboardEvent) =>
@@ -124,15 +132,57 @@
     window.open(location.pathname + printQuery({}, { autoprint: '1' }), '_blank')
   }
 
+  /** Presenter-View im zweiten Fenster; ein schon offenes Fenster wird wiederverwendet */
+  function openPresenter() {
+    const win = window.open(location.pathname + '?presenter' + location.hash, 'strata-presenter', 'popup,width=1280,height=800')
+    if (win) {
+      presenter = win
+      win.focus()
+    }
+  }
+
+  // Stand an die Presenter-View melden
+  $effect(() => {
+    if (pos) send(presenter, { type: 'strata:presenter-state', pos, black })
+  })
+
   function toggleFullscreen() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
     else document.documentElement.requestFullscreen().catch(() => {})
   }
 
+  /** Navigation und Schwarzbild – von der Tastatur und aus der Presenter-View. true = behandelt. */
+  function navKey(key: string, shiftKey: boolean): boolean {
+    if (!pos) return false
+    if (key === 'b' || key === 'B' || key === '.') { black = !black; return true }
+    const handlers: Record<string, () => Move | null> = {
+      ArrowRight: () => nav.next(pos!),
+      // Space und Presenter (PageDown/PageUp): der Linie nach in die Tiefe
+      ' ': () => (shiftKey ? nav.backward(pos!) : nav.forward(pos!)),
+      PageDown: () => nav.forward(pos!),
+      PageUp: () => nav.backward(pos!),
+      ArrowLeft: () => nav.prev(pos!),
+      ArrowDown: () => nav.down(pos!),
+      Enter: () => nav.down(pos!),
+      ArrowUp: () => nav.up(pos!),
+      Escape: () => nav.up(pos!),
+      Home: () => (nav.first ? { pos: nav.first, dir: 'jump' } : null),
+    }
+    const handler = handlers[key]
+    if (!handler) return false
+    // Schwarzbild endet mit jeder Bewegung
+    black = false
+    go(handler())
+    return true
+  }
+
+  const isSearchKey = (e: KeyboardEvent) =>
+    ((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey) && !e.altKey) || (e.key === '/' && !e.ctrlKey && !e.metaKey)
+
   function onkeydown(e: KeyboardEvent) {
     wake()
-    // bei offener Übersicht übernimmt NavOverview die Tasten
-    if (overview || !pos) return
+    // bei offener Übersicht bzw. Suche übernehmen diese die Tasten
+    if (overview || searching || !pos) return
     if (help) {
       // Tastenhilfe: jede Taste schließt sie
       help = false
@@ -142,6 +192,11 @@
     if ((e.target as HTMLElement | null)?.closest?.('input, textarea, [contenteditable]')) return
     if (isOverviewKey(e)) {
       overview = true
+      e.preventDefault()
+      return
+    }
+    if (isSearchKey(e)) {
+      searching = true
       e.preventDefault()
       return
     }
@@ -157,27 +212,23 @@
 
     // Presenter-Fernbedienungen: „Play“ sendet F5 bzw. Shift+F5, „Schwarzbild“ sendet B oder „.“
     if (e.key === 'F5' || e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); return }
-    if (e.key === 'b' || e.key === 'B' || e.key === '.') { e.preventDefault(); black = !black; return }
     if (e.key === 'h' || e.key === 'H') { e.preventDefault(); controlsHidden = !controlsHidden; return }
+    if (e.key === 'n' || e.key === 'N') { e.preventDefault(); notesOpen = !notesOpen; return }
+    if (e.key === 's' || e.key === 'S') { e.preventDefault(); openPresenter(); return }
     if (e.key === '?') { e.preventDefault(); help = true; return }
+    if (navKey(e.key, e.shiftKey)) e.preventDefault()
+  }
 
-    const handlers: Record<string, () => Move | null> = {
-      ArrowRight: () => nav.next(pos!),
-      // Space und Presenter (PageDown/PageUp): der Linie nach in die Tiefe
-      ' ': () => (e.shiftKey ? nav.backward(pos!) : nav.forward(pos!)),
-      PageDown: () => nav.forward(pos!),
-      PageUp: () => nav.backward(pos!),
-      ArrowLeft: () => nav.prev(pos!),
-      ArrowDown: () => nav.down(pos!),
-      Enter: () => nav.down(pos!),
-      ArrowUp: () => nav.up(pos!),
-      Escape: () => nav.up(pos!),
-      Home: () => (nav.first ? { pos: nav.first, dir: 'jump' } : null),
+  function onPresenterMessage(msg: PresenterMessage, source: Window) {
+    presenter = source
+    if (msg.type === 'strata:presenter-hello' && pos) send(presenter, { type: 'strata:presenter-state', pos, black })
+    else if (msg.type === 'strata:presenter-key') {
+      wake()
+      navKey(msg.key, msg.shiftKey)
+    } else if (msg.type === 'strata:presenter-goto') {
+      black = false
+      jump(msg.id, msg.slide)
     }
-    const handler = handlers[e.key]
-    if (!handler) return
-    e.preventDefault()
-    go(handler())
   }
 
   // Steuerung nach 3 s ohne Maus/Tasten zurücknehmen, bei Bewegung wieder voll zeigen
@@ -206,6 +257,7 @@
 
     // Editor → Vorschau: zur Folie unter dem Cursor springen (step 'all' = vollständig aufgedeckt)
     const onMessage = (e: MessageEvent) => {
+      if (isTrusted(e, presenter) && e.source) return onPresenterMessage(e.data as PresenterMessage, e.source as Window)
       if (e.origin !== location.origin || e.data?.type !== 'strata:goto') return
       const target = nav.node(e.data.id)
       if (!target) return
@@ -300,6 +352,17 @@
       onjump={(p) => jump(p.id, p.slide)}
       onclose={() => (overview = false)}
     />
+  {/if}
+
+  {#if searching && deck}
+    <Search nodes={deck.nodes} onjump={(p) => { searching = false; jump(p.id, p.slide) }} onclose={() => (searching = false)} />
+  {/if}
+
+  {#if notesOpen && node && pos}
+    <aside class="notes-overlay" aria-label="Sprechernotizen">
+      <div class="no-head"><strong>Notizen</strong><span>N schließt · S öffnet die Presenter-View</span></div>
+      <Notes html={node.slides[pos.slide]?.notes} step={pos.step ?? 0} />
+    </aside>
   {/if}
 
   {#if help}<KeyHelp onclose={() => (help = false)} />{/if}

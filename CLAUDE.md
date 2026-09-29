@@ -9,7 +9,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | Befehl | Zweck |
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
-| `make test` | Vitest (`tests/core.test.ts`, ca. 28 Tests, Kern-Logik ohne DOM) |
+| `make test` | Vitest (`tests/core.test.ts` + `tests/stufe1.test.ts`, 45 Tests, Kern-Logik ohne DOM) |
 | `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/strata-demo`, 3030) |
 | `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless |
 | `make deps-update` | neue Pakete online holen, landen im Cache `vendor/npm-cache` |
@@ -35,9 +35,14 @@ src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
   syntax.ts     Pandoc-Container (::: name, gleich viele Doppelpunkte) → remark-directive (außen mehr ':'),
                 Überschriften-Attribute {layout=… id=… .klasse}, parseAttrs
   parse.ts      Markdown → mdast → RawNode-Baum; maxDepth; Setext-Fix; Referenz-Bilder dateiweit
-  render.ts     Blöcke → HTML je Sub-Slide: Shiki (CSS-Variablen-Theme), Mermaid-Platzhalter, Direktiven,
-                ::: steps, Bilder (deck-assets/ bzw. Base64), Notizen; zählt data-step → slide.steps
-  deck.ts       deck.yaml/Ordner → Mounts (under + automatisches Verschieben der Ebenen) → Deck + Theme-Pfad + Warnungen
+  render.ts     Blöcke → HTML je Sub-Slide: Shiki (CSS-Variablen-Theme, lines=/steps=), Mermaid-Platzhalter, Direktiven,
+                ::: steps, Hinweiskästen > [!NOTE], cols=, Bilder (deck-assets/ bzw. Base64), Notizen pro Sub-Slide
+                (::: notes step=k → [data-note-step]), image-left/right → .media/.body;
+                zählt data-step und data-hl-count − 1 → slide.steps
+  deck.ts       deck.yaml/Ordner → Mounts (under + automatisches Verschieben der Ebenen) → Deck + Theme-Pfad + Warnungen;
+                löst das Layout auf (Attribut > layouts[Ebene] > layout), bg=, duration=, erzeugt Agenda-HTML
+  timing.ts     parseDuration (5m, 1h30m, 1:30), formatClock, pace – Zeitplan der Presenter-View
+  search.ts     Suchindex (Titel, Pfad, Text je Sub-Slide), Wort-Suche + unscharfe Titel-Suche, Umlaute gefaltet
   navigator.ts  reine State-Machine: next/prev/down/up (Pfeile), forward/backward (Space = Tiefensuche),
                 Schritte, relocate (Hot Reload), progress, Deep-Link-Hash (#id:2)
   print.ts      Seitenlogik für Druck/PDF (Tiefe, Schritte, Handout, Fußzeile) + URL-Optionen
@@ -46,8 +51,11 @@ src/vite/     plugin.ts: virtual:strata/deck (JSON), virtual:strata/theme.css, F
               'strata:deck', Bild-Middleware, Asset-Emit; editor-api.ts: Datei-API nur für `strata edit`
 src/cli/      index.ts (cac: dev | edit | build | preview | export | pdf), export.ts (Single-File), pdf.ts (CDP)
 src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print)
-  App.svelte        Präsentation, Tasten, Hash-Sync, HMR, Editor-Messages, unsichtbare Druckseiten
-  Slide.svelte      eine Folie: Layout, Schritte (data-step/data-until → .step-hidden), Mermaid
+  App.svelte        Präsentation, Tasten (navKey), Hash-Sync, HMR, Editor-Messages, Presenter-Link, Suche,
+                    Notiz-Overlay (N), unsichtbare Druckseiten
+  Slide.svelte      eine Folie: Layout, Schritte (data-step/data-until → .step-hidden), Zeilen-Hervorhebung (.hl), bg, Mermaid
+  PresenterView.svelte  ?presenter: zweites Fenster, per postMessage gekoppelt (presenter-link.ts); eigener Navigator
+                    nur für die Vorschau (peek). Dazu ScaledSlide.svelte, Notes.svelte, Search.svelte, presenter.css
   NavControls/NavOverview/KeyHelp/PrintView/PrintPages, transitions.ts, mermaid.ts
   base.css, print.css, themes/*.css (nur Design-Tokens: --color-*, --font-*, --shiki-*, …)
   editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*)
@@ -64,7 +72,11 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
   - Listenpunkte in `::: steps`;
   - Code ` ```ts {steps="1,6|2-3||4"} ` (Zeilen ohne Schritt bilden das Gerüst);
   - Mermaid `%% step` (kumulative Versionen übereinander).
-- **Layouts:** `title`, `section` (Kacheln der Kinder), `default`, `two-col`. **Themes:** `minimal`, `dark-tech`.
+- **Layouts:** `title`, `section` (Kacheln der Kinder), `default`, `two-col`, `three-col`, `statement`, `quote`, `image-left`, `image-right`, `agenda`. Je Ebene über `layouts: { 1: section }`.
+- **Themes:** `minimal`, `dark-tech`. Die Tokens enthalten auch `--color-success`, `--color-warning` und `--color-important` für Hinweiskästen.
+- **Knoten-Attribute:** `layout`, `id`, `transition`, `.klasse`, `duration=5m`, `bg=…` (Farbe/Verlauf bleibt CSS, sonst Bild → `url(…)`), `bgdim=0.5`.
+- **Code:** `lines="2-3|5|all"`: Abschnitt k gilt ab Schritt k (Abschnitt 0 sofort), `all` bzw. leer = nichts abdunkeln.
+- **Hinweiskästen:** `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION] [eigener Titel]`.
 - **Bilder:**
   - `![](pfad){width=60% .klasse}`;
   - Dateien außerhalb des Decks bzw. mit `embedImages: true` werden als Base64 eingebettet;
@@ -87,6 +99,10 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Mermaid:** feste `max-height` (460px) statt `%`, weil sich das SVG in Spalten sonst an die Nachbarspalte anpasst. Der Versions-Container braucht `grid-template-columns: minmax(0,1fr)`.
 - **Druckbereitschaft:** `document.documentElement.dataset.printReady = '1'` ist das Signal für `make pdf`. Die Präsentation rendert die Druckseiten nach 1,5 s bzw. bei `beforeprint` (`.print-only`).
 - **Navigator:** `down()`/`forward()` merken sich die Position für ↑. Für reine Anzeige immer `peek = true` übergeben.
+- **Slugs behalten Umlaute** (github-slugger): `# Präsentieren` → Id `präsentieren`, im Hash `#pr%C3%A4sentieren`. In CDP-Tests die Ids kodieren.
+- **Presenter-Link:** nur postMessage (kein BroadcastChannel), weil der Origin unter file:// undurchsichtig ist. Vertraut wird über `e.source` (Partnerfenster) bzw. denselben http-Origin. Die Presenter-View sendet jede Sekunde ein Hello, so übersteht die Verbindung ein Neuladen. Quelle der Wahrheit bleibt die Präsentation, dort liegt auch das Memory für ↑.
+- **Tasten per CDP:** Für `window.open` (Taste S) braucht es `Input.dispatchKeyEvent`, also eine echte Nutzer-Geste. Synthetische Events öffnen kein Popup.
+- **Shell:** Markdown mit Backticks nie in `node -e "…"` bzw. doppelten Anführungszeichen bearbeiten, Bash führt sie als Befehle aus. Dafür das Edit-Werkzeug nehmen.
 - **Editor-API:** nur localhost, Header `X-Strata-Editor: 1`, nur Pfade im Deck, nur `.md`/`.yaml`/Bilder. `strata edit` hat bewusst kein `--host`.
 - Die Datei-API-Pfade und `deck-assets/` sind **relativ**, damit Builds auch in Unterverzeichnissen laufen (`base: './'`).
 
@@ -96,11 +112,13 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
   - Baum-Navigation mit Steuerkreuz, Space der Linie nach, Presenter-Tasten
   - Schritte, Übersicht (Ctrl+Shift+O), Editor, Bilder
   - PDF/Druck (Ctrl+P, P, `make pdf`), Export, LAN, Docker
-- **Offen, laut Konzept bzw. Vorschlägen:**
-  - Code-Zeilen hervorheben (`lines=` wird schon geparst), Effekte für Schritte, Zoom aus der Kachel
-  - stabile Diagramm-Schritte, Magic Move
-  - Layouts `agenda`, `statement`, `image-left/right`, Hinweiskästen, Kennzahlen, Zeitleiste
-  - Auto-Layout/Auto-Fit, PlantUML, Presenter-View, Suche, Plugin-API
-- **Bekannter kleiner Bug:** Titel-Folien auf Ebene ≥ 2 („Danke“) zeigen den Titel zu klein, weil `.slide[data-depth] .slide-title` `.layout-title .slide-title` überschreibt.
+  - **Stufe 1 der Roadmap** (`roadmap.md`):
+    - Presenter-View (S) mit Timer, Zeitplan und Baum
+    - Notizen pro Sub-Slide und Schritt, Notiz-Overlay (N)
+    - Suche (Ctrl+K, /)
+    - Code-Zeilen hervorheben, Hinweiskästen
+    - Layouts `statement`, `quote`, `image-*`, `agenda`, `three-col`, dazu `cols=`, `bg=` und Layouts je Ebene
+    - Titel-Bug auf Ebene ≥ 2 behoben (`:where` bei den Größen je Ebene)
+- **Offen:** Stufen 2–6 in `roadmap.md`, u. a. Plugin-API, Theme v2, FS-Abstraktion, Editor-Inspector, Auto-Fit, weitere Diagrammsprachen, Animationen, Outliner, Desktop.
 - **Git:** Es gibt noch **kein Remote**, pushen ist erst mit URL möglich. Grösse ca. 125 MB wegen `vendor/`, `node.exe` hat 93 MB (Limit bei GitHub: 100 MB pro Datei).
 - **Beispiel-Deck:** `01-einfuehrung.md` enthält einen Test-Abschnitt des Nutzers („### Test“). Nur auf Wunsch entfernen.

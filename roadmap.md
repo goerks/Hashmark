@@ -107,7 +107,7 @@ Suche Ctrl+K, Includes (`!include`, Code aus dem Repo mit Zeilenbereich), `hidde
 
 | Stufe | Inhalt |
 | --- | --- |
-| **1 · Vortragsreif** | Presenter-View + Timer, Notizen pro Sub-Slide/Schritt, Code-Zeilen hervorheben, Hinweiskästen, Layouts `statement`/`quote`/`image-left`/`image-right`/`agenda`, `cols=N`, `bg=`, Layouts je Ebene, Suche Ctrl+K, Titel-Bug |
+| **1 · Vortragsreif** ✅ umgesetzt | Presenter-View + Timer, Notizen pro Sub-Slide/Schritt, Code-Zeilen hervorheben, Hinweiskästen, Layouts `statement`/`quote`/`image-left`/`image-right`/`agenda`, `cols=N`, `bg=`, Layouts je Ebene, Suche Ctrl+K, Titel-Bug |
 | **2 · Fundament** | Renderer-Plugin-API + Cache, Theme v2 (extends, Tokens, Corporate, Hell/Dunkel), FS-Abstraktion, Editor-Inspector/Autocomplete/Diagnose, Auto-Fit |
 | **3 · Inhalte** | Graphviz, D2, KaTeX, PlantUML, Includes, Vega-Lite, Markmap, Handout n pro Seite |
 | **4 · Animation** | Schritt-Effekte, Zoom aus Kachel, View Transitions, Magic Move, Mermaid-Morph |

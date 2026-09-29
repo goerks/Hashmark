@@ -22,7 +22,20 @@ export const SNIPPETS: Snippet[] = [
     title: 'Mermaid-Diagramm, wächst mit %% step',
     text: '```mermaid\nflowchart LR\n  A[§Start]\n%% step\n  A --> B[Ziel]\n```\n',
   },
-  { label: 'Notizen', title: 'Sprechernotizen (erscheinen nicht auf der Folie)', text: '::: notes\n§\n:::\n' },
+  { label: 'Notizen', title: 'Sprechernotizen (erscheinen nicht auf der Folie); ::: notes step=2 gilt ab Schritt 2', text: '::: notes\n§\n:::\n' },
+  { label: 'Hinweis', title: 'Hinweiskasten: [!NOTE] [!TIP] [!IMPORTANT] [!WARNING] [!CAUTION]', text: '> [!NOTE]\n> §Text\n' },
+  { label: 'Statement', title: 'Kernaussage groß und mittig', text: '\n## §Kernaussage {layout=statement}\n\n' },
+  {
+    label: 'Bild rechts',
+    title: 'Layout image-right: erstes Bild rechts, Text links (image-left umgekehrt)',
+    text: '\n## §Titel {layout=image-right}\n\n![Bild](bilder/bild.png)\n\n- Punkt\n\n',
+  },
+  { label: 'Agenda', title: 'Agenda aus den Kapiteln des Hauptpfads, aktuelles hervorgehoben', text: '\n# §Agenda {layout=agenda}\n\n' },
+  {
+    label: 'Drei Spalten',
+    title: 'Spalten mit fester Anzahl oder Verhältnis, z. B. cols="2:1"',
+    text: '::: columns cols=3\n::: col\n§Eins\n:::\n::: col\nZwei\n:::\n::: col\nDrei\n:::\n:::\n',
+  },
   { label: 'Kacheln', title: 'Kinder des Knotens als klickbare Kacheln', text: '::: children\n:::\n§' },
 ]
 

@@ -21,8 +21,10 @@ export interface PrintPage {
   slide: number
   /** abgespielte Schritte auf dieser Seite */
   step: number
-  /** erste Seite des Knotens (trägt den Anker und die Notizen) */
+  /** erste Seite des Knotens (trägt den Anker) */
   first: boolean
+  /** erste Seite dieser Sub-Slide (trägt ihre Notizen) */
+  slideFirst: boolean
   /** Vorfahren inkl. Knoten, für die Breadcrumb */
   trail: DeckNode[]
 }
@@ -37,7 +39,9 @@ export function printPages(nodes: DeckNode[], opts: PrintOptions): PrintPage[] {
       node.slides.forEach((_, slide) => {
         const total = stepsOf(node, slide)
         const steps = opts.steps ? Array.from({ length: total + 1 }, (_, s) => s) : [total]
-        for (const step of steps) pages.push({ node, slide, step, first: pages.every((p) => p.node !== node), trail: path })
+        for (const step of steps) {
+          pages.push({ node, slide, step, first: pages.every((p) => p.node !== node), slideFirst: step === steps[0], trail: path })
+        }
       })
       walk(node.children, path)
     }

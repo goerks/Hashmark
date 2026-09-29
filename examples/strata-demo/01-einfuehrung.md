@@ -6,6 +6,8 @@ Präsentieren entlang der Überschriften – mit Abstechern in die Tiefe.
 Begrüssung. Kurz erklären: → geht weiter, ↓ taucht ab.
 :::
 
+# Agenda {layout=agenda}
+
 # Warum?
 
 - Folien sind linear, Fragen aus dem Publikum nicht

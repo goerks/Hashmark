@@ -32,11 +32,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   margin: 0; font-family: var(--font-heading); font-weight: 700;
   font-size: 52px; line-height: 1.12; color: var(--color-heading); letter-spacing: -0.01em;
 }
-.slide[data-depth="2"] .slide-title { font-size: 46px; }
-.slide[data-depth="3"] .slide-title,
-.slide[data-depth="4"] .slide-title,
-.slide[data-depth="5"] .slide-title,
-.slide[data-depth="6"] .slide-title { font-size: 40px; }
+/* :where → Spezifität wie `.slide-title`, damit Layouts (title, statement …) die Größe je Ebene überschreiben */
+:where(.slide[data-depth="2"]) .slide-title { font-size: 46px; }
+:where(.slide[data-depth="3"], .slide[data-depth="4"], .slide[data-depth="5"], .slide[data-depth="6"]) .slide-title { font-size: 40px; }
 
 .content { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: var(--space-2); }
 .content > * { margin: 0; }
@@ -76,6 +74,30 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   font-family: var(--font-code); font-size: 22px; line-height: 1.5;
 }
 .code-block code { font-family: inherit; }
+
+/* Zeilen hervorheben `lines="2-3|5|all"`: übrige Zeilen treten zurück */
+.code-block pre[data-hl-count] .line { display: inline-block; width: 100%; transition: opacity 0.3s, background-color 0.3s; }
+.code-block pre.hl-active .line:not(.hl) { opacity: 0.32; }
+.code-block pre.hl-active .line.hl {
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-accent);
+}
+
+/* Hinweiskästen `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]` */
+.callout {
+  --callout: var(--color-accent);
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 14px 22px; border-radius: var(--radius);
+  border-left: 5px solid var(--callout);
+  background: color-mix(in srgb, var(--callout) 10%, var(--color-bg));
+  font-size: 24px;
+}
+.callout > * { margin: 0; }
+.callout-title { font-weight: 700; font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--callout); }
+.callout-tip { --callout: var(--color-success, #1a7f37); }
+.callout-important { --callout: var(--color-important, #8250df); }
+.callout-warning { --callout: var(--color-warning, #bf8700); }
+.callout-caution { --callout: var(--color-danger); }
 
 /* Mermaid */
 .mermaid-block { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; flex: 1; }
@@ -117,8 +139,63 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .layout-section .slide-title { font-size: 60px; }
 .layout-section .content { flex: none; color: var(--color-muted); }
 
-.layout-two-col .content { display: grid; grid-template-columns: 1fr 1fr; align-content: start; align-items: start; gap: var(--space-2) var(--space-4); }
-.layout-two-col .content > :not(.d-col) { grid-column: 1 / -1; }
+.layout-two-col .content, .layout-three-col .content { display: grid; grid-template-columns: 1fr 1fr; align-content: start; align-items: start; gap: var(--space-2) var(--space-4); }
+.layout-three-col .content { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-2) var(--space-3); }
+.layout-two-col .content > :not(.d-col), .layout-three-col .content > :not(.d-col) { grid-column: 1 / -1; }
+
+/* Statement: eine Kernaussage, groß und mittig */
+.layout-statement { justify-content: center; align-items: center; text-align: center; }
+.layout-statement .title-wrap { display: flex; flex-direction: column; align-items: center; gap: var(--space-3); max-width: 1040px; }
+.layout-statement .slide-title { font-size: 68px; line-height: 1.1; }
+.layout-statement .content { flex: none; align-items: center; color: var(--color-muted); font-size: 32px; }
+
+/* Zitat: Blockquote groß, Titel klein darüber, Rest (Quelle) darunter */
+.layout-quote { justify-content: center; }
+.layout-quote header .slide-title { font-size: 22px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-accent); }
+.layout-quote .content { flex: none; gap: var(--space-3); }
+.layout-quote .content blockquote {
+  position: relative; border: 0; padding: 0 0 0 72px; font-size: 46px; line-height: 1.3; font-style: normal; color: var(--color-heading);
+}
+.layout-quote .content blockquote > * { margin: 0; }
+.layout-quote .content blockquote::before {
+  content: "“"; position: absolute; left: 0; top: -0.18em; font-size: 2.6em; line-height: 1; color: var(--color-accent); font-family: Georgia, serif;
+}
+.layout-quote .content blockquote + * { padding-left: 72px; color: var(--color-muted); font-size: 26px; }
+
+/* Bild links/rechts: das erste Bild bzw. Diagramm füllt eine Hälfte (siehe render.ts: .media/.body) */
+.layout-image-left .content, .layout-image-right .content {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-4); align-items: center;
+}
+.layout-image-left .media { order: -1; }
+.layout-image-right .media { order: 1; }
+.layout-image-left .media, .layout-image-right .media { display: flex; align-items: center; justify-content: center; min-height: 0; height: 100%; }
+.layout-image-left .media > p, .layout-image-right .media > p { margin: 0; height: 100%; display: flex; align-items: center; justify-content: center; }
+.layout-image-left .media img, .layout-image-right .media img { max-height: 100%; max-width: 100%; object-fit: contain; border-radius: var(--radius); }
+.layout-image-left .body, .layout-image-right .body { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.layout-image-left .body > *, .layout-image-right .body > * { margin: 0; }
+
+/* Agenda: Kapitel des Hauptpfads, erledigte gedämpft, das aktuelle bzw. nächste hervorgehoben */
+.agenda { list-style: none; counter-reset: agenda; padding: 0 !important; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.agenda li { counter-increment: agenda; display: flex; align-items: baseline; gap: 18px; padding: 6px 18px; border-radius: var(--radius); margin: 0 !important; line-height: 1.3; }
+/* viele Kapitel: kleiner, ab 10 zweispaltig */
+.agenda:has(li:nth-child(7)) li { font-size: 25px; padding: 4px 16px; }
+.agenda:has(li:nth-child(10)) { display: grid; grid-template-columns: 1fr 1fr; grid-auto-flow: column; grid-template-rows: repeat(var(--agenda-rows, 8), auto); column-gap: var(--space-3); }
+.agenda li::before {
+  content: counter(agenda); flex: none; width: 1.6em; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-accent);
+}
+.agenda a { color: var(--color-fg) !important; text-decoration: none; font-weight: 600; }
+.agenda a:hover { color: var(--color-accent) !important; }
+.agenda-count { margin-left: auto; font-size: 18px; color: var(--color-muted); }
+.agenda .agenda-done { opacity: 0.45; }
+.agenda .agenda-current, .agenda .agenda-next { background: var(--color-surface); outline: 2px solid var(--color-accent); }
+.agenda .agenda-current a, .agenda .agenda-next a { color: var(--color-heading) !important; }
+
+/* Hintergrund `{bg=…}`, optional abgedunkelt `{bgdim=0.5}` */
+.slide.has-bg::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: rgb(0 0 0 / var(--bg-dim, 0));
+}
+.slide.has-bg > * { position: relative; }
 
 /* ---------- Bedienelemente ---------- */
 
@@ -287,3 +364,51 @@ button.nc-next:hover { color: var(--color-accent); }
 .kh-panel dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
 .kh-panel dt { margin: 0; } .kh-panel dd { margin: 0; }
 .kh-foot { margin: 16px 0 0; font-size: 12px; color: var(--color-muted); }
+
+/* ---------- Suche (Ctrl+K bzw. /) ---------- */
+
+.search {
+  position: fixed; inset: 0; z-index: 26; display: flex; justify-content: center; align-items: flex-start; padding: 10vh 24px 24px;
+  background: color-mix(in srgb, var(--color-frame) 75%, transparent);
+}
+.sr-panel {
+  width: min(720px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--color-bg); color: var(--color-fg); border: 1px solid var(--color-border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.3); font-family: var(--font-body);
+}
+.sr-input {
+  font: inherit; font-size: 18px; padding: 14px 18px; border: 0; border-bottom: 1px solid var(--color-border);
+  background: transparent; color: inherit; outline: none;
+}
+.sr-list { list-style: none; margin: 0; padding: 6px; overflow: auto; min-height: 0; }
+.sr-hit { display: flex; flex-direction: column; gap: 2px; width: 100%; padding: 8px 12px; border-radius: 6px; text-align: left; }
+.sr-hit.selected { background: var(--color-surface); outline: 1px solid var(--color-accent); }
+.sr-title { display: flex; align-items: baseline; font-size: 15px; font-weight: 600; color: var(--color-heading); }
+.sr-indent { flex: none; }
+.sr-sub { font-weight: 400; color: var(--color-muted); font-size: 13px; white-space: pre; }
+.sr-trail { font-size: 12px; color: var(--color-accent); }
+.sr-snippet { font-size: 13px; color: var(--color-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sr-empty { padding: 16px; color: var(--color-muted); }
+.sr-foot { padding: 8px 18px; font-size: 12px; color: var(--color-muted); border-top: 1px solid var(--color-border); }
+
+/* ---------- Notizen (Overlay mit N, Presenter-View) ---------- */
+
+.notes-overlay {
+  position: fixed; left: 50%; bottom: 16px; z-index: 24; transform: translateX(-50%);
+  width: min(960px, calc(100% - 32px)); max-height: 38vh; overflow: auto;
+  padding: 12px 20px 14px; border-radius: var(--radius);
+  background: color-mix(in srgb, var(--color-bg) 94%, transparent); color: var(--color-fg);
+  border: 1px solid var(--color-border); box-shadow: 0 12px 40px rgb(0 0 0 / 0.35);
+  font-family: var(--font-body); font-size: 18px; line-height: 1.45;
+}
+.no-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-size: 13px; color: var(--color-muted); }
+.no-head strong { color: var(--color-fg); text-transform: uppercase; letter-spacing: 0.05em; font-size: 12px; }
+.notes-body > * { margin: 0 0 0.5em; }
+.notes-body ul, .notes-body ol { padding-left: 1.2em; }
+.notes-empty { color: var(--color-muted); font-style: italic; }
+.notes-body .d-note-step { position: relative; margin: 0 0 0.5em; padding: 4px 10px; border-left: 3px solid var(--color-border); border-radius: 3px; transition: opacity 0.2s; }
+.notes-body .d-note-step::before { content: attr(data-label); display: block; font-size: 0.6em; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-muted); }
+.notes-body .d-note-step > * { margin: 0; }
+.notes-body .d-note-step.note-now { border-left-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 12%, transparent); }
+.notes-body .d-note-step.note-later { opacity: 0.45; }
+.print-notes .d-note-step { margin: 0 0 0.4em; padding-left: 8px; border-left: 2px solid var(--color-border); }

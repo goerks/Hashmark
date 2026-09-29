@@ -28,7 +28,7 @@ make dev DECK=decks/mein-vortrag
 | `make export` | Eine einzelne HTML-Datei nach `export/<deck>.html`, läuft offline per Doppelklick |
 | `make pdf` | PDF nach `export/<deck>.pdf` (Optionen siehe „PDF und Druck“) |
 | `make docker` / `make docker-run` | Build und Docker-Image mit nginx (`IMAGE=…`), starten auf `DOCKER_PORT` (8080) |
-| `make test` | Tests (Parser, Deck-Baum, Navigator) |
+| `make test` | Tests (Parser, Deck-Baum, Navigator, Layouts, Suche, Zeitplan) |
 | `make deps-update` | Pakete online aktualisieren und im Cache ablegen |
 | `make clean` / `make distclean` | `dist/` bzw. zusätzlich `node_modules/` löschen |
 
@@ -55,7 +55,7 @@ Der Browser öffnet `http://localhost:3030/editor.html`:
 - **Rechts** ist die Live-Vorschau. Jede Änderung wird nach 0,4 s automatisch gespeichert und sofort angezeigt. Ctrl+S speichert direkt.
 - **Synchron** (Schalter oben): Die Vorschau zeigt die Folie unter dem Cursor, inklusive Sub-Slide, vollständig aufgedeckt. Umgekehrt scrollt der Editor mit, wenn du in der Vorschau mit den Pfeiltasten oder der Übersicht navigierst.
 - **Gliederung:** Ein Klick öffnet die Datei an der Überschrift und zeigt die Folie.
-- **Werkzeugleiste:** Bausteine für Kapitel, Detail, Sub-Slide, Zwei Spalten, Schritte, Code, Mermaid, Notizen und Kacheln.
+- **Werkzeugleiste:** Bausteine für Kapitel, Detail, Sub-Slide, Zwei Spalten, Schritte, Code, Mermaid, Notizen, Kacheln, Hinweis, Statement, Bild rechts, Agenda und Drei Spalten.
 - **Bilder:** *Bild* kopiert die Datei nach `bilder/` und fügt den Link ein. Das geht auch per **Drag & Drop** oder **Einfügen (Ctrl+V)** eines Screenshots. *Bild (Base64)* bettet das Bild direkt in die Markdown-Datei ein, als Referenz am Dateiende.
 - **+ Datei** legt eine neue Markdown-Datei an und trägt sie in `deck.yaml` ein. Kommentare dort bleiben erhalten.
 - **Präsentieren ↗** öffnet die Präsentation an der aktuellen Folie in einem neuen Tab.
@@ -107,7 +107,36 @@ Hinweise:
 - **Vertraulichkeit:** Build und Export enthalten den ganzen Deck-Inhalt samt Sprechernotizen im Klartext. Für interne Vorträge nur intern hosten. Für Docker gibt es einen vorbereiteten Basic-Auth-Block in [docker/nginx.conf](docker/nginx.conf).
 - **Docker** braucht beim ersten `make docker` Internet, um das Basis-Image `nginx:alpine` zu laden. Das Image enthält nur das gebaute Deck. Gebaut wird vorher lokal mit dem Node aus `vendor/`.
 - **CI unter Linux:** `vendor/` enthält nur Windows-Pakete (Node und die nativen Binaries von Vite/Rolldown). Auf einem Linux-Runner braucht es `npm ci` mit Registry-Zugriff. Alternativ lokal bauen und nur `dist/` veröffentlichen.
-- **Remote-Vortrag** (Teams/Zoom): Bildschirm bzw. Browserfenster teilen. Dass das Publikum der Position live im eigenen Browser folgt, ist noch nicht umgesetzt.
+- **Remote-Vortrag** (Teams/Zoom): Nur das Präsentationsfenster teilen, die Presenter-View (S) bleibt privat. Dass das Publikum der Position live im eigenen Browser folgt, ist noch nicht umgesetzt.
+
+## Presenter-View und Notizen
+
+**S** öffnet die Presenter-View in einem zweiten Fenster, das du auf den eigenen Bildschirm schiebst. Die Präsentation kommt auf den Beamer (F für Vollbild). Beide Fenster bleiben synchron. Das funktioniert mit `make dev`, `make preview` und im Single-File-Export per Doppelklick.
+
+- **Aktuell** (groß) und **Als Nächstes**: das Ziel von Space, also auch der nächste Schritt.
+- **Notizen** der aktuellen Sub-Slide. A− / A+ bzw. − / + ändern die Schriftgröße (wird gemerkt).
+- **Baum** links: Hauptpfad, entlang der aktuellen Position aufgeklappt, `↓3` = Anzahl Details. Klick springt.
+- Unter der Folie: die Details, in die man mit ↓ abtauchen kann (anklickbar), und das Ziel von →.
+- **Timer** startet mit der ersten Bewegung. ❚❚/▶ bzw. **T** pausiert, ↺ setzt zurück. Daneben steht die Uhrzeit.
+- **Zeitplan:** Mit `duration: 30m` in `deck.yaml` zeigt die Leiste „im Plan“, „2:10 hinter Plan“ bzw. „… voraus“ und die Restzeit. `{duration=5m}` an einer Überschrift gibt dem Kapitel ein eigenes Budget („Architektur: 3:12 / 5:00“, rot bei Überzug).
+- Alle Navigationstasten, B (Schwarzbild) und Ctrl+K funktionieren auch in der Presenter-View. Presenter-Fernbedienungen gehen an das Fenster, das den Fokus hat.
+
+**N** blendet die Notizen unten in der Präsentation ein. Das ist zum Üben gedacht, wenn nur ein Bildschirm da ist. Beim Teilen sieht das Publikum sie auch.
+
+```markdown
+::: notes
+Gilt für die ganze Sub-Slide.
+:::
+
+::: notes step=2
+Wird in der Presenter-View hervorgehoben, sobald Schritt 2 läuft (spätere Schritte gedämpft).
+:::
+
+<!-- notes -->
+Alles ab hier bis zum nächsten --- ist ebenfalls Notiz.
+```
+
+Notizen gehören zur **Sub-Slide**, in der sie stehen. Das Handout (`make pdf NOTES=1`) druckt sie deshalb neben der richtigen Folie.
 
 ## Tastatur
 
@@ -121,7 +150,10 @@ Unten rechts auf jeder Folie zeigt ein **Steuerkreuz**, welche Richtungen mögli
 | **Space** / Shift+Space | **der Linie nach**: alles in Lesereihenfolge (Tiefensuche), also Schritte, Sub-Slides, dann die Details, dann das nächste Kapitel; rückwärts derselbe Weg |
 | PageDown / PageUp | wie Space / Shift+Space. Das senden **Presenter-Fernbedienungen** („Pointer“) |
 | F5 / F | Vollbild an/aus (Play-Taste des Presenters) |
-| B / . | Schwarzbild an/aus (Schwarzbild-Taste des Presenters) |
+| B / . | Schwarzbild an/aus (Schwarzbild-Taste des Presenters). Jede Bewegung beendet es ebenfalls. |
+| **S** | Presenter-View im zweiten Fenster (siehe oben) |
+| **N** | Notizen unten einblenden / ausblenden |
+| **Ctrl+K** oder **/** | Suche: Titel, Pfad und Folientext; ohne Eingabe ein Inhaltsverzeichnis. ↑ ↓ + Enter springt, Esc schließt |
 | H | Steuerkreuz aus-/einblenden |
 | ? | Tastenhilfe |
 | Home | zum Anfang |
@@ -139,6 +171,9 @@ title: Mein Vortrag
 theme: minimal          # minimal | dark-tech | ./eigenes-theme.css
 maxDepth: 3             # tiefere Überschriften werden Abschnitte innerhalb der Folie
 layout: default         # Default-Layout
+layouts:                # Default-Layout je Ebene (vor `layout`, nach dem Attribut am Knoten)
+  1: section
+duration: 30m           # Zeitplan für die Presenter-View (30m, 1h30m, 90s, 1:30)
 mount:
   - file: intro.md
   - file: details/backend.md
@@ -164,9 +199,25 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
 [Querverweis](#backend/db-schema)
 ```
 
-- **Layouts:** `title`, `section` (zeigt Kinder automatisch als Kacheln), `default`, `two-col`
-- **Container:** `::: columns`/`::: col`, `::: grid cols="2fr 1fr" gap=2`, `::: children`, `::: notes`. Verschachtelung im Pandoc-Stil mit gleicher Anzahl Doppelpunkte.
-- **Code:** ` ```ts {title="auth.ts" lines="3-5|all"} ` mit Shiki. Die Farben kommen aus den `--shiki-token-*`-Tokens des Themes. `lines` wird bereits übernommen und in Phase 3 animiert.
+- **Layouts:**
+
+  | Layout | Wirkung |
+  | --- | --- |
+  | `title` | Titel groß, Text als Untertitel |
+  | `section` | Kapitelstart, Kinder automatisch als Kacheln |
+  | `default` | Titel und Inhalt |
+  | `two-col` / `three-col` | `::: col`-Blöcke nebeneinander |
+  | `statement` | eine Kernaussage groß und mittig (Titel = Aussage) |
+  | `quote` | Blockquote groß mit Anführungszeichen, Titel klein darüber, Text darunter = Quelle |
+  | `image-right` / `image-left` | das erste Bild (bzw. Mermaid-Diagramm) füllt eine Hälfte, der Rest steht daneben |
+  | `agenda` | Liste der Kapitel des Hauptpfads. Erledigte gedämpft, das nächste (zwischen Kapiteln) bzw. aktuelle (unter einem Kapitel) hervorgehoben. Ab 10 Kapiteln zweispaltig |
+
+- **Knoten-Attribute:** `layout=…`, `id=…`, `transition=slide|zoom|fade|none`, `.klasse`, `duration=5m` (Budget in der Presenter-View), `bg=…` (Hintergrund: Farbe `#123`, Verlauf `"linear-gradient(…)"` oder Bild `bilder/x.jpg`), `bgdim=0.5` (Bild abdunkeln)
+- **Container:** `::: columns`/`::: col`, `::: columns cols=3` bzw. `cols="2:1"` (feste Spalten, Verhältnis), `::: grid cols="2fr 1fr" gap=2`, `::: children`, `::: notes` (`step=2`). Verschachtelung im Pandoc-Stil mit gleicher Anzahl Doppelpunkte.
+- **Hinweiskästen** wie auf GitHub: `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`. Titel auf Deutsch (Hinweis, Tipp, Wichtig, Warnung, Achtung), eigener Titel mit `> [!TIP] Mein Titel`.
+- **Code:** ` ```ts {title="auth.ts" lines="3-5|8|all"} ` mit Shiki. Die Farben kommen aus den `--shiki-token-*`-Tokens des Themes.
+  - `lines`: hebt Zeilen hervor und dunkelt die übrigen ab. Jeder `|`-Abschnitt ist ein Schritt: Abschnitt 1 gilt sofort, jedes → schaltet weiter. `all` bzw. ein leerer Abschnitt zeigt alles normal. Ein einzelner Abschnitt (`lines="3-5"`) hebt fest hervor, ohne Schritt.
+  - `lines` und `steps` lassen sich kombinieren, beide zählen über dieselbe Schrittnummer.
 - **Mermaid:** ` ```mermaid `, gerendert im Browser. Die Farben kommen aus den Theme-Tokens.
 - **Schritt für Schritt:** Die Schritte einer Folie werden über ihre Nummer synchronisiert. Gleiche Nummer bedeutet gleichzeitig: Links erscheint Bullet 2, rechts Code-Teil 2. Oben rechts zeigen Punkte den Fortschritt.
   - `::: steps` um eine Liste: Jeder Listenpunkt (bzw. jeder Block) ist ein Schritt. `::: steps start=2` beginnt später.
@@ -211,6 +262,6 @@ src/cli/       strata dev | build | preview
 examples/      Beispiel-Deck (5 Dateien, 3 Ebenen)
 ```
 
-## Nicht im MVP (siehe Roadmap im Konzept)
+## Noch nicht umgesetzt
 
-Includes, `hidden`, Suche, Presenter-View, PlantUML, Auto-Layout/Auto-Fit, Hell/Dunkel-Umschaltung, Code-Hervorhebung per `lines=`, Magic Move, Diagramm-Morphing (stabile Knotenpositionen), eigene Layouts.
+Die Reihenfolge der nächsten Ausbaustufen steht in der [Roadmap](roadmap.md). Noch offen sind z. B. Includes, `hidden`, PlantUML/D2/Graphviz, Auto-Layout/Auto-Fit, Hell/Dunkel-Umschaltung, Magic Move, Diagramm-Morphing (stabile Knotenpositionen), eigene Layouts und die Desktop-App.

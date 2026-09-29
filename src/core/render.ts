@@ -53,7 +53,7 @@ const isUrl = (url: string) => !/^[a-z]:[\\/]/i.test(url) && /^([a-z][a-z0-9+.-]
  * Lokales Bild auflösen: im Deck-Ordner → deck-assets/ (der Build kopiert die Datei),
  * außerhalb des Decks oder mit embedImages → Base64-Data-URI.
  */
-function resolveImage(url: string, ctx: RenderContext): string {
+export function resolveImage(url: string, ctx: RenderContext): string {
   if (isUrl(url)) return url
   const abs = path.resolve(path.dirname(ctx.file), decodeURI(url))
   if (!fs.existsSync(abs)) {
@@ -96,20 +96,48 @@ export function parseLineSteps(spec: string): Map<number, number> {
   return map
 }
 
+/**
+ * `lines="2-3|5|all"` → je `|`-Abschnitt die hervorgehobenen Zeilen. Abschnitt k gilt ab Schritt k
+ * (Abschnitt 0 sofort). `all`, `*` oder leer = nichts abdunkeln. `null` = alle Zeilen.
+ */
+export function parseLineHighlights(spec: string): (Set<number> | null)[] {
+  return spec.split('|').map((segment) => {
+    const s = segment.trim()
+    if (!s || s === 'all' || s === '*') return null
+    const lines = new Set<number>()
+    for (const part of s.split(',').map((p) => p.trim()).filter(Boolean)) {
+      const [from, to = from] = part.split('-').map(Number)
+      for (let line = from; line <= to; line++) lines.add(line)
+    }
+    return lines
+  })
+}
+
 export const shikiPlugin: CodeBlockPlugin = {
   langs: ['*'],
   async render(node, attrs) {
     const lang = node.lang && node.lang in bundledLanguages ? node.lang : 'text'
     const h = await getHighlighter(lang)
     const lineSteps = attrs.steps ? parseLineSteps(attrs.steps) : undefined
+    const highlights = attrs.lines ? parseLineHighlights(attrs.lines) : undefined
     let html = h.codeToHtml(node.value, {
       lang,
       theme: 'strata',
-      transformers: lineSteps
-        ? [{ line(el, line) { const step = lineSteps.get(line); if (step) el.properties['data-step'] = String(step) } }]
-        : [],
+      transformers: [{
+        line(el, line) {
+          const step = lineSteps?.get(line)
+          if (step) el.properties['data-step'] = String(step)
+          // Abschnitte, in denen die Zeile hervorgehoben ist, z. B. " 0 2 "
+          const hl = highlights?.flatMap((set, k) => (set?.has(line) ? [k] : []))
+          if (hl?.length) el.properties['data-hl'] = ` ${hl.join(' ')} `
+        },
+      }],
     })
-    if (attrs.lines) html = html.replace('<pre ', `<pre data-lines="${escape(attrs.lines)}" `)
+    if (highlights) {
+      // Abschnitte ohne Abdunkeln (all) und Anzahl Abschnitte für die Runtime; Abschnitte 1… sind Schritte
+      const all = highlights.flatMap((set, k) => (set ? [] : [k]))
+      html = html.replace('<pre ', `<pre data-lines="${escape(attrs.lines)}" data-hl-count="${highlights.length}" data-hl-all=" ${all.join(' ')} " `)
+    }
     const title = attrs.title ? `<figcaption>${escape(attrs.title)}</figcaption>` : ''
     return { html: `<figure class="code-block">${title}${html}</figure>`, steps: [] }
   },
@@ -196,16 +224,45 @@ function markSteps(children: AnyNode[], start: number) {
   }
 }
 
+/** `cols=3` → 3 gleiche Spalten, `cols="2:1"` → 2fr 1fr, sonst CSS unverändert (`"2fr 1fr"`, `"300px 1fr"`). */
+export function gridColumns(cols: string): string {
+  if (/^\d+$/.test(cols)) return `repeat(${cols},minmax(0,1fr))`
+  if (/^\d+(\.\d+)?(:\d+(\.\d+)?)+$/.test(cols)) return cols.split(':').map((c) => `minmax(0,${c}fr)`).join(' ')
+  return cols
+}
+
+/** GitHub-Hinweiskästen `> [!NOTE]` … und ihre deutschen Standard-Titel */
+const CALLOUTS: Record<string, string> = { note: 'Hinweis', tip: 'Tipp', important: 'Wichtig', warning: 'Warnung', caution: 'Achtung' }
+const CALLOUT_MARK = /^\[!(\w+)\][ \t]*([^\n]*)\n?/
+
+/** `> [!WARNING] Eigener Titel` → `<div class="callout callout-warning">` mit Titelzeile */
+function applyCallout(node: AnyNode) {
+  const first = node.children?.[0]
+  const text = first?.type === 'paragraph' ? (first.children?.[0] as { type: string; value: string } | undefined) : undefined
+  const m = text?.type === 'text' ? text.value.match(CALLOUT_MARK) : null
+  if (!m || !(m[1].toLowerCase() in CALLOUTS)) return
+  const kind = m[1].toLowerCase()
+  text!.value = text!.value.slice(m[0].length)
+  // Absatz, der nur aus der Markierung bestand, entfernen
+  if (!text!.value && first!.children!.length === 1) node.children!.shift()
+  else if (!text!.value) first!.children!.shift()
+  const title = { type: 'paragraph', children: [{ type: 'text', value: m[2].trim() || CALLOUTS[kind] }], data: { hProperties: { className: ['callout-title'] } } }
+  node.children!.unshift(title as AnyNode)
+  node.data = { ...node.data, hName: 'div', hProperties: { className: ['callout', `callout-${kind}`] } }
+}
+
 function applyDirectives(root: Root, ctx: RenderContext) {
   visit(root, (node: AnyNode, index, parent: AnyNode | undefined) => {
+    if (node.type === 'blockquote') applyCallout(node)
     if (node.type === 'containerDirective') {
       const attrs = node.attributes ?? {}
       const props: Record<string, unknown> = { className: [`d-${node.name}`, ...(attrs.class ? attrs.class.split(/\s+/) : [])] }
-      if (node.name === 'grid') {
+      if (node.name === 'grid' || node.name === 'columns') {
         const style: string[] = []
-        if (attrs.cols) style.push(`grid-template-columns:${/^\d+$/.test(attrs.cols) ? `repeat(${attrs.cols},1fr)` : attrs.cols}`)
+        // Spalten mit fester Anzahl brechen in die nächste Zeile um, statt weitere Spalten anzuhängen
+        if (attrs.cols) style.push(`grid-template-columns:${gridColumns(attrs.cols)}`, 'grid-auto-flow:row')
         if (attrs.gap) style.push(`gap:${/^[\d.]+$/.test(attrs.gap) ? `${attrs.gap}rem` : attrs.gap}`)
-        props.style = style.join(';')
+        if (style.length) props.style = style.join(';')
       }
       if (node.name === 'children') props.dataChildren = ''
       if (node.name === 'steps') markSteps(node.children ?? [], Number(attrs.start ?? 1))
@@ -234,7 +291,10 @@ function applyDirectives(root: Root, ctx: RenderContext) {
 
 // ---------- Notizen ----------
 
-/** Entfernt `:::notes`-Container und alles nach `<!-- notes -->`; liefert beides als Notiz-Blöcke. */
+/**
+ * Entfernt `:::notes`-Container und alles nach `<!-- notes -->`; liefert beides als Notiz-Blöcke.
+ * `::: notes step=2` bleibt als Container erhalten und wird zu `<div data-note-step="2">`.
+ */
 function extractNotes(blocks: AnyNode[]): { content: AnyNode[]; notes: AnyNode[] } {
   const content: AnyNode[] = []
   const notes: AnyNode[] = []
@@ -242,10 +302,35 @@ function extractNotes(blocks: AnyNode[]): { content: AnyNode[]; notes: AnyNode[]
   for (const b of blocks) {
     if (b.type === 'html' && /^<!--\s*notes\s*-->$/i.test((b as { value: string }).value.trim())) { inNotes = true; continue }
     if (inNotes) notes.push(b)
-    else if (b.type === 'containerDirective' && b.name === 'notes') notes.push(...(b.children ?? []))
-    else content.push(b)
+    else if (b.type === 'containerDirective' && b.name === 'notes') {
+      const step = b.attributes?.step
+      if (step && /^\d+$/.test(step)) {
+        // wird in applyDirectives zu <div class="d-note-step" data-note-step="2">
+        b.data = { hProperties: { dataNoteStep: step } }
+        b.name = 'note-step'
+        notes.push(b)
+      } else notes.push(...(b.children ?? []))
+    } else content.push(b)
   }
   return { content, notes }
+}
+
+// ---------- Bild-Layouts ----------
+
+/** Absatz, der nur aus einem Bild besteht (plus Attribut-Text `{width=…}` bzw. Leerraum) */
+function isImageBlock(b: AnyNode): boolean {
+  if (b.type !== 'paragraph') return false
+  const kids = b.children ?? []
+  const images = kids.filter((k) => k.type === 'image')
+  const rest = kids.filter((k) => k.type !== 'image')
+  return images.length === 1 && rest.every((k) => k.type === 'text' && /^\s*(\{[^{}]*\})?\s*$/.test((k as { value: string }).value))
+}
+
+/** `image-left`/`image-right`: das erste Bild bzw. Diagramm wandert in die Bildspalte, der Rest daneben. */
+function splitMedia(blocks: AnyNode[]): { media: AnyNode[]; body: AnyNode[] } | null {
+  const i = blocks.findIndex((b) => isImageBlock(b) || (b.type === 'code' && (b as unknown as Code).lang === 'mermaid'))
+  if (i < 0) return null
+  return { media: [blocks[i]], body: blocks.filter((_, k) => k !== i) }
 }
 
 // ---------- Pipeline ----------
@@ -268,14 +353,27 @@ async function blocksToHtml(blocks: AnyNode[], ctx: RenderContext): Promise<{ ht
   const hast = await toHtml.run(root)
   const html = String(toHtml.stringify(hast)).trim()
 
-  // Schritte der Folie = höchster `data-step` über alle Blöcke; gleiche Nummer = gleichzeitig
-  const count = Math.max(0, ...[...html.matchAll(/data-step="(\d+)"/g)].map((m) => Number(m[1])))
+  // Schritte der Folie = höchster `data-step` über alle Blöcke; gleiche Nummer = gleichzeitig.
+  // Code mit `lines="a|b|c"` braucht Schritte bis zur Anzahl Abschnitte − 1.
+  const count = Math.max(0,
+    ...[...html.matchAll(/data-step="(\d+)"/g)].map((m) => Number(m[1])),
+    ...[...html.matchAll(/data-hl-count="(\d+)"/g)].map((m) => Number(m[1]) - 1))
   for (let k = 1; k <= count; k++) steps.push({ selector: `[data-step="${k}"]`, state: { visible: 'true' } })
   return { html, steps }
 }
 
-/** Rendert den Inhalt eines Knotens: `---` trennt Sub-Slides. */
-export async function renderNodeContent(blocks: RootContent[], ctx: RenderContext): Promise<{ slides: Slide[]; notes?: string }> {
+/** Sub-Slide rendern; bei Bild-Layouts in Bildspalte (`.media`) und Text (`.body`) geteilt. */
+async function renderSlide(blocks: AnyNode[], ctx: RenderContext, layout?: string): Promise<Slide> {
+  const split = layout === 'image-left' || layout === 'image-right' ? splitMedia(blocks) : null
+  if (!split) return blocksToHtml(blocks, ctx)
+  const media = await blocksToHtml(split.media, ctx)
+  const body = await blocksToHtml(split.body, ctx)
+  const html = `<div class="media">${media.html}</div><div class="body">${body.html}</div>`
+  return { html, steps: media.steps.length >= body.steps.length ? media.steps : body.steps }
+}
+
+/** Rendert den Inhalt eines Knotens: `---` trennt Sub-Slides. `layout` = wirksames Layout des Knotens. */
+export async function renderNodeContent(blocks: RootContent[], ctx: RenderContext, layout?: string): Promise<{ slides: Slide[]; notes?: string }> {
   const groups: AnyNode[][] = [[]]
   for (const b of blocks as AnyNode[]) {
     if (b.type === 'thematicBreak') groups.push([])
@@ -292,8 +390,12 @@ export async function renderNodeContent(blocks: RootContent[], ctx: RenderContex
   const slides: Slide[] = []
   const notes: string[] = []
   for (const { content, notes: n } of parts) {
-    slides.push(await blocksToHtml(content, ctx))
-    if (n.length) notes.push((await blocksToHtml(n, ctx)).html)
+    const slide = await renderSlide(content, ctx, layout)
+    if (n.length) {
+      slide.notes = (await blocksToHtml(n, ctx)).html
+      notes.push(slide.notes)
+    }
+    slides.push(slide)
   }
   return { slides, notes: notes.length ? notes.join('\n<hr>\n') : undefined }
 }

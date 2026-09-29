@@ -33,6 +33,15 @@
       item.classList.toggle('step-hidden', !visible)
       item.classList.toggle('step-current', visible && from === current && from > 0)
     }
+    // Code `lines="2-3|5|all"`: Abschnitt k ab Schritt k; danach bleibt der letzte stehen
+    for (const pre of root.querySelectorAll<HTMLElement>('pre[data-hl-count]')) {
+      const active = Math.min(current, Number(pre.dataset.hlCount) - 1)
+      const all = (pre.dataset.hlAll ?? '').includes(` ${active} `)
+      pre.classList.toggle('hl-active', !all)
+      for (const line of pre.querySelectorAll<HTMLElement>('.line')) {
+        line.classList.toggle('hl', !all && (line.dataset.hl ?? '').includes(` ${active} `))
+      }
+    }
   }
 
   $effect(() => {
@@ -48,8 +57,15 @@
   })
 </script>
 
-<section class="slide layout-{layout} {node.attrs.class ?? ''}" data-depth={node.depth} bind:this={el}>
-  {#if layout === 'title'}
+<section
+  class="slide layout-{layout} {node.attrs.class ?? ''}"
+  class:has-bg={!!node.attrs.bg}
+  data-depth={node.depth}
+  style:background={node.attrs.bg}
+  style:--bg-dim={node.attrs.bgdim}
+  bind:this={el}
+>
+  {#if layout === 'title' || layout === 'statement'}
     <div class="title-wrap">
       <svelte:element this={titleTag} class="slide-title">{node.title}</svelte:element>
       <div class="content">{@html html}</div>

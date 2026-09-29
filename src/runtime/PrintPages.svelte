@@ -14,7 +14,7 @@
 
   let root: HTMLElement
 
-  const layoutOf = (n: DeckNode) => n.attrs.layout ?? deck.layout ?? 'default'
+  const layoutOf = (n: DeckNode) => n.layout ?? n.attrs.layout ?? deck.layout ?? 'default'
   /** Titel als h1…h6 nach Tiefe → hierarchische PDF-Lesezeichen; Folgeseiten ohne Überschrift */
   const titleTag = (n: DeckNode, first: boolean) => (first ? `h${Math.min(n.depth, 6)}` : 'div')
 
@@ -64,7 +64,7 @@
       </div>
       {#if options.notes}
         <div class="print-notes">
-          {#if page.first && page.node.notes}{@html page.node.notes}{:else if page.first}<p class="print-empty">Keine Notizen</p>{/if}
+          {#if page.slideFirst && page.node.slides[page.slide].notes}{@html page.node.slides[page.slide].notes}{:else if page.slideFirst}<p class="print-empty">Keine Notizen</p>{/if}
         </div>
       {/if}
     </article>

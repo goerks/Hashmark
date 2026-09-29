@@ -1,12 +1,14 @@
 title: Strata – Präsentieren in die Tiefe
 theme: dark-tech        # minimal | dark-tech | ./pfad/zu/eigenem.css
 maxDepth: 3           # tiefere Überschriften werden Abschnitte innerhalb der Folie
+duration: 20m         # Zeitplan für die Presenter-View (Taste S)
 mount:
   - file: 01-einfuehrung.md
   - file: 02-navigation.md
   - file: schritte.md
   - file: bilder.md
   - file: werkzeuge.md
+  - file: praesentieren.md
   - file: 03-architektur.md
   - file: details/parser.md
     under: "Architektur > Parser"   # hängt die Datei unter einen bestehenden Knoten

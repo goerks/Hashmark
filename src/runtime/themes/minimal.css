@@ -10,6 +10,9 @@
   --color-border: #d5dbe3;
   --color-frame: #dfe3e8;
   --color-danger: #c62828;
+  --color-success: #1a7f37;
+  --color-warning: #9a6700;
+  --color-important: #8250df;
 
   --font-heading: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
   --font-body: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
