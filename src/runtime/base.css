@@ -232,3 +232,58 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
  * Die Druckansicht (?print) setzt bei Bedarf ein eigenes @page und überschreibt dieses.
  */
 @page { size: 1280px 720px; margin: 0; }
+
+/* ---------- Steuerkreuz (in der Bühne, unterer Randstreifen rechts) ---------- */
+
+.nav-controls {
+  position: absolute; right: 24px; bottom: 6px; z-index: 6;
+  display: flex; align-items: center; gap: 14px;
+  font-family: var(--font-body); color: var(--color-muted);
+  transition: opacity 0.4s;
+}
+.nav-controls.dimmed:not(:hover):not(:focus-within) { opacity: 0.4; }
+.nc-info { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.nc-next { display: flex; align-items: center; gap: 8px; max-width: 320px; font-size: 16px; color: var(--color-fg); }
+button.nc-next:hover { color: var(--color-accent); }
+.nc-next-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nc-end { color: var(--color-muted); }
+.nc-next kbd, .kh-panel kbd {
+  font-family: var(--font-code); font-size: 12px; padding: 1px 6px; border-radius: 4px;
+  border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-fg);
+}
+.nc-progress { font-size: 14px; font-variant-numeric: tabular-nums; }
+.nc-chapter { margin-left: 8px; opacity: 0.8; }
+.nc-chapter::before { content: "· "; }
+
+/* 3 × 21 px: passt in den 76 px hohen Randstreifen der Folie */
+.nc-pad { display: grid; grid-template: ". up ." 21px "left center right" 21px ". down ." 21px / 21px 21px 21px; }
+.nc-up { grid-area: up; } .nc-down { grid-area: down; } .nc-left { grid-area: left; } .nc-right { grid-area: right; }
+.nc-center { grid-area: center; justify-self: center; align-self: center; width: 5px; height: 5px; border-radius: 50%; background: var(--color-border); }
+.nc-btn {
+  position: relative; display: grid; place-items: center; border-radius: 5px;
+  color: var(--color-accent); transition: background 0.15s, color 0.15s;
+}
+.nc-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; }
+.nc-btn:hover:not(:disabled) { background: var(--color-accent); color: var(--color-bg); }
+.nc-btn:disabled { color: var(--color-border); cursor: default; }
+.nc-hover { color: var(--color-accent); }
+
+/* ---------- Schwarzbild und Tastenhilfe ---------- */
+
+.blackout { position: fixed; inset: 0; z-index: 30; background: #000; cursor: none; }
+
+.key-help {
+  position: fixed; inset: 0; z-index: 25; display: grid; place-items: center; padding: 24px;
+  background: color-mix(in srgb, var(--color-frame) 80%, transparent);
+}
+.kh-panel {
+  width: min(760px, 100%); max-height: 100%; overflow: auto; padding: 20px 26px;
+  background: var(--color-bg); color: var(--color-fg); border: 1px solid var(--color-border); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.3); font-family: var(--font-body); font-size: 14px;
+}
+.kh-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; font-size: 17px; }
+.kh-head span { font-size: 12px; color: var(--color-muted); }
+.kh-panel h3 { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); }
+.kh-panel dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+.kh-panel dt { margin: 0; } .kh-panel dd { margin: 0; }
+.kh-foot { margin: 16px 0 0; font-size: 12px; color: var(--color-muted); }

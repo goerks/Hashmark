@@ -1,5 +1,5 @@
 title: Strata – Präsentieren in die Tiefe
-theme: minimal        # minimal | dark-tech | ./pfad/zu/eigenem.css
+theme: dark-tech        # minimal | dark-tech | ./pfad/zu/eigenem.css
 maxDepth: 3           # tiefere Überschriften werden Abschnitte innerhalb der Folie
 mount:
   - file: 01-einfuehrung.md

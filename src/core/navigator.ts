@@ -109,11 +109,11 @@ export class Navigator {
     return null
   }
 
-  /** ↓ / Enter: in den ersten Kindknoten. */
-  down(pos: Position): Move | null {
+  /** ↓ / Enter: in den ersten Kindknoten. `peek`: nur Ziel ermitteln (Anzeige), Position nicht merken. */
+  down(pos: Position, peek = false): Move | null {
     const child = this.node(pos.id)?.children[0]
     if (!child) return null
-    this.memory.set(pos.id, { slide: pos.slide, step: pos.step ?? 0 })
+    if (!peek) this.memory.set(pos.id, { slide: pos.slide, step: pos.step ?? 0 })
     return { pos: at(child.id, 0), dir: 'down' }
   }
 
@@ -126,6 +126,53 @@ export class Navigator {
     // ohne gemerkte Position: Elternfolie vollständig aufgedeckt zeigen
     const step = Math.min(mem?.step ?? stepsOf(parent, slide), stepsOf(parent, slide))
     return { pos: at(parent.id, slide, step), dir: 'up' }
+  }
+
+  /**
+   * Space / PageDown (Presenter): der Linie nach in die Tiefe – Tiefensuche durch den ganzen Baum.
+   * Schritte, Sub-Slides, dann erstes Kind, dann nächster Geschwisterknoten bzw. Nachfolger eines Vorfahren.
+   */
+  forward(pos: Position, peek = false): Move | null {
+    const e = this.entries.get(pos.id)
+    if (!e) return null
+    const step = pos.step ?? 0
+    if (step < stepsOf(e.node, pos.slide)) return { pos: at(pos.id, pos.slide, step + 1), dir: 'step' }
+    if (pos.slide < e.node.slides.length - 1) return { pos: at(pos.id, pos.slide + 1), dir: 'right' }
+    if (e.node.children.length) return this.down(pos, peek)
+    return this.next(pos)
+  }
+
+  /** Shift+Space / PageUp: derselbe Weg rückwärts; man landet vollständig aufgedeckt. */
+  backward(pos: Position): Move | null {
+    const e = this.entries.get(pos.id)
+    if (!e) return null
+    const step = pos.step ?? 0
+    if (step > 0) return { pos: at(pos.id, pos.slide, step - 1), dir: 'step' }
+    if (pos.slide > 0) return { pos: at(pos.id, pos.slide - 1, stepsOf(e.node, pos.slide - 1)), dir: 'left' }
+    const sib = e.siblings[e.index - 1]
+    if (sib) {
+      // tiefster, letzter Nachfahre des vorherigen Geschwisters
+      let last = sib
+      while (last.children.length) last = last.children[last.children.length - 1]
+      const slide = last.slides.length - 1
+      return { pos: at(last.id, slide, stepsOf(last, slide)), dir: last === sib ? 'left' : 'up' }
+    }
+    if (e.parent) {
+      const slide = e.parent.slides.length - 1
+      return { pos: at(e.parent.id, slide, stepsOf(e.parent, slide)), dir: 'up' }
+    }
+    return null
+  }
+
+  /** Position in Lesereihenfolge (1-basiert) und Gesamtzahl der Folien (Sub-Slides zählen einzeln). */
+  progress(pos: Position): { index: number; total: number } {
+    let index = 0
+    let total = 0
+    for (const n of this.walk()) {
+      if (n.id === pos.id) index = total + pos.slide + 1
+      total += n.slides.length
+    }
+    return { index, total }
   }
 
   jump(pos: Position): Move | null {

@@ -111,16 +111,23 @@ Hinweise:
 
 ## Tastatur
 
+Unten rechts auf jeder Folie zeigt ein **Steuerkreuz**, welche Richtungen möglich sind. Nicht mögliche Richtungen sind ausgegraut. Ein Klick darauf navigiert. Beim Überfahren steht das Ziel daneben („↑ zurück zu Parser“). Darüber steht, wohin **Space** als Nächstes führt, dazu die Position („12 / 32 · Kapitel 4 / 8“). Nach 3 s ohne Maus oder Tasten wird es dezenter. **H** blendet es aus, **?** zeigt alle Tasten.
+
 | Taste | Wirkung |
 | --- | --- |
-| → / Space / PageDown | weiter: nächster Schritt, dann Sub-Slide, dann Geschwister, am Ende einer Ebene Nachfolger des Elternknotens |
-| ← / Shift+Space / PageUp | zurück (auf vorherigen Folien landet man vollständig aufgedeckt) |
+| → / ← | weiter / zurück auf der aktuellen Ebene: Schritte, Sub-Slides, Geschwister, am Ende einer Ebene zum Nachfolger des Elternknotens |
 | ↓ / Enter | in den ersten Kindknoten abtauchen |
-| ↑ / Esc | zum Elternknoten, an die Sub-Slide, von der aus abgetaucht wurde |
+| ↑ / Esc | zum Elternknoten, an die Stelle, von der aus abgetaucht wurde |
+| **Space** / Shift+Space | **der Linie nach**: alles in Lesereihenfolge (Tiefensuche), also Schritte, Sub-Slides, dann die Details, dann das nächste Kapitel; rückwärts derselbe Weg |
+| PageDown / PageUp | wie Space / Shift+Space. Das senden **Presenter-Fernbedienungen** („Pointer“) |
+| F5 / F | Vollbild an/aus (Play-Taste des Presenters) |
+| B / . | Schwarzbild an/aus (Schwarzbild-Taste des Presenters) |
+| H | Steuerkreuz aus-/einblenden |
+| ? | Tastenhilfe |
+| Home | zum Anfang |
+| Ctrl+Shift+O (kurz: O) | Navigations-Übersicht: Hierarchie mit Miniatur jeder Folie; Klick oder Pfeiltasten + Enter springt direkt dorthin, Esc schließt |
 | Ctrl+P | alle Folien drucken, Seitenbereich im Dialog wählbar |
 | P | Druckansicht mit Optionen (Tiefe, Schritte, Handout) in neuem Tab |
-| Ctrl+Shift+O (kurz: O) | Navigations-Übersicht: Hierarchie mit Miniatur jeder Folie; Klick oder Pfeiltasten + Enter springt direkt dorthin, Esc schließt |
-| Home | zum Anfang |
 
 Deep-Links: `#architektur/parser` bzw. `#architektur/parser:2` für die zweite Sub-Slide.
 

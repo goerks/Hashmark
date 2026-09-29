@@ -6,10 +6,12 @@ Nach rechts geht die Story weiter, nach unten geht es ins Detail.
 
 | Taste | Wirkung |
 | --- | --- |
-| → / Space | weiter (Sub-Slide, Geschwister, dann Eltern-Nachfolger) |
-| ← | zurück |
+| → / ← | weiter / zurück auf der Ebene |
 | ↓ / Enter | abtauchen |
 | ↑ / Esc | auftauchen, Position wird gemerkt |
+| Space / Presenter ▶ | der Linie nach – inklusive aller Details |
+| B / F5 | Schwarzbild / Vollbild (Presenter) |
+| ? | alle Tasten |
 | Ctrl+Shift+O / O | Navigations-Übersicht |
 | Home | zum Anfang |
 

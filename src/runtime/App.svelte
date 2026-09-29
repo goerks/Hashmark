@@ -2,6 +2,8 @@
   import { flushSync, onMount } from 'svelte'
   import { DEFAULT_PRINT, printQuery } from '../core/print.ts'
   import PrintPages from './PrintPages.svelte'
+  import NavControls, { type Control, type ControlKey } from './NavControls.svelte'
+  import KeyHelp from './KeyHelp.svelte'
   import { Navigator, formatHash, parseHash, stepsOf, type Direction, type Move, type Position } from '../core/navigator.ts'
   import type { Deck, DeckNode } from '../core/types.ts'
   import initial from 'virtual:strata/deck'
@@ -26,6 +28,42 @@
   const trail = $derived(pos ? nav.path(pos.id) : [])
   const layout = $derived(node ? (node.attrs.layout ?? deck?.layout ?? 'default') : 'default')
   const stepCount = $derived(pos ? stepsOf(node, pos.slide) : 0)
+  let controlsHidden = $state(false)
+  let black = $state(false)
+  let help = $state(false)
+  let dimmed = $state(false)
+
+  /** Beschriftung eines Ziels: Schritt, Sub-Slide oder Titel des Zielknotens */
+  function describe(move: Move | null, key: ControlKey): string {
+    if (!move || !pos) return ''
+    const target = nav.node(move.pos.id)
+    if (!target) return ''
+    if (move.pos.id === pos.id) {
+      if (move.pos.slide === pos.slide) return `Schritt ${move.pos.step ?? 0} / ${stepsOf(target, move.pos.slide)}`
+      return `Folie ${move.pos.slide + 1} / ${target.slides.length}`
+    }
+    return key === 'up' ? `zurück zu ${target.title}` : target.title
+  }
+
+  /** Mögliche Bewegungen von hier aus (nur Vorschau – merkt nichts) */
+  const controls = $derived.by((): Record<ControlKey, Control> | null => {
+    if (!pos) return null
+    const mk = (move: Move | null, key: ControlKey) => ({ move, label: describe(move, key) })
+    return {
+      up: mk(nav.up(pos), 'up'),
+      down: mk(nav.down(pos, true), 'down'),
+      left: mk(nav.prev(pos), 'left'),
+      right: mk(nav.next(pos), 'right'),
+      forward: mk(nav.forward(pos, true), 'forward'),
+    }
+  })
+
+  function moveBy(key: ControlKey) {
+    if (!pos) return
+    // down/forward erst jetzt „echt“ ausführen, damit ↑ die Position im Elternknoten kennt
+    go(key === 'down' ? nav.down(pos) : key === 'forward' ? nav.forward(pos) : controls?.[key].move ?? null)
+  }
+
   const topIndex = $derived(trail[0] ? nav.nodes.indexOf(trail[0]) : -1)
 
   function fromHash(navigator: Navigator): Position | null {
@@ -86,9 +124,21 @@
     window.open(location.pathname + printQuery({}, { autoprint: '1' }), '_blank')
   }
 
+  function toggleFullscreen() {
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {})
+    else document.documentElement.requestFullscreen().catch(() => {})
+  }
+
   function onkeydown(e: KeyboardEvent) {
+    wake()
     // bei offener Übersicht übernimmt NavOverview die Tasten
     if (overview || !pos) return
+    if (help) {
+      // Tastenhilfe: jede Taste schließt sie
+      help = false
+      e.preventDefault()
+      return
+    }
     if ((e.target as HTMLElement | null)?.closest?.('input, textarea, [contenteditable]')) return
     if (isOverviewKey(e)) {
       overview = true
@@ -104,12 +154,20 @@
       return
     }
     if (e.ctrlKey || e.metaKey || e.altKey) return
+
+    // Presenter-Fernbedienungen: „Play“ sendet F5 bzw. Shift+F5, „Schwarzbild“ sendet B oder „.“
+    if (e.key === 'F5' || e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFullscreen(); return }
+    if (e.key === 'b' || e.key === 'B' || e.key === '.') { e.preventDefault(); black = !black; return }
+    if (e.key === 'h' || e.key === 'H') { e.preventDefault(); controlsHidden = !controlsHidden; return }
+    if (e.key === '?') { e.preventDefault(); help = true; return }
+
     const handlers: Record<string, () => Move | null> = {
       ArrowRight: () => nav.next(pos!),
-      PageDown: () => nav.next(pos!),
-      ' ': () => (e.shiftKey ? nav.prev(pos!) : nav.next(pos!)),
+      // Space und Presenter (PageDown/PageUp): der Linie nach in die Tiefe
+      ' ': () => (e.shiftKey ? nav.backward(pos!) : nav.forward(pos!)),
+      PageDown: () => nav.forward(pos!),
+      PageUp: () => nav.backward(pos!),
       ArrowLeft: () => nav.prev(pos!),
-      PageUp: () => nav.prev(pos!),
       ArrowDown: () => nav.down(pos!),
       Enter: () => nav.down(pos!),
       ArrowUp: () => nav.up(pos!),
@@ -120,6 +178,14 @@
     if (!handler) return
     e.preventDefault()
     go(handler())
+  }
+
+  // Steuerung nach 3 s ohne Maus/Tasten zurücknehmen, bei Bewegung wieder voll zeigen
+  let idleTimer: ReturnType<typeof setTimeout> | undefined
+  function wake() {
+    dimmed = false
+    clearTimeout(idleTimer)
+    idleTimer = setTimeout(() => (dimmed = true), 3000)
   }
 
   function fit() {
@@ -174,7 +240,7 @@
   })
 </script>
 
-<svelte:window {onkeydown} onresize={fit} />
+<svelte:window {onkeydown} onresize={fit} onpointermove={wake} />
 
 <main class="viewport">
   {#if deck && node && pos}
@@ -207,8 +273,19 @@
             ↓ {node.children.length} {node.children.length === 1 ? 'Detail' : 'Details'}
           </button>
         {/if}
-        <span class="progress">{topIndex + 1} / {nav.nodes.length}</span>
       </footer>
+
+      <!-- in der Bühne, im freien Randstreifen unten rechts: überdeckt nie Inhalt, skaliert mit -->
+      {#if controls && !controlsHidden}
+        {@const p = nav.progress(pos)}
+        <NavControls
+          {controls}
+          progress="{p.index} / {p.total}"
+          chapter="Kapitel {topIndex + 1} / {nav.nodes.length}"
+          {dimmed}
+          onmove={moveBy}
+        />
+      {/if}
     </div>
   {:else if !error}
     <p class="empty">Keine Folien gefunden.</p>
@@ -224,6 +301,9 @@
       onclose={() => (overview = false)}
     />
   {/if}
+
+  {#if help}<KeyHelp onclose={() => (help = false)} />{/if}
+  {#if black}<button class="blackout" aria-label="Schwarzbild beenden (B)" onclick={() => (black = false)}></button>{/if}
 
   {#if error}
     <div class="error" role="alert"><strong>Deck-Fehler</strong><pre>{error}</pre></div>

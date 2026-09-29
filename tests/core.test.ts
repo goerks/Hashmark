@@ -5,7 +5,7 @@ import path from 'node:path'
 import { normalizeContainers, parseAttrs, splitHeadingAttrs } from '../src/core/syntax.ts'
 import { buildNodes, parseMarkdown } from '../src/core/parse.ts'
 import { loadDeck } from '../src/core/deck.ts'
-import { Navigator, formatHash, parseHash } from '../src/core/navigator.ts'
+import { Navigator, formatHash, parseHash, type Position } from '../src/core/navigator.ts'
 import type { DeckNode } from '../src/core/types.ts'
 
 describe('Syntax', () => {
@@ -291,5 +291,36 @@ describe('Druck', () => {
     expect(parsePrintOptions(new URLSearchParams('print&depth=2&steps=1&footer=0'))).toEqual({ depth: 2, steps: true, notes: false, footer: false })
     expect(parsePrintOptions(new URLSearchParams('print'))).toEqual({ depth: Infinity, steps: false, notes: false, footer: true })
     expect(printQuery({ depth: 2, notes: true }, { autoprint: '1' })).toBe('?print&autoprint=1&depth=2&notes=1')
+  })
+})
+
+describe('Navigator: Space der Linie nach', () => {
+  const withSteps = (id: string, steps: number[], children: DeckNode[] = []): DeckNode => ({
+    ...n(id, children, steps.length),
+    slides: steps.map((k) => ({ html: '', steps: Array.from({ length: k }, () => ({ selector: '', state: {} })) })),
+  })
+  // a (1 Schritt) → a/x → a/x/y → a/z → b (2 Folien)
+  const tree = [withSteps('a', [1], [n('a/x', [n('a/x/y')]), n('a/z')]), n('b', [], 2)]
+  const nav = new Navigator(tree)
+  const walk = () => {
+    const seen: string[] = []
+    for (let p: Position | null = nav.first; p; p = nav.forward(p)?.pos ?? null) seen.push(`${p.id}:${p.slide}:${p.step ?? 0}`)
+    return seen
+  }
+
+  it('geht vorwärts in Tiefensuche durch Schritte, Details und Sub-Slides', () => {
+    expect(walk()).toEqual(['a:0:0', 'a:0:1', 'a/x:0:0', 'a/x/y:0:0', 'a/z:0:0', 'b:0:0', 'b:1:0'])
+  })
+  it('geht rückwärts exakt denselben Weg (vollständig aufgedeckt)', () => {
+    const back: string[] = []
+    for (let p: Position | null = { id: 'b', slide: 1 }; p; p = nav.backward(p)?.pos ?? null) back.push(`${p.id}:${p.slide}:${p.step ?? 0}`)
+    expect(back).toEqual(['b:1:0', 'b:0:0', 'a/z:0:0', 'a/x/y:0:0', 'a/x:0:0', 'a:0:1', 'a:0:0'])
+  })
+  it('meldet Richtungen und Fortschritt', () => {
+    expect(nav.forward({ id: 'a', slide: 0, step: 1 })?.dir).toBe('down')
+    expect(nav.forward({ id: 'a/x/y', slide: 0 })).toEqual({ pos: { id: 'a/z', slide: 0 }, dir: 'up' })
+    expect(nav.backward({ id: 'b', slide: 0 })?.dir).toBe('up')
+    expect(nav.progress({ id: 'a/z', slide: 0 })).toEqual({ index: 4, total: 6 })
+    expect(nav.progress({ id: 'b', slide: 1 })).toEqual({ index: 6, total: 6 })
   })
 })
