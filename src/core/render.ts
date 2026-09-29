@@ -281,10 +281,17 @@ export async function renderNodeContent(blocks: RootContent[], ctx: RenderContex
     if (b.type === 'thematicBreak') groups.push([])
     else groups[groups.length - 1].push(b)
   }
+  const parts = groups.map(extractNotes)
+  // `---` am Ende eines Knotens bzw. direkt vor der nächsten Überschrift ergäbe eine leere Sub-Slide,
+  // die nur den Titel wiederholt → nachgestellte leere Abschnitte verwerfen (Notizen bleiben erhalten).
+  // Eine leere *erste* Folie (reiner Titel, dann `---`) ist dagegen gewollt und bleibt.
+  while (parts.length > 1 && parts[parts.length - 1].content.length === 0) {
+    const dropped = parts.pop()!
+    parts[parts.length - 1].notes.push(...dropped.notes)
+  }
   const slides: Slide[] = []
   const notes: string[] = []
-  for (const group of groups) {
-    const { content, notes: n } = extractNotes(group)
+  for (const { content, notes: n } of parts) {
     slides.push(await blocksToHtml(content, ctx))
     if (n.length) notes.push((await blocksToHtml(n, ctx)).html)
   }

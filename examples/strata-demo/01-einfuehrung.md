@@ -14,8 +14,6 @@ Begrüssung. Kurz erklären: → geht weiter, ↓ taucht ab.
 
 > Präsentiert wird auf Ebene 1. Abgetaucht wird bei Bedarf.
 
----
-
 ## Eine Quelle der Wahrheit
 
 Markdown bleibt lesbar in jedem Editor und sauber versionierbar in Git.

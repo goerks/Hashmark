@@ -324,3 +324,21 @@ describe('Navigator: Space der Linie nach', () => {
     expect(nav.progress({ id: 'b', slide: 1 })).toEqual({ index: 6, total: 6 })
   })
 })
+
+describe('Leere Sub-Slides', () => {
+  it('verwirft --- am Ende eines Knotens, behält eine gewollt leere erste Folie', async () => {
+    const dir = await tempDeck({
+      'a.md': [
+        '# A', 'Inhalt', '', '---', '', '## Kind', 'x', '',
+        '# B', '', '---', '', 'Inhalt nach Titelfolie', '',
+        '# C', 'eins', '', '---', '', '::: notes', 'Notiz', ':::', '',
+      ].join('\n'),
+    })
+    const { deck } = await loadDeck(dir)
+    const [a, b, c] = deck.nodes
+    expect(a.slides).toHaveLength(1) // --- direkt vor "## Kind"
+    expect(b.slides).toHaveLength(2) // leere Titelfolie bleibt
+    expect(c.slides).toHaveLength(1) // nur Notizen danach → keine eigene Folie …
+    expect(c.notes).toContain('Notiz') // … aber die Notiz bleibt
+  })
+})
