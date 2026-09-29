@@ -67,8 +67,8 @@ Voraussetzung: Renderer-Schnittstelle `render(code, ctx) → { svg, steps }` mit
 | --- | --- | --- |
 | Graphviz/DOT | WASM (`@viz-js/viz`) | früh |
 | D2 | WASM (`@terrastruct/d2`, ohne TALA) | früh |
-| PlantUML | Java (lokales JAR) bzw. eigener Server; JS-Version experimentell | JAR/Desktop, Server nur per Opt-in, nie automatisch plantuml.com |
-| Kroki | eigener Docker-Server | Opt-in-Gateway für ~25 Sprachen |
+| PlantUML | nur die experimentelle JS-Version (TeaVM) käme infrage | prüfen, sonst gestrichen (kein Java, kein Server) |
+| ~~Kroki~~ | braucht Server | gestrichen |
 | KaTeX | ja | früh |
 | Vega-Lite / ECharts | ja | mittel |
 | Markmap | ja | passt zum Baum |
@@ -109,15 +109,18 @@ Suche Ctrl+K, Includes (`!include`, Code aus dem Repo mit Zeilenbereich), `hidde
 | --- | --- |
 | **1 · Vortragsreif** ✅ umgesetzt | Presenter-View + Timer, Notizen pro Sub-Slide/Schritt, Code-Zeilen hervorheben, Hinweiskästen, Layouts `statement`/`quote`/`image-left`/`image-right`/`agenda`, `cols=N`, `bg=`, Layouts je Ebene, Suche Ctrl+K, Titel-Bug |
 | **2 · Fundament** | Renderer-Plugin-API + Cache, Theme v2 (extends, Tokens, Corporate, Hell/Dunkel), FS-Abstraktion, Editor-Inspector/Autocomplete/Diagnose, Auto-Fit |
-| **3 · Inhalte** | Graphviz, D2, KaTeX, PlantUML, Includes, Vega-Lite, Markmap, Handout n pro Seite |
+| **3 · Inhalte** | Graphviz (WASM), D2 (WASM), KaTeX, PlantUML nur als JS-Version, Includes, Vega-Lite, Markmap, Handout n pro Seite |
 | **4 · Animation** | Schritt-Effekte, Zoom aus Kachel, View Transitions, Magic Move, Mermaid-Morph |
 | **5 · Editor-Outliner** | Drag & Drop, Ebene höher/tiefer, dateiübergreifend verschieben |
 | **6 · Desktop & Verteilung** | Node SEA, Electron-App, PPTX-Export, Publikum folgt live |
 
 Begründung: Stufe 1 macht Strata für echte Vorträge fertig und nutzt, was der Parser schon liefert. Stufe 2 vor Diagrammen, Themes und App, weil sonst jede neue Sprache und später die Desktop-App die heutigen Kopplungen (Vite-Middleware, feste Renderer) umbauen müsste.
 
+## Entscheidungen
+
+- **Zielgruppe (29.09.2026):** vorerst nur eigene Vorträge. Corporate-Theme und PPTX-Export bleiben hinten.
+- **Diagrammsprachen (29.09.2026):** nur Engines, die als Bibliothek im Browser bzw. im Build laufen (JS/WASM), ohne externe Installation (kein Java, kein Graphviz-Binary, kein Server). Ohne solche Bibliothek wird die Sprache nicht unterstützt. Damit entfallen Kroki und PlantUML per JAR/Server. PlantUML nur, falls sich die JS-Version (TeaVM) offline bündeln lässt.
+
 ## Offene Fragen
 
-- Zielgruppe: nur eigene Vorträge oder Team/Firma? (Corporate-Theme, PPTX nach vorne)
-- PlantUML: Ist Java auf den Zielrechnern erlaubt?
-- Desktop: Größe (Tauri) oder schneller Weg (Electron)?
+- Desktop: Tauri oder Electron?
