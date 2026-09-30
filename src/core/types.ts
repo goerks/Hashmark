@@ -46,9 +46,21 @@ export interface Deck {
   files: string[]
 }
 
+/** `theme:` als Objekt (Theme v2) */
+export interface ThemeConfig {
+  /** Basis: `minimal` | `dark-tech` | Pfad zu einer CSS-Datei oder einem Theme-Ordner */
+  extends?: string
+  /** Design-Tokens, überschreiben die Basis (`accent` = `--accent`; mit `--` wie in CSS) */
+  tokens?: Record<string, string | number>
+  /** Ordner mit Layout-CSS (`.layout-<name>`), alle `*.css` werden geladen */
+  layouts?: string | string[]
+  /** weitere CSS-Dateien (Logo, Fußzeile, Schriften …) */
+  css?: string | string[]
+}
+
 export interface Manifest {
   title?: string
-  theme?: string
+  theme?: string | ThemeConfig
   maxDepth?: number
   /** alle lokalen Bilder als Base64 in den Deck-Baum einbetten */
   embedImages?: boolean

@@ -4,7 +4,7 @@
 import path from 'node:path'
 import cac from 'cac'
 import { build, createServer, preview } from 'vite'
-import { config } from './config.ts'
+import { PROJECT_ROOT, config } from './config.ts'
 import { exportSingleFile } from './export.ts'
 import { exportPdf } from './pdf.ts'
 import { printQuery } from '../core/print.ts'
@@ -19,8 +19,9 @@ cli
   .option('--port <port>', 'Port', { default: 3030 })
   .option('--host [host]', 'Im Netzwerk erreichbar machen (ohne Wert: alle Interfaces)')
   .option('--open', 'Browser öffnen')
-  .action(async (deck = '.', opts: { port: number; host?: string | boolean; open?: boolean }) => {
-    const server = await createServer(config(deck, { server: { port: Number(opts.port), host: hostOf(opts.host), open: opts.open } }))
+  .option('--examples', 'Auswahl der Beispiel-Decks (examples/) in der Seite anbieten')
+  .action(async (deck = '.', opts: { port: number; host?: string | boolean; open?: boolean; examples?: boolean }) => {
+    const server = await createServer(config(deck, { server: { port: Number(opts.port), host: hostOf(opts.host), open: opts.open } }, opts.examples ? { examples: path.join(PROJECT_ROOT, 'examples') } : {}))
     await server.listen()
     server.printUrls()
     server.bindCLIShortcuts({ print: true })

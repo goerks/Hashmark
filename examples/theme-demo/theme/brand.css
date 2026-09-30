@@ -1,0 +1,11 @@
+/* Zusatz-CSS des Themes: Logo oben rechts, Fußzeile unten.
+   Relative url(…) werden beim Laden als Data-URI eingebettet – Build und Export bleiben autark. */
+.slide::before {
+  content: ""; position: absolute; top: 28px; right: 48px; width: 120px; height: 30px;
+  background: url(logo.svg) right center / contain no-repeat; z-index: 1;
+}
+/* mittig unten (links stehen die Detail-Punkte, rechts die Navigation); nicht auf der Titelfolie: dort sitzt der Akzentbalken */
+.slide:not(.layout-title)::after {
+  content: "Acme GmbH · intern"; position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); white-space: nowrap;
+  font-size: 16px; color: var(--color-muted); letter-spacing: 0.04em;
+}

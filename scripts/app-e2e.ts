@@ -94,10 +94,11 @@ try {
   const start = await connect(startT!)
   check('Tauri-Befehle auf der Startseite', await until(() => start.eval(`!!window.__TAURI__?.core?.invoke`), 10_000))
   check('Liste „zuletzt geöffnet“', await until(() => start.eval(`document.querySelectorAll('#recent li').length > 0 || !document.getElementById('empty').hidden`), 15_000))
+  check('Beispiele auf der Startseite (strata-demo, theme-demo)', await until(() => start.eval(`['strata-demo', 'theme-demo'].every((n) => [...document.querySelectorAll('#examples .deck strong')].some((s) => s.textContent === n))`), 15_000))
   // realistisch: kurz auf der Startseite, dann das Beispiel-Deck öffnen
   await sleep(1500)
   const click = Date.now()
-  await start.eval(`document.getElementById('example').click()`)
+  await start.eval(`[...document.querySelectorAll('#examples .deck')].find((b) => b.querySelector('strong').textContent === 'strata-demo').click()`)
   start.close()
 
   const edT = await waitTarget((u) => u.includes('127.0.0.1') && u.includes('editor.html'))

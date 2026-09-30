@@ -17,4 +17,6 @@ if (params.has('print')) {
 } else {
   const { default: App } = await import('./App.svelte')
   mount(App, { target })
+  // nur im Dev-Server: Beispiel-Decks umschalten (beim Build entfällt der Zweig)
+  if (import.meta.env.DEV && window.top === window) void import('./example-switcher.ts').then((m) => m.mountExampleSwitcher())
 }

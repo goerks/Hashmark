@@ -364,3 +364,53 @@ describe('Leere Sub-Slides', () => {
     expect(c.notes).toContain('Notiz') // … aber die Notiz bleibt
   })
 })
+
+describe('Theme v2', () => {
+  it('kurze Schreibweise: eingebautes Theme bzw. Fallback mit Hinweis', async () => {
+    const dark = await loadDeck(await tempDeck({ 'deck.yaml': 'theme: dark-tech\n', 'a.md': '# A' }))
+    expect(dark.themeCss).toContain('Theme "dark-tech"')
+    expect(dark.warnings).toEqual([])
+    const unknown = await loadDeck(await tempDeck({ 'deck.yaml': 'theme: gibtsnicht\n', 'a.md': '# A' }))
+    expect(unknown.themeCss).toContain('Theme "minimal"')
+    expect(unknown.warnings.join()).toContain('gibtsnicht')
+  })
+
+  it('setzt Basis, Layouts, Zusatz-CSS und zuletzt die Tokens zusammen', async () => {
+    const dir = await tempDeck({
+      'deck.yaml': [
+        'theme:', '  extends: minimal', '  tokens:', '    color-accent: "#e30613"', '    --radius: 2px',
+        '  layouts: ./l', '  css: [./x.css]',
+      ].join('\n'),
+      'a.md': '# A',
+      'l/kpi.css': '.layout-kpi { color: red }',
+      'x.css': '.x { background: url(logo.svg) }',
+      'logo.svg': '<svg xmlns="http://www.w3.org/2000/svg"/>',
+    })
+    const r = await loadDeck(dir)
+    expect(r.warnings).toEqual([])
+    const i = (s: string) => r.themeCss.indexOf(s)
+    expect(i('Theme "minimal"')).toBeGreaterThanOrEqual(0)
+    expect(i('.layout-kpi')).toBeGreaterThan(i('Theme "minimal"'))
+    expect(i('.x {')).toBeGreaterThan(i('.layout-kpi'))
+    expect(i('--color-accent: #e30613;')).toBeGreaterThan(i('.x {'))
+    expect(r.themeCss).toContain('--radius: 2px;')
+    expect(r.themeCss).toContain('url("data:image/svg+xml;base64,')
+    expect(r.themeFiles.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('liest einen Theme-Ordner (theme.css + layouts/) und meldet Fehler als Hinweis', async () => {
+    const dir = await tempDeck({
+      'deck.yaml': 'theme:\n  extends: ./acme\n  tokens:\n    "color-x": "a; b"\n  css: ./fehlt.css\n',
+      'a.md': '# A',
+      'acme/theme.css': ':root { --color-bg: #fff }',
+      'acme/layouts/rahmen.css': '.layout-rahmen { color: blue } /* url(nix.png) */',
+    })
+    const r = await loadDeck(dir)
+    expect(r.themeCss).toContain('--color-bg: #fff')
+    expect(r.themeCss).toContain('.layout-rahmen')
+    expect(r.themeCss).not.toContain('--color-x')
+    expect(r.warnings.join('\n')).toMatch(/ungültiges Token/)
+    expect(r.warnings.join('\n')).toMatch(/fehlt\.css/)
+    expect(r.warnings.join('\n')).not.toMatch(/nix\.png/)
+  })
+})

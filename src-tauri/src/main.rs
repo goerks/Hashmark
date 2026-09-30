@@ -570,6 +570,11 @@ fn new_deck(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command(async)]
+fn examples(app: AppHandle) -> Result<Value, String> {
+    call(&app, "examples", json!({}))
+}
+
+#[tauri::command(async)]
 fn open_example(app: AppHandle) -> Result<(), String> {
     let dir = call(&app, "example", json!({}))?;
     open_deck_at(&app, dir.as_str().map(String::from))
@@ -592,7 +597,7 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![recent, open_deck, new_deck, open_example, forget])
+        .invoke_handler(tauri::generate_handler![recent, open_deck, new_deck, open_example, examples, forget])
         .setup(move |app| {
             let handle = app.handle().clone();
             let data = app.path().app_data_dir()?;

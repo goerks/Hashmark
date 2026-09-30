@@ -1,27 +1,23 @@
 // Deck laden: Manifest bzw. Ordner → Mounts → Deck-Baum.
 
 import fs from 'node:fs/promises'
-import { realpathSync } from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
 import { slug } from 'github-slugger'
 import { buildNodes, parseMarkdown, type RawNode } from './parse.ts'
 import { renderNodeContent, resolveImage, type RenderContext } from './render.ts'
+import { resolveTheme } from './theme.ts'
 import { parseDuration } from './timing.ts'
 import type { Deck, DeckNode, Manifest, MountEntry } from './types.ts'
 
-/** Langer Pfad (ohne 8.3-Kurznamen wie MICHAE~1), sonst verweigert Vite das Theme als „außerhalb“ */
-export const BUILTIN_THEMES_DIR = (() => {
-  const dir = fileURLToPath(new URL('../runtime/themes/', import.meta.url))
-  try { return realpathSync.native(dir) + path.sep } catch { return dir }
-})()
 const MANIFEST = 'deck.yaml'
 
 export interface LoadResult {
   deck: Deck
-  /** absoluter Pfad der Theme-CSS */
-  themePath: string
+  /** fertiges Theme-CSS (Basis + Layouts + Tokens) */
+  themeCss: string
+  /** Dateien und Ordner des Themes (für den File-Watcher) */
+  themeFiles: string[]
   /** referenzierte lokale Bilder */
   assets: string[]
   /** Hinweise beim Laden, z. B. fehlende Bilder */
@@ -55,11 +51,6 @@ async function defaultMounts(deckDir: string): Promise<MountEntry[]> {
     .filter((f) => f.toLowerCase().endsWith('.md'))
     .sort((a, b) => a.localeCompare(b, 'de'))
     .map((file) => ({ file }))
-}
-
-function resolveTheme(deckDir: string, theme = 'minimal') {
-  if (/[\\/.]/.test(theme)) return path.resolve(deckDir, theme)
-  return path.join(BUILTIN_THEMES_DIR, `${theme}.css`)
 }
 
 /** Findet den Knoten zu `"Architektur > Backend"` (Titel oder Slug, Groß/Klein egal). */
@@ -195,6 +186,8 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
   injectAgendas(nodes)
   const duration = parseDuration(manifest.duration)
   if (manifest.duration !== undefined && duration === undefined) warnings.push(`deck.yaml: ungültige Dauer "${manifest.duration}" (z. B. 30m, 1h)`)
+  const theme = resolveTheme(deckDir, manifest.theme)
+  warnings.push(...theme.warnings)
   return {
     deck: {
       title: manifest.title ?? nodes[0]?.title ?? 'Strata',
@@ -204,7 +197,8 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
       nodes,
       files: files.map((f) => path.relative(deckDir, f).split(path.sep).join('/')),
     },
-    themePath: resolveTheme(deckDir, manifest.theme),
+    themeCss: theme.css,
+    themeFiles: theme.files,
     assets: [...assets],
     warnings,
   }

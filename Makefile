@@ -17,6 +17,9 @@ PORT         ?= 3030
 OUT          ?= dist
 DOCKER_PORT  ?= 8080
 IMAGE        ?= strata/$(notdir $(DECK))
+EXAMPLES_IMAGE ?= strata/beispiele
+# ohne ausdrückliches DECK= bietet `make dev` die Beispiel-Decks in der Seite zur Auswahl an
+EXAMPLES_SWITCH := $(if $(filter command line environment,$(origin DECK)),,--examples)
 
 NODE_EXE := vendor/node/node.exe
 # Lokales Node zuerst im PATH, damit npm-Skripte und Tools es ebenfalls nutzen
@@ -32,7 +35,7 @@ APP_RELEASE := src-tauri\target\release\strata.exe
 # Deck nur übergeben, wenn es auf der Kommandozeile steht – sonst zeigt die App ihre Startseite
 APP_DECK := $(if $(filter command line,$(origin DECK)),"$(DECK)")
 
-.PHONY: help setup node install toolchain app app-build app-package app-test sidecar-smoke deps-update edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf docker docker-run test new clean distclean
+.PHONY: help setup node install toolchain app app-build app-package app-test sidecar-smoke deps-update edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf build-examples docker-examples docker docker-run test new clean distclean
 
 help:
 	@echo Strata - Markdown-Praesentationen als navigierbarer Baum
@@ -54,6 +57,7 @@ help:
 	@echo   make pdf           PDF nach export/ (DEPTH=1 Hauptpfad, STEPS=1 je Schritt, NOTES=1 Handout)
 	@echo   make docker        Build + Docker-Image mit nginx  (IMAGE=$(IMAGE))
 	@echo   make docker-run    Image starten                (DOCKER_PORT=$(DOCKER_PORT))
+	@echo   make build-examples / docker-examples   alle Beispiele mit Auswahlseite (Webservice; Image: $(EXAMPLES_IMAGE))
 	@echo   make test          Tests ausfuehren
 	@echo   make new DECK=...  Neues Deck-Geruest anlegen
 	@echo   make deps-update   Pakete online aktualisieren und im Cache vendor/npm-cache ablegen
@@ -109,10 +113,10 @@ edit-no-open: node_modules
 	$(STRATA) edit "$(DECK)" --port $(PORT) --no-open
 
 dev: node_modules
-	$(STRATA) dev "$(DECK)" --port $(PORT)
+	$(STRATA) dev "$(DECK)" --port $(PORT) $(EXAMPLES_SWITCH)
 
 dev-open: node_modules
-	$(STRATA) dev "$(DECK)" --port $(PORT) --open
+	$(STRATA) dev "$(DECK)" --port $(PORT) --open $(EXAMPLES_SWITCH)
 
 dev-lan: node_modules
 	$(STRATA) dev "$(DECK)" --port $(PORT) --host
@@ -138,6 +142,13 @@ docker: build
 
 docker-run:
 	docker run --rm -p $(DOCKER_PORT):80 $(IMAGE)
+
+# Webservice mit Auswahlseite: alle Beispiele unter examples/ (dist/index.html + dist/<deck>/)
+build-examples: node_modules
+	$(NODE) scripts\build-examples.ts "$(OUT)"
+
+docker-examples: build-examples
+	docker build -f docker/Dockerfile -t $(EXAMPLES_IMAGE) .
 
 test: node_modules
 	$(NODE) node_modules\vitest\vitest.mjs run

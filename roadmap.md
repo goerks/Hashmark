@@ -38,7 +38,7 @@ Im Baum entscheidet man live, ob man abtaucht – dafür muss man sehen, welche 
 
 ### Themes
 
-- Theme v2: `theme: { extends: minimal, tokens: { --color-accent: "#e30613" } }`, Themes als Ordner (CSS, Logo, Schriften, Layouts).
+- ✅ Theme v2 (Beispiel `examples/theme-demo`): `theme: { extends, tokens, layouts, css }`, Themes als Ordner (`theme.css` + `layouts/`), eigene Layouts per CSS, Logo/Schriften per `url()` eingebettet. Offen: Hell/Dunkel-Varianten, `extends` zwischen Theme-Ordnern verketten.
 - Corporate-Theme: Logo, Fußzeile, Farben aus der Konfiguration.
 - Hell/Dunkel pro Theme, Taste `T`.
 - Lokale Schriften per `@font-face` aus dem Deck/Theme-Ordner (kein CDN).

@@ -18,6 +18,35 @@ async function run(label, cmd, args) {
   }
 }
 
+/** Knopf für ein Deck: Name fett, darunter `detail` (Pfad bzw. Titel) */
+function deckButton({ dir, name }, detail) {
+  const open = document.createElement('button')
+  open.className = 'deck'
+  open.title = dir
+  const n = document.createElement('strong')
+  n.textContent = name
+  const p = document.createElement('span')
+  p.textContent = detail
+  open.append(n, p)
+  open.onclick = () => run(`Öffne ${name} …`, 'open_deck', { dir })
+  return open
+}
+
+async function renderExamples(attempt = 0) {
+  let items
+  try {
+    items = await invoke('examples')
+  } catch {
+    if (attempt < 20) setTimeout(() => renderExamples(attempt + 1), 500)
+    return
+  }
+  $('examples').replaceChildren(...items.map((ex) => {
+    const li = document.createElement('li')
+    li.append(deckButton(ex, ex.title))
+    return li
+  }))
+}
+
 async function renderRecent(attempt = 0) {
   const list = $('recent')
   let items
@@ -32,15 +61,7 @@ async function renderRecent(attempt = 0) {
   $('empty').hidden = items.length > 0
   for (const { dir, name } of items) {
     const li = document.createElement('li')
-    const open = document.createElement('button')
-    open.className = 'deck'
-    open.title = dir
-    const n = document.createElement('strong')
-    n.textContent = name
-    const p = document.createElement('span')
-    p.textContent = dir
-    open.append(n, p)
-    open.onclick = () => run(`Öffne ${name} …`, 'open_deck', { dir })
+    const open = deckButton({ dir, name }, dir)
     const forget = document.createElement('button')
     forget.className = 'forget'
     forget.title = 'Aus der Liste entfernen'
@@ -53,6 +74,6 @@ async function renderRecent(attempt = 0) {
 
 $('open').onclick = () => run('Deck wird geöffnet …', 'open_deck', { dir: null })
 $('create').onclick = () => run('Neues Deck …', 'new_deck')
-$('example').onclick = () => run('Öffne das Beispiel-Deck …', 'open_example')
 
 renderRecent()
+renderExamples()

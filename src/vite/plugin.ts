@@ -3,13 +3,16 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { Plugin, ViteDevServer } from 'vite'
-import { BUILTIN_THEMES_DIR, loadDeck, type LoadResult } from '../core/deck.ts'
+import { listExamples } from '../cli/examples.ts'
+import { realPath } from '../cli/paths.ts'
+import { loadDeck, type LoadResult } from '../core/deck.ts'
 import { ASSET_PREFIX, IMAGE_MIME, toDataUri } from '../core/render.ts'
 import { editorApi } from './editor-api.ts'
 
 export const DECK_ID = 'virtual:strata/deck'
 export const THEME_ID = 'virtual:strata/theme.css'
 const RESOLVED_DECK = '\0strata-deck'
+const RESOLVED_THEME = '\0strata-theme.css'
 
 /** Payload für den Client: entweder ein Deck oder eine Fehlermeldung. */
 type Payload = { deck: LoadResult['deck'] } | { error: string }
@@ -20,12 +23,15 @@ export interface StrataOptions {
   inlineAssets?: boolean
   /** Datei-API für den Editor aktivieren (nur `strata edit`, nur localhost) */
   editor?: boolean
+  /** Dev-Server: Ordner mit Beispiel-Decks, zwischen denen die Seite umschalten darf (`make dev` ohne `DECK=`) */
+  examples?: string
 }
 
 export function strata(options: StrataOptions): Plugin {
-  const deckDir = path.resolve(options.deckDir)
+  let deckDir = path.resolve(options.deckDir)
   let current: Promise<LoadResult> = loadDeck(deckDir)
   let lastTheme: string | undefined
+  let themeFiles: string[] = []
 
   const payload = async (): Promise<Payload> => {
     try {
@@ -43,9 +49,13 @@ export function strata(options: StrataOptions): Plugin {
     const mod = server.moduleGraph.getModuleById(RESOLVED_DECK)
     if (mod) server.moduleGraph.invalidateModule(mod)
     const data = await payload()
-    const theme = await current.then((r) => r.themePath, () => lastTheme)
-    if (theme !== lastTheme) {
-      lastTheme = theme
+    const r = await current.catch(() => undefined)
+    themeFiles = r?.themeFiles ?? themeFiles
+    server.watcher.add(themeFiles)
+    if (r && r.themeCss !== lastTheme) {
+      lastTheme = r.themeCss
+      const themeMod = server.moduleGraph.getModuleById(RESOLVED_THEME)
+      if (themeMod) server.moduleGraph.invalidateModule(themeMod)
       server.ws.send({ type: 'full-reload' })
       return
     }
@@ -61,14 +71,16 @@ export function strata(options: StrataOptions): Plugin {
 
     async resolveId(id) {
       if (id === DECK_ID) return RESOLVED_DECK
-      if (id === THEME_ID) {
-        const r = await current.catch(() => undefined)
-        lastTheme = r?.themePath ?? path.join(BUILTIN_THEMES_DIR, 'minimal.css')
-        return lastTheme
-      }
+      if (id === THEME_ID) return RESOLVED_THEME
     },
 
     async load(id) {
+      if (id === RESOLVED_THEME) {
+        const r = await current.catch(() => undefined)
+        lastTheme = r?.themeCss ?? ''
+        themeFiles = r?.themeFiles ?? []
+        return lastTheme
+      }
       if (id !== RESOLVED_DECK) return
       let json = JSON.stringify(await payload())
       if (options.inlineAssets) json = inlineAssets(json, deckDir, (msg) => this.warn(msg))
@@ -77,12 +89,34 @@ export function strata(options: StrataOptions): Plugin {
 
     configureServer(server) {
       server.watcher.add(deckDir)
+      current.then((r) => server.watcher.add(r.themeFiles), () => {})
       if (options.editor) server.middlewares.use(editorApi(deckDir))
+      if (options.examples) {
+        const root = options.examples
+        // GET: Liste + aktuelles Deck; POST {name}: Deck wechseln (nur Ordner aus der Liste), danach lädt die Seite neu
+        server.middlewares.use('/__strata/examples', (req, res) => {
+          const send = (status: number, data: unknown) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(data)) }
+          const examples = listExamples(root)
+          const currentName = examples.find((e) => e.dir === realPath(deckDir))?.name
+          if (req.method !== 'POST') return send(200, { current: currentName, examples: examples.map(({ name, title }) => ({ name, title })) })
+          let raw = ''
+          req.on('data', (c) => { raw += c })
+          req.on('end', async () => {
+            const target = examples.find((e) => { try { return e.name === JSON.parse(raw).name } catch { return false } })
+            if (!target) return send(400, { error: 'Unbekanntes Beispiel' })
+            deckDir = target.dir
+            server.watcher.add(deckDir)
+            await reload(server)
+            send(200, { current: target.name })
+          })
+        })
+      }
       logWarnings((m) => server.config.logger.warn(m))
       let timer: NodeJS.Timeout | undefined
       const onFile = (file: string) => {
         const rel = path.relative(deckDir, file)
-        if (rel.startsWith('..') || !/\.(md|ya?ml)$/i.test(file)) return
+        const isTheme = /\.css$/i.test(file) && themeFiles.some((t) => file === t || !path.relative(t, file).startsWith('..'))
+        if (!isTheme && (rel.startsWith('..') || !/\.(md|ya?ml)$/i.test(file))) return
         clearTimeout(timer)
         timer = setTimeout(() => reload(server), 50)
       }

@@ -12,6 +12,7 @@ import readline from 'node:readline'
 import fs from 'node:fs'
 // Nur leichte Module beim Start – Vite, remark und Shiki kommen per import() (Aufwärmen im Hintergrund bzw. bei Bedarf)
 import { PROJECT_ROOT, realPath } from '../cli/paths.ts'
+import { listExamples } from '../cli/examples.ts'
 import { scaffoldDeck } from '../cli/scaffold.ts'
 import type { LoadResult } from '../core/deck.ts'
 import type { LiveServer } from './live-server.ts'
@@ -92,6 +93,7 @@ export function createSidecar({ dataDir, emit, log = () => {} }: SidecarOptions)
     ping: () => ({ node: process.versions.node, root: PROJECT_ROOT }),
     isDeck: (r) => isDeckDir(str(r.dir, 'dir')),
     example: () => EXAMPLE_DECK,
+    examples: () => listExamples(),
     scaffold: (r) => scaffoldDeck(str(r.dir, 'dir')),
     recent: () => {
       settings.recent = existingRecent(settings.recent)

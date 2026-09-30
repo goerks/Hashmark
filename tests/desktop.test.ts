@@ -85,6 +85,25 @@ describe('Deck vorab lesen', () => {
   })
 })
 
+describe('Beispiele', () => {
+  it('listet die Beispiel-Decks mit Titel, auch das Theme-Beispiel', async () => {
+    const { listExamples } = await import('../src/cli/examples.ts')
+    const examples = listExamples()
+    expect(examples.map((e) => e.name)).toEqual(expect.arrayContaining(['strata-demo', 'theme-demo']))
+    expect(examples.find((e) => e.name === 'theme-demo')?.title).toContain('Eigenes Theme')
+    expect(listExamples(path.join(tmp(), 'gibtsnicht'))).toEqual([])
+  })
+
+  it('Auswahlseite für den Webservice verlinkt jedes Deck und maskiert Titel', async () => {
+    const { indexPage } = await import('../scripts/build-examples.ts')
+    const html = indexPage([{ dir: '/x', name: 'a-b', title: 'Q&A <1>' }, { dir: '/y', name: 'theme-demo', title: 'T' }])
+    expect(html).toContain('href="./a-b/"')
+    expect(html).toContain('href="./theme-demo/"')
+    expect(html).toContain('Q&amp;A &lt;1&gt;')
+    expect(html).not.toMatch(/https?:\/\//)
+  })
+})
+
 describe('Sidecar-Befehle', () => {
   it('antwortet mit id, meldet Fehler statt abzustürzen und legt Decks an', async () => {
     const out: Record<string, unknown>[] = []

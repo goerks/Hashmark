@@ -43,7 +43,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
   const clients = new Set<http.ServerResponse>()
 
   async function load(): Promise<{ themeChanged: boolean }> {
-    const before = current?.themePath
+    const before = current?.themeCss
     try {
       current = await loadDeck(deckDir)
       payload = { deck: current.deck }
@@ -51,7 +51,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     } catch (e) {
       payload = { error: (e as Error).message }
     }
-    return { themeChanged: !!before && current?.themePath !== before }
+    return { themeChanged: !!before && current?.themeCss !== before }
   }
 
   const broadcast = (event: string, data: string) => {
@@ -98,8 +98,9 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
       return res.end(JSON.stringify(payload))
     }
     if (pathname === '/__strata/theme.css') {
-      if (!current || !fs.existsSync(current.themePath)) { res.setHeader('Content-Type', 'text/css'); return res.end('') }
-      return sendFile(res, current.themePath, 'no-store')
+      res.setHeader('Content-Type', 'text/css; charset=utf-8')
+      res.setHeader('Cache-Control', 'no-store')
+      return res.end(current?.themeCss ?? '')
     }
     if (pathname === '/__strata/events') {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' })
@@ -138,10 +139,10 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
   } catch (e) {
     log(`[strata] Datei-Überwachung nicht möglich: ${(e as Error).message}`)
   }
-  // eigenes Theme außerhalb des Decks ebenfalls beobachten
-  const theme = current?.themePath
-  if (theme && fs.existsSync(theme) && path.relative(deckDir, theme).startsWith('..') && !theme.includes(`${path.sep}runtime${path.sep}themes${path.sep}`)) {
-    try { watchers.push(fs.watch(theme, schedule)) } catch { /* egal */ }
+  // Theme-Dateien außerhalb des Decks ebenfalls beobachten (eingebaute Themes nicht)
+  for (const t of current?.themeFiles ?? []) {
+    if (!fs.existsSync(t) || !path.relative(deckDir, t).startsWith('..') || t.includes(`${path.sep}runtime${path.sep}themes${path.sep}`)) continue
+    try { watchers.push(fs.watch(t, { recursive: true }, schedule)) } catch { /* egal */ }
   }
 
   return {

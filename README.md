@@ -22,13 +22,14 @@ make dev DECK=decks/mein-vortrag
 | `make setup` | Node.js nach `vendor/node` (falls fehlend) und `npm ci --offline` aus `vendor/npm-cache` |
 | `make app` / `make app-package` | Desktop-App (Tauri) bauen und starten bzw. als portables `Strata.exe` packen, siehe „Desktop-App“ |
 | `make edit` | Editor mit Live-Vorschau im Browser (`DECK=…`), siehe unten |
-| `make dev` / `make dev-open` | Dev-Server mit Hot Reload (`DECK=…`, `PORT=…`) |
+| `make dev` / `make dev-open` | Dev-Server mit Hot Reload (`DECK=…`, `PORT=…`). Ohne `DECK=` zeigt die Seite unten links eine Auswahl der Beispiel-Decks (`examples/`), z. B. `strata-demo` und `theme-demo`. |
 | `make build` | Statisches HTML nach `dist/` (`OUT=…`) |
 | `make preview` | Gebautes Deck lokal ausliefern |
 | `make dev-lan` / `make preview-lan` | Wie `dev` / `preview`, aber im Netzwerk (LAN/VPN) erreichbar |
 | `make export` | Eine einzelne HTML-Datei nach `export/<deck>.html`, läuft offline per Doppelklick |
 | `make pdf` | PDF nach `export/<deck>.pdf` (Optionen siehe „PDF und Druck“) |
 | `make docker` / `make docker-run` | Build und Docker-Image mit nginx (`IMAGE=…`), starten auf `DOCKER_PORT` (8080) |
+| `make build-examples` / `make docker-examples` | Alle Beispiele unter `examples/` mit Auswahlseite (`dist/index.html` + `dist/<deck>/`), bzw. als nginx-Image `strata/beispiele` |
 | `make test` | Tests (Parser, Deck-Baum, Navigator, Layouts, Suche, Zeitplan) |
 | `make deps-update` | Pakete online aktualisieren und im Cache ablegen |
 | `make clean` / `make distclean` | `dist/` bzw. zusätzlich `node_modules/` löschen |
@@ -48,7 +49,7 @@ Die App ist ein schlankes Tauri-Fenster (WebView2 aus Windows). Die eigentliche 
 - **Zeiten im Log:** `%APPDATA%app.strata.desktopsidecar.log` zeigt, wo die Zeit bleibt (Aufwärmen, Deck geöffnet in … ms, PDF in … ms).
 - **Vorgebaute Runtime:** Die Oberfläche (Präsentation, Editor, Presenter) wird einmal vorgebaut (`runtime-dist/`, nur nach Änderungen an den Quellen). Ein kleiner Live-Server liefert sie aus, zusammen mit dem Deck. Änderungen an den Markdown-Dateien erscheinen sofort, auch bei Bearbeitung in einem anderen Editor. Der Ordner `dist-app/Strata/` lässt sich kopieren und läuft ohne Installation: `Strata.exe` bzw. `Strata.exe <deck-ordner>`.
 
-- **Startseite:** Deck öffnen (Ctrl+O), Neues Deck (Ctrl+N, leeren Ordner wählen oder anlegen), Beispiel-Deck, zuletzt geöffnete Decks.
+- **Startseite:** Deck öffnen (Ctrl+O), Neues Deck (Ctrl+N, leeren Ordner wählen oder anlegen), Liste der Beispiele (`examples/`: `strata-demo`, `theme-demo`), zuletzt geöffnete Decks.
 - **Editor:** derselbe wie bei `make edit`. „Präsentieren ↗“ startet die Präsentation, „PDF“ speichert direkt ein PDF.
 - **Präsentieren:** F5 ab der aktuellen Folie, Shift+F5 von vorne.
   - Mit Beamer laufen die Folien dort im Vollbild, die Presenter-View öffnet sich auf dem Hauptbildschirm.
@@ -141,6 +142,7 @@ Das PDF hat:
 | Auf einem fremden Rechner / USB-Stick / per Mail | `make export` | `export/<deck>.html` per Doppelklick öffnen. Braucht weder Server noch Internet, alles ist eingebettet (~5 MB). |
 | Kollegen im selben Netz/VPN öffnen mit | `make dev-lan` oder `make preview-lan` | Vite zeigt die Netzwerk-URL (`Network: http://<ip>:3030/`) |
 | Dauerhaft auf einem Server | `make docker` + `make docker-run` | nginx-Container, http://<server>:8080 |
+| Webservice mit Auswahl aller Beispiel-Decks | `make docker-examples` + `make docker-run IMAGE=strata/beispiele` | http://<server>:8080 zeigt eine Auswahlseite, jedes Deck liegt unter `/<name>/` (z. B. `/theme-demo/`). Neue Ordner unter `examples/` erscheinen automatisch. |
 | Beliebiges statisches Hosting (GitLab/GitHub Pages, IIS, S3 …) | `make build` | Inhalt von `dist/` hochladen. Funktioniert auch in Unterverzeichnissen. |
 
 Hinweise:
@@ -210,7 +212,7 @@ Deep-Links: `#architektur/parser` bzw. `#architektur/parser:2` für die zweite S
 ```yaml
 # deck.yaml (optional – ohne Manifest: alle .md im Ordner, alphabetisch)
 title: Mein Vortrag
-theme: minimal          # minimal | dark-tech | ./eigenes-theme.css
+theme: minimal          # minimal | dark-tech | ./eigenes-theme.css | Objekt (siehe Theme)
 maxDepth: 3             # tiefere Überschriften werden Abschnitte innerhalb der Folie
 layout: default         # Default-Layout
 layouts:                # Default-Layout je Ebene (vor `layout`, nach dem Attribut am Knoten)
@@ -292,7 +294,21 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   - Größe/Klasse direkt hinter dem Bild: `![](x.png){width=60% height=200 .rund}`
   - Fehlende Bilder meldet das Terminal als Warnung.
 - **`---` als Folientrenner** funktioniert auch ohne Leerzeile darüber. CommonMark würde daraus sonst eine Überschrift machen.
-- **Theme** = CSS-Datei mit Tokens (`--color-*`, `--font-*`, `--radius`, `--space-*`, `--shiki-*`), siehe `src/runtime/themes/`
+- **Theme** = CSS mit Tokens (`--color-*`, `--font-*`, `--radius`, `--space-*`, `--shiki-*`), eingebaute Themes in `src/runtime/themes/`. Kurzform: `theme: dark-tech` oder `theme: ./eigenes.css`. Ausführlich als Objekt (Beispiel: `examples/theme-demo`, `make dev DECK=examples/theme-demo`):
+  ```yaml
+  theme:
+    extends: minimal            # minimal | dark-tech | ./datei.css | ./theme-ordner
+    tokens:                     # überschreiben einzelne Tokens (mit oder ohne --)
+      color-accent: "#e30613"
+      radius: 4px
+    layouts: ./theme/layouts    # Ordner (oder Liste) mit *.css: je Datei ein Layout `.layout-<name>`
+    css: ./theme/brand.css      # weitere CSS-Dateien (eine oder Liste): Logo, Fußzeile, Schriften
+  ```
+  - Reihenfolge im fertigen CSS: Basis, `layouts`, `css`, zuletzt `tokens`. Ein Token gewinnt also immer.
+  - **Theme-Ordner** als `extends`: `theme.css` (Pflicht) plus `layouts/*.css`. So lässt sich ein Theme in mehreren Decks wiederverwenden und pro Deck per `tokens` nachjustieren.
+  - **Eigenes Layout:** Eine CSS-Datei mit `.layout-kpi { … }` im `layouts`-Ordner genügt, verwendet wird es mit `## Titel {layout=kpi}`. Jede Folie ist `section.slide.layout-<name>` mit `.slide-title` und `.content`.
+  - Relative `url(…)` in Theme-CSS (Bilder, `woff2`/`woff`/`ttf`/`otf`) werden als Data-URI eingebettet, Build und Export bleiben autark.
+  - Änderungen an Theme-Dateien laden live nach, auch außerhalb des Deck-Ordners. Fehlende Dateien und ungültige Tokens (z. B. mit `;`) erscheinen als Hinweis im Terminal.
 
 ## Aufbau
 
@@ -304,7 +320,7 @@ src/runtime/editor/  Editor (editor.html): CodeMirror, Vorschau-Sync, Bild-Uploa
 src/cli/       strata dev | build | preview | export | pdf, gemeinsame Vite-Konfiguration, Deck-Gerüst
 src/desktop/   Node-Sidecar der Desktop-App (stdin/stdout-Protokoll), Startseite (ui/)
 src-tauri/     Desktop-App in Rust (Tauri 2): Fenster, Menü, Dialoge, Bildschirmwahl
-examples/      Beispiel-Deck (5 Dateien, 3 Ebenen)
+examples/      Beispiel-Decks: strata-demo (Funktionen, 3 Ebenen) und theme-demo (eigenes Theme)
 ```
 
 ## Noch nicht umgesetzt

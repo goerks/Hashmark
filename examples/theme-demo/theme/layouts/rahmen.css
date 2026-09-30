@@ -1,0 +1,7 @@
+/* Zweites Layout „rahmen“: Inhalt in einem Kasten mit Akzentkante (z. B. für eine zentrale Aussage). */
+.layout-rahmen .content {
+  flex: none; padding: 32px 40px; border-left: 8px solid var(--color-accent);
+  background: var(--color-surface); border-radius: 0 var(--radius) var(--radius) 0;
+}
+.layout-rahmen .content > :first-child { margin-top: 0; }
+.layout-rahmen .content > :last-child { margin-bottom: 0; }

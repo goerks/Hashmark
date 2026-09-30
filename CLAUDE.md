@@ -9,12 +9,13 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | Befehl | Zweck |
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
-| `make test` | Vitest (`tests/*.test.ts`, 59 Tests, Kern-Logik ohne DOM) |
+| `make test` | Vitest (`tests/*.test.ts`, 64 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-build` / `make app-package` | Tauri-App: Debug bauen + starten (`DECK=…` optional) / Release bauen / portables `dist-app/Strata/` |
 | `make toolchain` | einmalig Rust (`stable-x86_64-pc-windows-gnullvm`) + llvm-mingw nach `%LOCALAPPDATA%\strata-toolchain` (ohne Admin) |
 | `make sidecar-smoke` | Node-Sidecar wie aus der App ansprechen: Deck, Datei-API, Aktionen, PDF, Handout, HTML (`SIDECAR_BUNDLE=1`: das Bündel) |
+| `make build-examples` / `make docker-examples` | alle `examples/*` als statische Seiten mit Auswahlseite (`scripts/build-examples.ts`, `src/cli/examples.ts` teilt die Liste mit der Desktop-Startseite); Docker-Image `strata/beispiele` |
 | `make app-test` | E2E der Tauri-App **headless** (`STRATA_HEADLESS=1`, Fenster unsichtbar) über WebView2-CDP; `VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json` mit Zeiten |
-| `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/strata-demo`, 3030) |
+| `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/strata-demo`, 3030). `make dev` ohne ausdrückliches `DECK=` startet mit `--examples`: Plugin-Option `examples` (plugin.ts, `/__strata/examples` GET/POST wechselt das Deck) + `src/runtime/example-switcher.ts` (nur `import.meta.env.DEV`) |
 | `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless |
 | `make deps-update` | neue Pakete online holen, landen im Cache `vendor/npm-cache` |
 
@@ -43,7 +44,9 @@ src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
                 ::: steps, Hinweiskästen > [!NOTE], cols=, Bilder (deck-assets/ bzw. Base64), Notizen pro Sub-Slide
                 (::: notes step=k → [data-note-step]), image-left/right → .media/.body;
                 zählt data-step und data-hl-count − 1 → slide.steps
-  deck.ts       deck.yaml/Ordner → Mounts (under + automatisches Verschieben der Ebenen) → Deck + Theme-Pfad + Warnungen;
+  theme.ts      Theme v2: `theme:` (String | Objekt `extends/tokens/layouts/css`) → ein CSS-Text (Basis, layouts/*.css, css, zuletzt Tokens),
+                Theme-Ordner (`theme.css` + `layouts/`), relative `url()` als Data-URI, Dateiliste fürs Watchen, Hinweise
+  deck.ts       deck.yaml/Ordner → Mounts (under + automatisches Verschieben der Ebenen) → Deck + Theme-CSS (`themeCss`, `themeFiles`) + Warnungen;
                 löst das Layout auf (Attribut > layouts[Ebene] > layout), bg=, duration=, erzeugt Agenda-HTML
   timing.ts     parseDuration (5m, 1h30m, 1:30), formatClock, pace – Zeitplan der Presenter-View
   search.ts     Suchindex (Titel, Pfad, Text je Sub-Slide), Wort-Suche + unscharfe Titel-Suche, Umlaute gefaltet
@@ -51,7 +54,7 @@ src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
                 Schritte, relocate (Hot Reload), progress, Deep-Link-Hash (#id:2)
   print.ts      Seitenlogik für Druck/PDF (Tiefe, Schritte, Handout, Fußzeile) + URL-Optionen
   sourcemap.ts  Editor-Sync: Zeile ↔ Knoten/Sub-Slide über DeckNode.source
-src/desktop/  Node-Sidecar der Tauri-App: sidecar.ts (stdin JSON-Zeilen → stdout `@@strata {…}`; open/isDeck/scaffold/
+src/desktop/  Node-Sidecar der Tauri-App: sidecar.ts (stdin JSON-Zeilen → stdout `@@strata {…}`; open/isDeck/scaffold/examples/
               recent/forget/pdf/html/position/close; Ereignis `action` aus den Seiten), settings.ts, ui/ (Startseite, Tauri-invoke)
   live-server.ts   statt Vite-Dev-Server: runtime-dist/ statisch, /__strata/deck.json, /__strata/theme.css,
                    /__strata/events (SSE: deck | reload), deck-assets/, Datei-API + App-Aktionen; fs.watch rekursiv
@@ -89,7 +92,7 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
   - Code ` ```ts {steps="1,6|2-3||4"} ` (Zeilen ohne Schritt bilden das Gerüst);
   - Mermaid `%% step` (kumulative Versionen übereinander).
 - **Layouts:** `title`, `section` (Kacheln der Kinder), `default`, `two-col`, `three-col`, `statement`, `quote`, `image-left`, `image-right`, `agenda`. Je Ebene über `layouts: { 1: section }`.
-- **Themes:** `minimal`, `dark-tech`. Die Tokens enthalten auch `--color-success`, `--color-warning` und `--color-important` für Hinweiskästen.
+- **Themes:** `minimal`, `dark-tech`. Die Tokens enthalten auch `--color-success`, `--color-warning` und `--color-important` für Hinweiskästen. **Theme v2:** `theme:` darf ein Objekt sein (`extends`, `tokens`, `layouts`, `css`), Beispiel und Doku auf Folien in `examples/theme-demo`. Eigene Layouts = `.layout-<name>` in einer CSS-Datei. Das Theme-CSS ist kein Dateipfad mehr, sondern ein virtuelles Modul (`\0strata-theme.css`) bzw. `/__strata/theme.css` aus `themeCss`.
 - **Knoten-Attribute:** `layout`, `id`, `transition`, `.klasse`, `duration=5m`, `bg=…` (Farbe/Verlauf bleibt CSS, sonst Bild → `url(…)`), `bgdim=0.5`.
 - **Code:** `lines="2-3|5|all"`: Abschnitt k gilt ab Schritt k (Abschnitt 0 sofort), `all` bzw. leer = nichts abdunkeln.
 - **Hinweiskästen:** `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION] [eigener Titel]`.

@@ -1,0 +1,19 @@
+title: Strata – Eigenes Theme (Beispiel „Acme“)
+# Theme v2: Basis + Tokens + eigene Layouts + Zusatz-CSS, alles in einem Block
+theme:
+  extends: minimal            # minimal | dark-tech | ./pfad/zu/theme.css | ./pfad/zum/theme-ordner
+  tokens:                     # überschreiben die Design-Tokens der Basis
+    color-accent: "#e30613"
+    color-heading: "#1a1a2e"
+    color-surface: "#f7f1f1"
+    font-heading: "Georgia, 'Times New Roman', serif"
+    radius: 4px
+  layouts: ./theme/layouts    # alle *.css darin, je Datei ein .layout-<name>
+  css: ./theme/brand.css      # Logo und Fußzeile
+maxDepth: 3
+duration: 10m
+mount:
+  - file: 01-start.md
+  - file: 02-konfiguration.md
+  - file: 03-layouts.md
+  - file: 04-tokens.md
