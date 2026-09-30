@@ -55,6 +55,7 @@ src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
                 Schritte, relocate (Hot Reload), progress, Deep-Link-Hash (#id:2)
   print.ts      Seitenlogik für Druck/PDF (Tiefe, Schritte, Handout, Fußzeile) + URL-Optionen
   sourcemap.ts  Editor-Sync: Zeile ↔ Knoten/Sub-Slide über DeckNode.source
+  excalidraw.ts Excalidraw-SVG: Szene aus `<metadata>` (zlib/bstring) → Gruppen per Reihenfolge den Top-Level-`<g>` zuordnen → `data-step`; drawio.ts analog mit Ebenen
 src/desktop/  Node-Sidecar der Tauri-App: sidecar.ts (stdin JSON-Zeilen → stdout `@@strata {…}`; open/isDeck/scaffold/examples/
               recent/forget/pdf/html/position/close; Ereignis `action` aus den Seiten), settings.ts, ui/ (Startseite, Tauri-invoke)
   live-server.ts   statt Vite-Dev-Server: runtime-dist/ statisch, /__strata/deck.json, /__strata/theme.css,

@@ -9,6 +9,7 @@ import { visit, SKIP } from 'unist-util-visit'
 import { bundledLanguages, createCssVariablesTheme, createHighlighter, type Highlighter } from 'shiki'
 import type { Root, RootContent, Code } from 'mdast'
 import { drawioSteps } from './drawio.ts'
+import { excalidrawSteps } from './excalidraw.ts'
 import { parseAttrs } from './syntax.ts'
 import type { Slide } from './types.ts'
 
@@ -365,27 +366,41 @@ function splitMedia(blocks: AnyNode[]): { media: AnyNode[]; body: AnyNode[] } | 
 // ---------- draw.io ----------
 
 /**
- * `![](arch.drawio.svg){steps=layers}` → SVG inline einbetten, Ebenen als Schritte.
- * Ohne `steps=layers` (oder ohne lesbares Modell) bleibt es ein normales Bild.
+ * `![](arch.drawio.svg){steps=layers}` bzw. `![](map.excalidraw.svg){steps=groups order="3,1,2+4"}`
+ * → SVG inline einbetten, Ebenen bzw. Gruppen als Schritte.
+ * Ohne passendes `steps=` (oder ohne lesbares Modell) bleibt es ein normales Bild.
  */
-function inlineDrawio(root: Root, ctx: RenderContext) {
+function inlineDiagramSteps(root: Root, ctx: RenderContext) {
   visit(root, 'paragraph', (node, index, parent) => {
     const p = node as unknown as AnyNode
     if (!parent || index === undefined || !isImageBlock(p)) return
     const kids = p.children ?? []
     const image = kids.find((k) => k.type === 'image') as unknown as { url: string } | undefined
-    if (!image || !/\.drawio\.svg$/i.test(image.url) || isUrl(image.url)) return
+    if (!image || isUrl(image.url)) return
+    const kind = /\.drawio\.svg$/i.test(image.url) ? 'drawio' : /\.excalidraw\.svg$/i.test(image.url) ? 'excalidraw' : null
+    if (!kind) return
     const attrText = kids.find((k) => k.type === 'text') as { value: string } | undefined
     const m = attrText?.value.match(/^\s*\{([^{}]*)\}/)
-    if (!m || parseAttrs(m[1]).steps !== 'layers') return
+    const attrs = m ? parseAttrs(m[1]) : {}
+    if (attrs.steps !== (kind === 'drawio' ? 'layers' : 'groups')) return
     const file = path.resolve(path.dirname(ctx.file), decodeURI(image.url))
     if (!fs.existsSync(file)) return // resolveImage meldet die fehlende Datei
-    const result = drawioSteps(fs.readFileSync(file, 'utf8'))
-    if (!result) {
-      ctx.warnings?.push(`Kein draw.io-Modell in ${image.url} (${path.relative(ctx.deckDir, ctx.file)}) – als Bild eingebunden`)
-      return
+    const source = fs.readFileSync(file, 'utf8')
+    const where = `${image.url} (${path.relative(ctx.deckDir, ctx.file)})`
+    let svg: string | undefined
+    if (kind === 'drawio') {
+      svg = drawioSteps(source)?.svg
+      if (!svg) ctx.warnings?.push(`Kein draw.io-Modell in ${where} – als Bild eingebunden`)
+    } else {
+      const result = excalidrawSteps(source, attrs.order)
+      if (!result) ctx.warnings?.push(`Keine eingebettete Szene in ${where} (Export mit „Szene einbetten“) – als Bild eingebunden`)
+      else {
+        for (const w of result.warnings) ctx.warnings?.push(`${w} (${where})`)
+        svg = result.svg
+      }
     }
-    parent.children![index] = { type: 'html', value: `<div class="drawio-block">${result.svg.trim()}</div>` } as RootContent
+    if (!svg) return
+    parent.children![index] = { type: 'html', value: `<div class="${kind}-block">${svg.trim()}</div>` } as RootContent
   })
 }
 
@@ -405,7 +420,7 @@ async function blocksToHtml(blocks: AnyNode[], ctx: RenderContext): Promise<{ ht
     parent.children![index] = { type: 'html', value: result.html } as AnyNode
   }
 
-  inlineDrawio(root, ctx)
+  inlineDiagramSteps(root, ctx)
   applyDirectives(root, ctx)
   const hast = await toHtml.run(root)
   const html = String(toHtml.stringify(hast)).trim()

@@ -7,6 +7,7 @@ mount:
   - file: 02-navigation.md
   - file: schritte.md
   - file: bilder.md
+  - file: story-map.md
   - file: werkzeuge.md
   - file: praesentieren.md
   - file: 03-architektur.md

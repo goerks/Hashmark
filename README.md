@@ -297,6 +297,7 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   - `embedImages: true` in `deck.yaml` bettet alle Bilder ein.
   - Größe/Klasse direkt hinter dem Bild: `![](x.png){width=60% height=200 .rund}`
   - Fehlende Bilder meldet das Terminal als Warnung.
+  - **Diagramme als Schritte:** `![](a.drawio.svg){steps=layers}` blendet die Ebenen eines draw.io-Diagramms der Reihe nach ein. `![](map.excalidraw.svg){steps=groups order="3,1,2+4"}` macht das mit den Gruppen einer Excalidraw-Zeichnung (Export als SVG mit **„Szene einbetten“**). Gruppe k in Z-Reihenfolge (äußerste Gruppe) ist Schritt k, `order` legt eine andere Reihenfolge fest (Nummer = Gruppe, `,` = nächster Schritt, `+` = gleichzeitig; nicht genannte Gruppen bleiben sichtbar). Ungruppierte Elemente sind immer sichtbar. Die Schritte laufen mit `::: steps` in der Folie synchron. Beispiel: `examples/strata-demo/story-map.md`.
 - **`---` als Folientrenner** funktioniert auch ohne Leerzeile darüber. CommonMark würde daraus sonst eine Überschrift machen.
 - **Theme** = CSS mit Tokens (`--color-*`, `--font-*`, `--radius`, `--space-*`, `--shiki-*`), eingebaute Themes in `src/runtime/themes/`. Kurzform: `theme: dark-tech` oder `theme: ./eigenes.css`. Ausführlich als Objekt (Beispiel: `examples/theme-demo`, `make dev DECK=examples/theme-demo`):
   ```yaml
