@@ -417,3 +417,30 @@ describe('Theme v2', () => {
     expect(r.warnings.join('\n')).not.toMatch(/nix\.png/)
   })
 })
+
+describe('strata check (statisch)', () => {
+  it('meldet unbekannte Layouts, Attribute und Übergänge, kennt Theme-Layouts', async () => {
+    const { staticChecks } = await import('../src/core/check.ts')
+    const dir = await tempDeck({
+      'deck.yaml': 'theme:\n  extends: minimal\n  layouts: ./l\n',
+      'l/kpi.css': '.layout-kpi { color: red }',
+      'a.md': ['# A {layout=kpi}', '# B {layout=gibtsnicht foo=1 transition=wirbel}', '# C {layout=comparison fit}', '# D', '![](fehlt.png)'].join('\n'),
+    })
+    const findings = staticChecks(await loadDeck(dir))
+    const text = findings.map((f) => `${f.level}:${f.message}`).join('\n')
+    expect(findings.filter((f) => f.level === 'error')).toHaveLength(1)
+    expect(text).toContain('Layout „gibtsnicht“ ist unbekannt')
+    expect(text).toContain('Attribut „foo“')
+    expect(text).toContain('transition „wirbel“')
+    expect(text).toContain('Bild nicht gefunden')
+    expect(text).not.toContain('„kpi“')
+    expect(text).not.toContain('„fit“')
+    expect(findings.find((f) => f.message.includes('gibtsnicht'))).toMatchObject({ file: 'a.md', line: 2 })
+  })
+
+  it('ein sauberes Deck hat keine Funde', async () => {
+    const { staticChecks } = await import('../src/core/check.ts')
+    const dir = await tempDeck({ 'a.md': '# A {layout=title}\n# B {layout=code-focus steps}\n- x' })
+    expect(staticChecks(await loadDeck(dir))).toEqual([])
+  })
+})

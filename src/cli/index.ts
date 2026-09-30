@@ -6,6 +6,7 @@ import cac from 'cac'
 import { build, createServer, preview } from 'vite'
 import { PROJECT_ROOT, config } from './config.ts'
 import { exportSingleFile } from './export.ts'
+import { checkDeck, formatFinding } from './check.ts'
 import { exportPdf } from './pdf.ts'
 import { printQuery } from '../core/print.ts'
 
@@ -83,6 +84,20 @@ cli
     const out = path.resolve(opts.out ?? path.join('export', `${name}.pdf`))
     const query = printQuery({ depth: opts.depth ? Number(opts.depth) : undefined, steps: opts.steps, notes: opts.notes, footer: opts.footer })
     await exportPdf(config(deck), { out, query, browser: opts.browser })
+  })
+
+cli
+  .command('check [deck]', 'Deck prüfen: Layouts, Attribute, Bilder, Theme und Überlauf der Folien (Exit-Code 1 bei Fehlern)')
+  .option('--no-overflow', 'nur statisch prüfen, ohne Browser (schnell)')
+  .option('--browser <path>', 'Pfad zu Edge/Chrome (sonst automatisch, oder STRATA_BROWSER)')
+  .option('--strict', 'auch Hinweise gelten als Fehler')
+  .action(async (deck = '.', opts: { overflow: boolean; browser?: string; strict?: boolean }) => {
+    const findings = await checkDeck(deck, { overflow: opts.overflow, browser: opts.browser })
+    for (const f of findings) console.log(formatFinding(f))
+    const errors = findings.filter((f) => f.level === 'error').length
+    const hints = findings.length - errors
+    console.log(findings.length ? `\n${errors} Fehler, ${hints} Hinweise` : '[strata] Alles in Ordnung')
+    if (errors || (opts.strict && hints)) process.exitCode = 1
   })
 
 cli.help()

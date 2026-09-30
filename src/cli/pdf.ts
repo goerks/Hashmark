@@ -105,11 +105,13 @@ export interface PdfOptions {
 
 export interface PrintResult { pages: number; bytes: number; warnings: string[] }
 
+type Cdp = Awaited<ReturnType<typeof connect>>
+
 /**
- * Druckansicht unter `url` (…/?print&…) mit Edge/Chrome headless als PDF speichern.
- * Genutzt von `strata pdf` (nach einem Build) und von der Desktop-App (direkt vom laufenden Server).
+ * Seite unter `url` (Druckansicht) in Edge/Chrome headless öffnen, auf das Signal `printReady` warten und `fn` ausführen.
+ * Räumt Browser und Profil danach auf. Basis für den PDF-Export und `strata check`.
  */
-export async function printUrlToPdf(url: string, out: string, browserPath?: string): Promise<PrintResult> {
+export async function withPrintView<T>(url: string, browserPath: string | undefined, fn: (cdp: Cdp) => Promise<T>): Promise<T> {
   const browser = findBrowser(browserPath)
   const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'strata-print-'))
   let proc: ChildProcess | undefined
@@ -119,18 +121,35 @@ export async function printUrlToPdf(url: string, out: string, browserPath?: stri
     const targets = await (await fetch(`http://127.0.0.1:${launched.port}/json/list`)).json()
     const page = targets.find((t: { type: string }) => t.type === 'page')
     const cdp = await connect(page.webSocketDebuggerUrl)
-    await cdp.send('Runtime.enable')
-    await cdp.send('Page.enable')
-    await cdp.send('Page.navigate', { url })
+    try {
+      await cdp.send('Runtime.enable')
+      await cdp.send('Page.enable')
+      await cdp.send('Page.navigate', { url })
 
-    const deadline = Date.now() + 90_000
-    for (;;) {
-      const r = await cdp.send('Runtime.evaluate', { expression: 'document.documentElement.dataset.printReady || ""', returnByValue: true })
-      if (r.result?.value === '1') break
-      if (Date.now() > deadline) throw new Error(`Druckansicht wurde nicht fertig.${cdp.errors.length ? '\n' + cdp.errors.join('\n') : ''}`)
-      await new Promise((res) => setTimeout(res, 200))
+      const deadline = Date.now() + 90_000
+      for (;;) {
+        const r = await cdp.send('Runtime.evaluate', { expression: 'document.documentElement.dataset.printReady || ""', returnByValue: true })
+        if (r.result?.value === '1') break
+        if (Date.now() > deadline) throw new Error(`Druckansicht wurde nicht fertig.${cdp.errors.length ? '\n' + cdp.errors.join('\n') : ''}`)
+        await new Promise((res) => setTimeout(res, 200))
+      }
+      return await fn(cdp)
+    } finally {
+      cdp.close()
     }
+  } finally {
+    proc?.kill()
+    // Browser-Profil kann unter Windows kurz gesperrt sein
+    await fsp.rm(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }).catch(() => {})
+  }
+}
 
+/**
+ * Druckansicht unter `url` (…/?print&…) mit Edge/Chrome headless als PDF speichern.
+ * Genutzt von `strata pdf` (nach einem Build) und von der Desktop-App (direkt vom laufenden Server).
+ */
+export function printUrlToPdf(url: string, out: string, browserPath?: string): Promise<PrintResult> {
+  return withPrintView(url, browserPath, async (cdp) => {
     const { data } = await cdp.send('Page.printToPDF', {
       printBackground: true,
       preferCSSPageSize: true,
@@ -139,35 +158,43 @@ export async function printUrlToPdf(url: string, out: string, browserPath?: stri
       generateDocumentOutline: true, // Lesezeichen aus den Folientiteln (h1…h6 nach Tiefe)
       generateTaggedPDF: true,
     })
-    cdp.close()
     const pdf = Buffer.from(data, 'base64')
     await fsp.mkdir(path.dirname(out), { recursive: true })
     await fsp.writeFile(out, pdf)
     const pages = (pdf.toString('latin1').match(/\/Type\s*\/Page(?!s)/g) ?? []).length
     return { pages, bytes: pdf.length, warnings: cdp.errors }
-  } finally {
-    proc?.kill()
-    // Browser-Profil kann unter Windows kurz gesperrt sein
+  })
+}
+
+/** Deck bauen und lokal ausliefern (für Druckansicht und Prüfung); `close()` räumt Server und Build auf. */
+export async function serveBuild(config: InlineConfig): Promise<{ url: string; close(): Promise<void> }> {
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'strata-pdf-'))
+  const dist = path.join(tmp, 'dist')
+  let server: http.Server | undefined
+  const close = async () => {
+    server?.close()
     await fsp.rm(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }).catch(() => {})
+  }
+  try {
+    await build({ ...config, logLevel: 'warn', build: { outDir: dist, emptyOutDir: true, chunkSizeWarningLimit: 100_000 } })
+    server = await serve(dist)
+    return { url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/`, close }
+  } catch (e) {
+    await close()
+    throw e
   }
 }
 
 export async function exportPdf(config: InlineConfig, opts: PdfOptions) {
   const browser = findBrowser(opts.browser)
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'strata-pdf-'))
-  const dist = path.join(tmp, 'dist')
-  let server: http.Server | undefined
+  console.log('[strata] baue Deck …')
+  const site = await serveBuild(config)
   try {
-    console.log('[strata] baue Deck …')
-    await build({ ...config, logLevel: 'warn', build: { outDir: dist, emptyOutDir: true, chunkSizeWarningLimit: 100_000 } })
-    server = await serve(dist)
-    const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/${opts.query}`
     console.log(`[strata] rendere mit ${path.basename(browser)} …`)
-    const r = await printUrlToPdf(url, opts.out, browser)
+    const r = await printUrlToPdf(site.url + opts.query, opts.out, browser)
     console.log(`[strata] PDF: ${opts.out} (${r.pages} Seiten, ${(r.bytes / 1024 / 1024).toFixed(1)} MB)`)
     if (r.warnings.length) console.warn(`[strata] Hinweise aus dem Browser:\n${r.warnings.join('\n')}`)
   } finally {
-    server?.close()
-    await fsp.rm(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }).catch(() => {})
+    await site.close()
   }
 }

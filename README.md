@@ -28,6 +28,7 @@ make dev DECK=decks/mein-vortrag
 | `make dev-lan` / `make preview-lan` | Wie `dev` / `preview`, aber im Netzwerk (LAN/VPN) erreichbar |
 | `make export` | Eine einzelne HTML-Datei nach `export/<deck>.html`, läuft offline per Doppelklick |
 | `make pdf` | PDF nach `export/<deck>.pdf` (Optionen siehe „PDF und Druck“) |
+| `make check` | Deck prüfen wie ein Linter (`DECK=…`): unbekannte Layouts/Attribute, fehlende Bilder, Theme-Fehler und Überlauf der Folien. `NOOVERFLOW=1` ohne Browser, `STRICT=1` Hinweise als Fehler. Exit-Code 1 bei Fehlern, geeignet für CI |
 | `make docker` / `make docker-run` | Build und Docker-Image mit nginx (`IMAGE=…`), starten auf `DOCKER_PORT` (8080) |
 | `make build-examples` / `make docker-examples` | Alle Beispiele unter `examples/` mit Auswahlseite (`dist/index.html` + `dist/<deck>/`), bzw. als nginx-Image `strata/beispiele` |
 | `make test` | Tests (Parser, Deck-Baum, Navigator, Layouts, Suche, Zeitplan) |

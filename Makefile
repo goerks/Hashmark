@@ -35,7 +35,7 @@ APP_RELEASE := src-tauri\target\release\strata.exe
 # Deck nur übergeben, wenn es auf der Kommandozeile steht – sonst zeigt die App ihre Startseite
 APP_DECK := $(if $(filter command line,$(origin DECK)),"$(DECK)")
 
-.PHONY: help setup node install toolchain app app-build app-package app-test sidecar-smoke deps-update edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf build-examples docker-examples docker docker-run test new clean distclean
+.PHONY: help setup node install toolchain app app-build app-package app-test sidecar-smoke deps-update edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf check build-examples docker-examples docker docker-run test new clean distclean
 
 help:
 	@echo Strata - Markdown-Praesentationen als navigierbarer Baum
@@ -55,6 +55,7 @@ help:
 	@echo   make preview-lan   Gebautes Deck im Netzwerk ausliefern
 	@echo   make export        Eine HTML-Datei, laeuft offline per Doppelklick (export/)
 	@echo   make pdf           PDF nach export/ (DEPTH=1 Hauptpfad, STEPS=1 je Schritt, NOTES=1 Handout)
+	@echo   make check         Deck pruefen: Layouts, Bilder, Theme, Ueberlauf (NOOVERFLOW=1 ohne Browser, STRICT=1)
 	@echo   make docker        Build + Docker-Image mit nginx  (IMAGE=$(IMAGE))
 	@echo   make docker-run    Image starten                (DOCKER_PORT=$(DOCKER_PORT))
 	@echo   make build-examples / docker-examples   alle Beispiele mit Auswahlseite (Webservice; Image: $(EXAMPLES_IMAGE))
@@ -136,6 +137,10 @@ export: node_modules
 # Optionen: DEPTH=n, STEPS=1, NOTES=1, PDF=pfad.pdf, BROWSER=pfad-zu-edge-oder-chrome
 pdf: node_modules
 	$(STRATA) pdf "$(DECK)" $(if $(DEPTH),--depth $(DEPTH)) $(if $(STEPS),--steps) $(if $(NOTES),--notes) $(if $(PDF),--out "$(PDF)") $(if $(BROWSER),--browser "$(BROWSER)")
+
+# Deck prüfen (Layouts, Attribute, Bilder, Theme, Überlauf); NOOVERFLOW=1 = ohne Browser, STRICT=1 = Hinweise sind Fehler
+check: node_modules
+	$(STRATA) check "$(DECK)" $(if $(NOOVERFLOW),--no-overflow) $(if $(STRICT),--strict) $(if $(BROWSER),--browser "$(BROWSER)")
 
 docker: build
 	docker build -f docker/Dockerfile -t $(IMAGE) .

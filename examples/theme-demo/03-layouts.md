@@ -2,7 +2,7 @@
 
 Ein Layout ist eine CSS-Datei. Der Dateiname ist egal, der Selektor `.layout-<name>` zählt.
 
-## So entsteht ein Layout
+## So entsteht ein Layout {fit}
 
 1. Datei in den `layouts`-Ordner legen, z. B. `theme/layouts/kpi.css`
 2. Darin Regeln für `.layout-kpi` schreiben

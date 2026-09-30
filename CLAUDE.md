@@ -9,7 +9,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | Befehl | Zweck |
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
-| `make test` | Vitest (`tests/*.test.ts`, 64 Tests, Kern-Logik ohne DOM) |
+| `make test` | Vitest (`tests/*.test.ts`, 66 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-build` / `make app-package` | Tauri-App: Debug bauen + starten (`DECK=…` optional) / Release bauen / portables `dist-app/Strata/` |
 | `make toolchain` | einmalig Rust (`stable-x86_64-pc-windows-gnullvm`) + llvm-mingw nach `%LOCALAPPDATA%\strata-toolchain` (ohne Admin) |
 | `make sidecar-smoke` | Node-Sidecar wie aus der App ansprechen: Deck, Datei-API, Aktionen, PDF, Handout, HTML (`SIDECAR_BUNDLE=1`: das Bündel) |
@@ -17,6 +17,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | `make app-test` | E2E der Tauri-App **headless** (`STRATA_HEADLESS=1`, Fenster unsichtbar) über WebView2-CDP; `VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json` mit Zeiten |
 | `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/strata-demo`, 3030). `make dev` ohne ausdrückliches `DECK=` startet mit `--examples`: Plugin-Option `examples` (plugin.ts, `/__strata/examples` GET/POST wechselt das Deck) + `src/runtime/example-switcher.ts` (nur `import.meta.env.DEV`) |
 | `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless |
+| `make check` | `strata check`: `src/core/check.ts` (statisch: Layouts, Attribute, Übergänge, Hinweise des Ladens), `src/cli/check.ts` (Überlauf: Build + Druckansicht per Edge/Chrome, liest `data-overflow` der `.print-page[data-node][data-sub]`); Exit 1 bei Fehlern; `pdf.ts`: `withPrintView`/`serveBuild` geteilt mit dem PDF-Export |
 | `make deps-update` | neue Pakete online holen, landen im Cache `vendor/npm-cache` |
 
 - Das Makefile nutzt `SHELL := cmd.exe`. Rezepte müssen in cmd funktionieren und stellen `vendor\node` vor den `PATH`.

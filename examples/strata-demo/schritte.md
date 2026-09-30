@@ -2,7 +2,7 @@
 
 Links aufzählen, rechts Code oder Diagramm vervollständigen – jedes → spielt den nächsten Schritt ab, erst danach kommt die nächste Folie.
 
-## Code aufbauen {layout=two-col}
+## Code aufbauen {layout=two-col fit}
 
 ::: col
 ::: steps

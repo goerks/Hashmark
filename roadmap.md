@@ -34,7 +34,7 @@ Im Baum entscheidet man live, ob man abtaucht – dafür muss man sehen, welche 
 - Neue Layouts: `statement`/`quote`, `image-left`/`image-right`, Hintergrundbild `{bg=…}`, `agenda` (automatisch aus dem Baum), ✅ `comparison` und `code-focus`. Offen: `diagram`.
 - Hinweiskästen in GitHub-Syntax `> [!NOTE]`, `[!TIP]`, `[!WARNING]` …
 - Kapitel-Nummerierung optional, Fortschritt pro Kapitel.
-- ✅ Auto-Fit `{fit}` und Überlauf-Badge (Dev-Server, Editor-Vorschau). Offen: Warnung im Terminal bzw. `strata check` für alle Folien, Miniatur-Hinweis im Presenter.
+- ✅ Auto-Fit `{fit}` und Überlauf-Badge (Dev-Server, Editor-Vorschau), ✅ `strata check` (Linter inkl. Überlauf aller Folien, `make check`). Offen: Miniatur-Hinweis im Presenter, Prüfungen für Notizen/Schritte.
 
 ### Themes
 
