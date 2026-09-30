@@ -20,6 +20,7 @@ make dev DECK=decks/mein-vortrag
 | Befehl | Wirkung |
 | --- | --- |
 | `make setup` | Node.js nach `vendor/node` (falls fehlend) und `npm ci --offline` aus `vendor/npm-cache` |
+| `make app` / `make app-package` | Desktop-App (Tauri) bauen und starten bzw. als portables `Strata.exe` packen, siehe „Desktop-App“ |
 | `make edit` | Editor mit Live-Vorschau im Browser (`DECK=…`), siehe unten |
 | `make dev` / `make dev-open` | Dev-Server mit Hot Reload (`DECK=…`, `PORT=…`) |
 | `make build` | Statisches HTML nach `dist/` (`OUT=…`) |
@@ -31,6 +32,47 @@ make dev DECK=decks/mein-vortrag
 | `make test` | Tests (Parser, Deck-Baum, Navigator, Layouts, Suche, Zeitplan) |
 | `make deps-update` | Pakete online aktualisieren und im Cache ablegen |
 | `make clean` / `make distclean` | `dist/` bzw. zusätzlich `node_modules/` löschen |
+
+## Desktop-App (Windows, Tauri)
+
+```sh
+make toolchain                    # einmalig: Rust + llvm-mingw (ohne Admin, braucht Internet)
+make app                          # bauen und starten: Startseite mit Deck öffnen / neu / Beispiel / zuletzt geöffnet
+make app DECK=decks/mein-vortrag  # direkt ein Deck öffnen
+make app-package                  # portables Programm: dist-app/Strata/Strata.exe
+```
+
+Die App ist ein schlankes Tauri-Fenster (WebView2 aus Windows). Die eigentliche Arbeit macht Strata wie bisher in Node. Die App startet dafür das Node aus `vendor/node` als **Sidecar**.
+
+- **Schnell:** Ein Deck ist in wenigen Sekunden offen, das PDF ist in etwa 5 s fertig. Im Hintergrund wärmt die App schon beim Start auf: Sie lädt den Kern, startet die Code-Hervorhebung und liest das zuletzt geöffnete Deck vorab. Ein Klick darauf öffnet es dann in Millisekunden. Das gepackte Programm bündelt den Node-Teil zu wenigen Dateien, damit auch der allererste Start auf frisch kopierten Dateien (USB-Stick, Virenscanner) schnell ist.
+- **Zeiten im Log:** `%APPDATA%app.strata.desktopsidecar.log` zeigt, wo die Zeit bleibt (Aufwärmen, Deck geöffnet in … ms, PDF in … ms).
+- **Vorgebaute Runtime:** Die Oberfläche (Präsentation, Editor, Presenter) wird einmal vorgebaut (`runtime-dist/`, nur nach Änderungen an den Quellen). Ein kleiner Live-Server liefert sie aus, zusammen mit dem Deck. Änderungen an den Markdown-Dateien erscheinen sofort, auch bei Bearbeitung in einem anderen Editor. Der Ordner `dist-app/Strata/` lässt sich kopieren und läuft ohne Installation: `Strata.exe` bzw. `Strata.exe <deck-ordner>`.
+
+- **Startseite:** Deck öffnen (Ctrl+O), Neues Deck (Ctrl+N, leeren Ordner wählen oder anlegen), Beispiel-Deck, zuletzt geöffnete Decks.
+- **Editor:** derselbe wie bei `make edit`. „Präsentieren ↗“ startet die Präsentation, „PDF“ speichert direkt ein PDF.
+- **Präsentieren:** F5 ab der aktuellen Folie, Shift+F5 von vorne.
+  - Mit Beamer laufen die Folien dort im Vollbild, die Presenter-View öffnet sich auf dem Hauptbildschirm.
+  - Mit nur einem Bildschirm öffnet S die Presenter-View als eigenes Fenster.
+  - Ctrl+W beendet die Präsentation, Alt+F4 geht ebenfalls.
+- **Export** (Menü Datei): Als HTML-Datei (Ctrl+Shift+E), PDF mit allen Folien (Ctrl+Shift+P), nur Hauptpfad, jeder Schritt eine Seite, Handout mit Notizen. Das PDF entsteht wie bei `make pdf` über Edge headless, direkt vom laufenden Deck, ohne neuen Build.
+- **Ansicht:** Editor (Ctrl+1), Präsentation im Fenster (Ctrl+2), Neu laden, Entwicklertools, Vollbild (F11).
+- **Sicherheit:**
+  - Der interne Server lauscht nur auf 127.0.0.1 mit zufälligem Port.
+  - Die Seiten vom Server (Editor, Folien) dürfen keine App-Befehle aufrufen, nur die eigene Startseite.
+  - Aktionen wie „Präsentieren“ melden die Seiten per HTTP mit Schutz-Header an den Sidecar.
+  - Externe Links öffnen im Standardbrowser.
+- **Daten:** zuletzt geöffnete Decks und `sidecar.log` in `%APPDATA%\app.strata.desktop\` (Menü Hilfe → Datenordner).
+
+**Werkzeuge zum Bauen** (nicht im Repo, nur auf dem Entwicklungsrechner):
+- Rust über rustup, Toolchain `stable-x86_64-pc-windows-gnullvm`
+- [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) in `%LOCALAPPDATA%\strata-toolchain\`, SHA256-geprüft
+
+Visual Studio bzw. Admin-Rechte braucht es nicht. Beim ersten Build lädt cargo die Rust-Bibliotheken (~400 Crates) aus dem Internet nach `%USERPROFILE%\.cargo`, danach geht es offline. Die App selbst bringt keine weiteren Binärdateien ins Repo, Node liegt ohnehin schon in `vendor/node`.
+
+**Tests (alle headless, ohne sichtbare Fenster):**
+- `make test` – Unit-Tests
+- `make sidecar-smoke` – Node-Teil so, wie die App ihn anspricht (Deck öffnen, Datei-API, App-Aktionen, PDF, Handout, HTML). `SIDECAR_BUNDLE=1` prüft das Bündel.
+- `make app-test` – die ganze App: Startseite, Deck öffnen, Editor, Rechte, Präsentation, Presenter, Tasten, Ctrl+W, dazu die Zeiten. Nutzt das gepackte Programm bzw. den Release-Build. `VISIBLE=1` zeigt die Fenster, `node scripts/app-e2e.ts <exe>` testet eine beliebige EXE.
 
 ## Alle Abhängigkeiten liegen im Projekt
 
@@ -258,10 +300,12 @@ src/core/      Parser (remark), Deck-Baum, Render-Plugins (Shiki, Mermaid), Navi
 src/vite/      Vite-Plugin: Deck als virtuelles Modul, Datei-Watcher, Hot Reload, Bild-Assets
 src/runtime/   Svelte-5-App: Bühne, Layouts, Übergänge, Breadcrumb, Übersicht, Themes
 src/runtime/editor/  Editor (editor.html): CodeMirror, Vorschau-Sync, Bild-Upload
-src/cli/       strata dev | build | preview
+src/cli/       strata dev | build | preview | export | pdf, gemeinsame Vite-Konfiguration, Deck-Gerüst
+src/desktop/   Node-Sidecar der Desktop-App (stdin/stdout-Protokoll), Startseite (ui/)
+src-tauri/     Desktop-App in Rust (Tauri 2): Fenster, Menü, Dialoge, Bildschirmwahl
 examples/      Beispiel-Deck (5 Dateien, 3 Ebenen)
 ```
 
 ## Noch nicht umgesetzt
 
-Die Reihenfolge der nächsten Ausbaustufen steht in der [Roadmap](roadmap.md). Noch offen sind z. B. Includes, `hidden`, PlantUML/D2/Graphviz, Auto-Layout/Auto-Fit, Hell/Dunkel-Umschaltung, Magic Move, Diagramm-Morphing (stabile Knotenpositionen), eigene Layouts und die Desktop-App.
+Die Reihenfolge der nächsten Ausbaustufen steht in der [Roadmap](roadmap.md). Noch offen sind z. B. Includes, `hidden`, PlantUML/D2/Graphviz, Auto-Layout/Auto-Fit, Hell/Dunkel-Umschaltung, Magic Move, Diagramm-Morphing (stabile Knotenpositionen) und eigene Layouts.

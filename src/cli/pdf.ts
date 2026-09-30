@@ -103,19 +103,17 @@ export interface PdfOptions {
   browser?: string
 }
 
-export async function exportPdf(config: InlineConfig, opts: PdfOptions) {
-  const browser = findBrowser(opts.browser)
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'strata-pdf-'))
-  const dist = path.join(tmp, 'dist')
-  let server: http.Server | undefined
+export interface PrintResult { pages: number; bytes: number; warnings: string[] }
+
+/**
+ * Druckansicht unter `url` (…/?print&…) mit Edge/Chrome headless als PDF speichern.
+ * Genutzt von `strata pdf` (nach einem Build) und von der Desktop-App (direkt vom laufenden Server).
+ */
+export async function printUrlToPdf(url: string, out: string, browserPath?: string): Promise<PrintResult> {
+  const browser = findBrowser(browserPath)
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'strata-print-'))
   let proc: ChildProcess | undefined
   try {
-    console.log('[strata] baue Deck …')
-    await build({ ...config, logLevel: 'warn', build: { outDir: dist, emptyOutDir: true, chunkSizeWarningLimit: 100_000 } })
-    server = await serve(dist)
-    const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/${opts.query}`
-
-    console.log(`[strata] rendere mit ${path.basename(browser)} …`)
     const launched = await launch(browser, path.join(tmp, 'profile'))
     proc = launched.proc
     const targets = await (await fetch(`http://127.0.0.1:${launched.port}/json/list`)).json()
@@ -143,15 +141,33 @@ export async function exportPdf(config: InlineConfig, opts: PdfOptions) {
     })
     cdp.close()
     const pdf = Buffer.from(data, 'base64')
-    await fsp.mkdir(path.dirname(opts.out), { recursive: true })
-    await fsp.writeFile(opts.out, pdf)
+    await fsp.mkdir(path.dirname(out), { recursive: true })
+    await fsp.writeFile(out, pdf)
     const pages = (pdf.toString('latin1').match(/\/Type\s*\/Page(?!s)/g) ?? []).length
-    console.log(`[strata] PDF: ${opts.out} (${pages} Seiten, ${(pdf.length / 1024 / 1024).toFixed(1)} MB)`)
-    if (cdp.errors.length) console.warn(`[strata] Hinweise aus dem Browser:\n${cdp.errors.join('\n')}`)
+    return { pages, bytes: pdf.length, warnings: cdp.errors }
   } finally {
     proc?.kill()
-    server?.close()
     // Browser-Profil kann unter Windows kurz gesperrt sein
+    await fsp.rm(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }).catch(() => {})
+  }
+}
+
+export async function exportPdf(config: InlineConfig, opts: PdfOptions) {
+  const browser = findBrowser(opts.browser)
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'strata-pdf-'))
+  const dist = path.join(tmp, 'dist')
+  let server: http.Server | undefined
+  try {
+    console.log('[strata] baue Deck …')
+    await build({ ...config, logLevel: 'warn', build: { outDir: dist, emptyOutDir: true, chunkSizeWarningLimit: 100_000 } })
+    server = await serve(dist)
+    const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/${opts.query}`
+    console.log(`[strata] rendere mit ${path.basename(browser)} …`)
+    const r = await printUrlToPdf(url, opts.out, browser)
+    console.log(`[strata] PDF: ${opts.out} (${r.pages} Seiten, ${(r.bytes / 1024 / 1024).toFixed(1)} MB)`)
+    if (r.warnings.length) console.warn(`[strata] Hinweise aus dem Browser:\n${r.warnings.join('\n')}`)
+  } finally {
+    server?.close()
     await fsp.rm(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }).catch(() => {})
   }
 }

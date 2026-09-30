@@ -1,6 +1,7 @@
 // Deck laden: Manifest bzw. Ordner → Mounts → Deck-Baum.
 
 import fs from 'node:fs/promises'
+import { realpathSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import YAML from 'yaml'
@@ -10,7 +11,11 @@ import { renderNodeContent, resolveImage, type RenderContext } from './render.ts
 import { parseDuration } from './timing.ts'
 import type { Deck, DeckNode, Manifest, MountEntry } from './types.ts'
 
-export const BUILTIN_THEMES_DIR = fileURLToPath(new URL('../runtime/themes/', import.meta.url))
+/** Langer Pfad (ohne 8.3-Kurznamen wie MICHAE~1), sonst verweigert Vite das Theme als „außerhalb“ */
+export const BUILTIN_THEMES_DIR = (() => {
+  const dir = fileURLToPath(new URL('../runtime/themes/', import.meta.url))
+  try { return realpathSync.native(dir) + path.sep } catch { return dir }
+})()
 const MANIFEST = 'deck.yaml'
 
 export interface LoadResult {

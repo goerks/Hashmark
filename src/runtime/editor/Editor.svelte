@@ -8,6 +8,8 @@
   import { api, relativeTo, type FileEntry } from './api.ts'
   import { createEditor, type Editor } from './codemirror.ts'
   import { SNIPPETS, expand } from './snippets.ts'
+  import { desktopAction, isDesktop } from '../desktop.ts'
+  import { onDeckUpdate } from '../deck-source.ts'
 
   type Payload = { deck: Deck } | { error: string }
   type Status = 'saved' | 'dirty' | 'saving' | 'error'
@@ -198,12 +200,18 @@
     window.addEventListener('pointerup', up)
   }
 
+  // Desktop-App: PDF speichern bzw. Präsentation (Vollbild, Presenter) über die App statt neuer Tabs
+  const desktop = isDesktop()
+
   function exportPdf() {
-    window.open('./' + printQuery({}, { autoprint: '1' }), '_blank')
+    if (desktop) void desktopAction({ action: 'pdf', query: printQuery({}) })
+    else window.open('./' + printQuery({}, { autoprint: '1' }), '_blank')
   }
 
   function present() {
-    window.open('./' + (previewPos ? formatHash(previewPos) : ''), '_blank')
+    const hash = previewPos ? formatHash(previewPos) : ''
+    if (desktop) void desktopAction({ action: 'present', hash })
+    else window.open('./' + hash, '_blank')
   }
 
   const statusText: Record<Status, string> = {
@@ -235,7 +243,8 @@
     window.addEventListener('message', onMessage)
 
     // Deck neu geladen (eigenes Speichern oder externe Änderung)
-    import.meta.hot?.on('strata:deck', async (payload: Payload) => {
+    // Vite-HMR bzw. Server-Sent Events in der Desktop-App
+    onDeckUpdate(async (payload: Payload) => {
       if ('error' in payload) {
         deckError = payload.error
         return

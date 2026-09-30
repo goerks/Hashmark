@@ -112,7 +112,7 @@ Suche Ctrl+K, Includes (`!include`, Code aus dem Repo mit Zeilenbereich), `hidde
 | **3 · Inhalte** | Graphviz (WASM), D2 (WASM), KaTeX, PlantUML nur als JS-Version, Includes, Vega-Lite, Markmap, Handout n pro Seite |
 | **4 · Animation** | Schritt-Effekte, Zoom aus Kachel, View Transitions, Magic Move, Mermaid-Morph |
 | **5 · Editor-Outliner** | Drag & Drop, Ebene höher/tiefer, dateiübergreifend verschieben |
-| **6 · Desktop & Verteilung** | Node SEA, Electron-App, PPTX-Export, Publikum folgt live |
+| **6 · Desktop & Verteilung** | Tauri-App ✅ (Node als Sidecar), später ohne Node, PPTX-Export, Publikum folgt live |
 
 Begründung: Stufe 1 macht Strata für echte Vorträge fertig und nutzt, was der Parser schon liefert. Stufe 2 vor Diagrammen, Themes und App, weil sonst jede neue Sprache und später die Desktop-App die heutigen Kopplungen (Vite-Middleware, feste Renderer) umbauen müsste.
 
@@ -121,6 +121,6 @@ Begründung: Stufe 1 macht Strata für echte Vorträge fertig und nutzt, was der
 - **Zielgruppe (29.09.2026):** vorerst nur eigene Vorträge. Corporate-Theme und PPTX-Export bleiben hinten.
 - **Diagrammsprachen (29.09.2026):** nur Engines, die als Bibliothek im Browser bzw. im Build laufen (JS/WASM), ohne externe Installation (kein Java, kein Graphviz-Binary, kein Server). Ohne solche Bibliothek wird die Sprache nicht unterstützt. Damit entfallen Kroki und PlantUML per JAR/Server. PlantUML nur, falls sich die JS-Version (TeaVM) offline bündeln lässt.
 
-## Offene Fragen
+- **Desktop (29.09.2026):** Tauri. Eine Electron-Version wurde gebaut und wieder verworfen: Sie war zu groß (Electron allein ~160 MB im Repo, Programm ~510 MB). Große Binärdateien kommen nicht ins Repo.
 
-- Desktop: Tauri oder Electron?
+- **Tauri-Umsetzung (30.09.2026):** Node als Sidecar (vendor/node, Repo wächst nicht), Build ohne Admin mit Rust `gnullvm` + llvm-mingw. Die Crates kommen beim ersten Build aus dem Internet. Später möglich: Kern ganz im WebView (nach der FS-Abstraktion aus Stufe 2), dann ohne Node im Programm.

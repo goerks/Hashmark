@@ -2,31 +2,12 @@
 // CLI: strata dev | build | preview | export
 
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import cac from 'cac'
-import { build, createServer, preview, type InlineConfig } from 'vite'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
-import { strata, type StrataOptions } from '../vite/plugin.ts'
+import { build, createServer, preview } from 'vite'
+import { config } from './config.ts'
 import { exportSingleFile } from './export.ts'
 import { exportPdf } from './pdf.ts'
 import { printQuery } from '../core/print.ts'
-
-const PROJECT_ROOT = fileURLToPath(new URL('../../', import.meta.url))
-const RUNTIME_DIR = path.join(PROJECT_ROOT, 'src/runtime')
-
-function config(deckDir: string, extra: InlineConfig = {}, plugin: Partial<StrataOptions> = {}): InlineConfig {
-  const dir = path.resolve(deckDir)
-  return {
-    configFile: false,
-    root: RUNTIME_DIR,
-    base: './',
-    cacheDir: path.join(PROJECT_ROOT, 'node_modules/.vite'),
-    plugins: [svelte({ configFile: false }), strata({ deckDir: dir, ...plugin })],
-    build: { chunkSizeWarningLimit: 4000 },
-    ...extra,
-    server: { fs: { allow: [PROJECT_ROOT, dir] }, ...extra.server },
-  }
-}
 
 /** `--host` ohne Wert = alle Netzwerk-Interfaces, sonst die angegebene Adresse */
 const hostOf = (host: string | boolean | undefined) => (host === '' || host === true ? true : host || undefined)

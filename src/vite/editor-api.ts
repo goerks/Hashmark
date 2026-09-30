@@ -72,6 +72,36 @@ async function addToManifest(deckDir: string, rel: string) {
   return true
 }
 
+const APP_ACTIONS = new Set(['present', 'presenter', 'pdf', 'position', 'close'])
+
+/**
+ * Desktop-App: `POST /__strata/app` mit `{ action, … }` → an die App weiterreichen.
+ * Gleicher Schutz wie die Datei-API: nur localhost, nur mit Header (erzwingt CORS-Preflight).
+ */
+export function appApi(onAction: (action: Record<string, unknown>) => void): Connect.NextHandleFunction {
+  return async (req, res: ServerResponse, next) => {
+    if (req.url?.split('?')[0] !== API_PREFIX + '/app') return next()
+    const reply = (status: number, error?: string) => {
+      res.statusCode = status
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify(error ? { error } : { ok: true }))
+    }
+    if (!LOCAL_HOST.test(req.headers.host ?? '') || req.headers['x-strata-editor'] !== '1') return reply(403, 'nicht erlaubt')
+    if (req.method !== 'POST') return reply(405, 'nur POST')
+    try {
+      const data = JSON.parse((await body(req)).toString('utf8'))
+      if (!data || typeof data !== 'object' || !APP_ACTIONS.has(data.action)) return reply(400, 'unbekannte Aktion')
+      // nur einfache Werte weiterreichen
+      const clean: Record<string, unknown> = {}
+      for (const [k, v] of Object.entries(data)) if (typeof v === 'string' && v.length < 2000) clean[k] = v
+      onAction(clean)
+      return reply(200)
+    } catch {
+      return reply(400, 'ungültige Anfrage')
+    }
+  }
+}
+
 export function editorApi(deckDir: string): Connect.NextHandleFunction {
   return async (req, res: ServerResponse, next) => {
     if (!req.url?.startsWith(API_PREFIX + '/')) return next()

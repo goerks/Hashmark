@@ -81,6 +81,11 @@ async function getHighlighter(lang: string) {
   return h
 }
 
+/** Shiki vorab starten (WASM-Engine, ~0,5 s) – die Desktop-App tut das im Hintergrund, bevor ein Deck geöffnet wird */
+export async function warmHighlighter(langs: string[] = []): Promise<void> {
+  for (const lang of ['text', ...langs]) await getHighlighter(lang in bundledLanguages ? lang : 'text')
+}
+
 /**
  * `steps="3-4|5-7||8"` → Zeilennummer → Schritt (1-basiert). Jeder `|`-Abschnitt ist ein Schritt,
  * leere Abschnitte sind erlaubt (Schritt ohne Änderung). Zeilen ohne Schritt sind immer sichtbar.

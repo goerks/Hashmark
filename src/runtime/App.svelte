@@ -12,7 +12,9 @@
   import Search from './Search.svelte'
   import Notes from './Notes.svelte'
   import { enter, leave } from './transitions.ts'
-  import { isTrusted, send, type PresenterMessage } from './presenter-link.ts'
+  import { openLink, type PresenterMessage } from './presenter-link.ts'
+  import { onDeckUpdate } from './deck-source.ts'
+  import { desktopAction, isDesktop } from './desktop.ts'
 
   type Payload = { deck: Deck } | { error: string }
 
@@ -38,8 +40,11 @@
   let searching = $state(false)
   /** Notizen unten einblenden (N) – zum Üben mit nur einem Bildschirm */
   let notesOpen = $state(false)
-  /** Fenster der Presenter-View (S), sonst null */
+  /** Fenster der Presenter-View (S), nur für file:// nötig (sonst BroadcastChannel) */
   let presenter: Window | null = null
+  /** Kennung dieser Präsentation – die Presenter-View koppelt sich an genau eine */
+  const session = Math.random().toString(36).slice(2, 10)
+  const desktop = isDesktop()
 
   /** Beschriftung eines Ziels: Schritt, Sub-Slide oder Titel des Zielknotens */
   function describe(move: Move | null, key: ControlKey): string {
@@ -129,11 +134,17 @@
   })
 
   function openPrintView() {
-    window.open(location.pathname + printQuery({}, { autoprint: '1' }), '_blank')
+    // Desktop-App: PDF direkt speichern (Dialog der App) statt Druckansicht im Browser
+    if (desktop) void desktopAction({ action: 'pdf', query: printQuery({}) })
+    else window.open(location.pathname + printQuery({}, { autoprint: '1' }), '_blank')
   }
 
   /** Presenter-View im zweiten Fenster; ein schon offenes Fenster wird wiederverwendet */
   function openPresenter() {
+    if (desktop) {
+      void desktopAction({ action: 'presenter', hash: location.hash })
+      return
+    }
     const win = window.open(location.pathname + '?presenter' + location.hash, 'strata-presenter', 'popup,width=1280,height=800')
     if (win) {
       presenter = win
@@ -141,9 +152,21 @@
     }
   }
 
+  // Die Vorschau im Editor nimmt nicht teil, sonst würde sie Tasten des Presenters mit ausführen
+  const link = embedded ? null : openLink(() => presenter, (msg, source) => onPresenterMessage(msg, source))
+
   // Stand an die Presenter-View melden
   $effect(() => {
-    if (pos) send(presenter, { type: 'strata:presenter-state', pos, black })
+    if (pos) link?.send({ type: 'strata:presenter-state', pos, black, session })
+  })
+
+  // Desktop-App: aktuelle Folie melden (für „Präsentieren ab aktueller Folie“)
+  let positionTimer: ReturnType<typeof setTimeout> | undefined
+  $effect(() => {
+    if (!desktop || !pos) return
+    const hash = formatHash(pos)
+    clearTimeout(positionTimer)
+    positionTimer = setTimeout(() => void desktopAction({ action: 'position', hash }), 250)
   })
 
   function toggleFullscreen() {
@@ -208,6 +231,12 @@
       openPrintView()
       return
     }
+    // Desktop-App: Ctrl+W beendet die Präsentation (Fenster gehören der App)
+    if (desktop && (e.ctrlKey || e.metaKey) && (e.key === 'w' || e.key === 'W')) {
+      e.preventDefault()
+      void desktopAction({ action: 'close' })
+      return
+    }
     if (e.ctrlKey || e.metaKey || e.altKey) return
 
     // Presenter-Fernbedienungen: „Play“ sendet F5 bzw. Shift+F5, „Schwarzbild“ sendet B oder „.“
@@ -219,9 +248,11 @@
     if (navKey(e.key, e.shiftKey)) e.preventDefault()
   }
 
-  function onPresenterMessage(msg: PresenterMessage, source: Window) {
-    presenter = source
-    if (msg.type === 'strata:presenter-hello' && pos) send(presenter, { type: 'strata:presenter-state', pos, black })
+  function onPresenterMessage(msg: PresenterMessage, source: Window | null) {
+    if (source) presenter = source // file://: Fenster merken, auch nach Neuladen der Präsentation
+    // Tasten und Sprünge nur, wenn sie an diese Präsentation gerichtet sind
+    if ((msg.type === 'strata:presenter-key' || msg.type === 'strata:presenter-goto') && msg.target && msg.target !== session) return
+    if (msg.type === 'strata:presenter-hello' && pos) link?.send({ type: 'strata:presenter-state', pos, black, session })
     else if (msg.type === 'strata:presenter-key') {
       wake()
       navKey(msg.key, msg.shiftKey)
@@ -257,7 +288,6 @@
 
     // Editor → Vorschau: zur Folie unter dem Cursor springen (step 'all' = vollständig aufgedeckt)
     const onMessage = (e: MessageEvent) => {
-      if (isTrusted(e, presenter) && e.source) return onPresenterMessage(e.data as PresenterMessage, e.source as Window)
       if (e.origin !== location.origin || e.data?.type !== 'strata:goto') return
       const target = nav.node(e.data.id)
       if (!target) return
@@ -270,7 +300,8 @@
     window.addEventListener('message', onMessage)
 
     // Hot Reload: neuer Baum, Position bleibt (oder die nächstliegende)
-    import.meta.hot?.on('strata:deck', (payload: Payload) => {
+    // Vite-HMR bzw. Server-Sent Events in der Desktop-App
+    onDeckUpdate((payload: Payload) => {
       if ('error' in payload) {
         error = payload.error
         return
@@ -286,6 +317,7 @@
     return () => {
       window.removeEventListener('hashchange', onHash)
       window.removeEventListener('message', onMessage)
+      link?.close()
       window.removeEventListener('beforeprint', beforePrint)
       clearTimeout(idle)
     }

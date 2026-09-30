@@ -7,8 +7,9 @@
   import ScaledSlide from './ScaledSlide.svelte'
   import Notes from './Notes.svelte'
   import Search from './Search.svelte'
-  import { FORWARDED_KEYS, isTrusted, send, type PresenterMessage } from './presenter-link.ts'
+  import { FORWARDED_KEYS, openLink, usesChannel, type PresenterLink, type PresenterMessage } from './presenter-link.ts'
   import './presenter.css'
+  import { onDeckUpdate } from './deck-source.ts'
 
   // Presenter-View: zweites Fenster (Taste S in der Präsentation). Zeigt aktuelle und nächste Folie,
   // Notizen, Uhr, Timer mit Zeitplan und den Baum mit den Ästen, in die man abtauchen kann.
@@ -116,7 +117,16 @@
   // ---------- Verbindung ----------
 
   let firstKey = ''
+  /** Präsentation, an die diese Presenter-View gekoppelt ist (bei mehreren offenen Präsentationen) */
+  let target: string | null = null
+  let link: PresenterLink | null = null
+  /** Verbindung möglich? file:// braucht das öffnende Fenster, http(s) den BroadcastChannel */
+  const linkable = usesChannel() || !!audience
+
   function onState(msg: Extract<PresenterMessage, { type: 'strata:presenter-state' }>) {
+    // an die erste Präsentation koppeln; ist sie länger weg, an die nächste, die sich meldet
+    if (!target || Date.now() - lastSeen > 3500) target = msg.session
+    if (msg.session !== target) return
     lastSeen = Date.now()
     const key = `${msg.pos.id}:${msg.pos.slide}:${msg.pos.step ?? 0}`
     // Timer startet mit der ersten Bewegung nach dem Öffnen
@@ -127,7 +137,7 @@
   }
 
   function goto(id: string, slide = 0) {
-    send(audience, { type: 'strata:presenter-goto', id, slide })
+    link?.send({ type: 'strata:presenter-goto', id, slide, target: target ?? undefined })
   }
 
   function onkeydown(e: KeyboardEvent) {
@@ -145,30 +155,26 @@
     if (e.key === 't' || e.key === 'T') { e.preventDefault(); if (timer.running) pauseTimer(); else startTimer(); return }
     if (FORWARDED_KEYS.has(e.key)) {
       e.preventDefault()
-      send(audience, { type: 'strata:presenter-key', key: e.key, shiftKey: e.shiftKey })
+      link?.send({ type: 'strata:presenter-key', key: e.key, shiftKey: e.shiftKey, target: target ?? undefined })
     }
   }
 
   onMount(() => {
     document.title = `Presenter · ${deck?.title ?? 'Strata'}`
-    const onMessage = (e: MessageEvent) => {
-      if (!isTrusted(e, audience)) return
-      const msg = e.data as PresenterMessage
-      if (msg.type === 'strata:presenter-state') onState(msg)
-    }
-    window.addEventListener('message', onMessage)
-    const hello = () => send(audience, { type: 'strata:presenter-hello' })
+    link = openLink(() => audience, (msg) => { if (msg.type === 'strata:presenter-state') onState(msg) })
+    const hello = () => link?.send({ type: 'strata:presenter-hello' })
     hello()
     const heartbeat = setInterval(hello, 1000)
     const tick = setInterval(() => (now = Date.now()), 250)
 
-    import.meta.hot?.on('strata:deck', (payload: Payload) => {
+    // Vite-HMR bzw. Server-Sent Events in der Desktop-App
+    onDeckUpdate((payload: Payload) => {
       if ('error' in payload) return
       deck = payload.deck
       nav = new Navigator(payload.deck.nodes)
     })
     return () => {
-      window.removeEventListener('message', onMessage)
+      link?.close()
       clearInterval(heartbeat)
       clearInterval(tick)
     }
@@ -203,7 +209,7 @@
   <header class="pv-bar">
     <strong class="pv-deck">{deck?.title ?? 'Strata'}</strong>
     <span class="pv-conn" class:ok={connected} title={connected ? 'mit der Präsentation verbunden' : 'keine Verbindung'}>
-      {connected ? 'verbunden' : audience ? 'verbinde …' : 'ohne Präsentation – mit S aus der Präsentation öffnen'}
+      {connected ? 'verbunden' : linkable ? 'verbinde …' : 'ohne Präsentation – mit S aus der Präsentation öffnen'}
     </span>
     {#if black}<span class="pv-black">Schwarzbild</span>{/if}
     <span class="pv-spacer"></span>

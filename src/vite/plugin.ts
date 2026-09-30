@@ -3,7 +3,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type { Plugin, ViteDevServer } from 'vite'
-import { loadDeck, type LoadResult } from '../core/deck.ts'
+import { BUILTIN_THEMES_DIR, loadDeck, type LoadResult } from '../core/deck.ts'
 import { ASSET_PREFIX, IMAGE_MIME, toDataUri } from '../core/render.ts'
 import { editorApi } from './editor-api.ts'
 
@@ -63,7 +63,7 @@ export function strata(options: StrataOptions): Plugin {
       if (id === DECK_ID) return RESOLVED_DECK
       if (id === THEME_ID) {
         const r = await current.catch(() => undefined)
-        lastTheme = r?.themePath ?? path.join(import.meta.dirname, '../runtime/themes/minimal.css')
+        lastTheme = r?.themePath ?? path.join(BUILTIN_THEMES_DIR, 'minimal.css')
         return lastTheme
       }
     },

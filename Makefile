@@ -24,13 +24,25 @@ RUN      := set "PATH=%CD%\vendor\node;%PATH%" &&
 NODE     := $(RUN) vendor\node\node.exe
 NPM      := $(RUN) vendor\node\npm.cmd
 STRATA   := $(NODE) src\cli\index.ts
+# Desktop-App (Tauri): Rust + llvm-mingw im Benutzerprofil (make toolchain), nicht im Repo
+LLVM_MINGW ?= 20260922
+CARGO    := set "PATH=%LOCALAPPDATA%\strata-toolchain\llvm-mingw-$(LLVM_MINGW)-ucrt-x86_64\bin;%USERPROFILE%\.cargo\bin;%PATH%" && cargo
+APP_DEBUG   := src-tauri\target\debug\strata.exe
+APP_RELEASE := src-tauri\target\release\strata.exe
+# Deck nur übergeben, wenn es auf der Kommandozeile steht – sonst zeigt die App ihre Startseite
+APP_DECK := $(if $(filter command line,$(origin DECK)),"$(DECK)")
 
-.PHONY: help setup node install deps-update edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf docker docker-run test new clean distclean
+.PHONY: help setup node install toolchain app app-build app-package app-test sidecar-smoke deps-update edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf docker docker-run test new clean distclean
 
 help:
 	@echo Strata - Markdown-Praesentationen als navigierbarer Baum
 	@echo.
 	@echo   make setup         Node.js nach vendor/node holen und Pakete offline installieren
+	@echo   make app           Desktop-App (Tauri) bauen und starten, optional DECK=...
+	@echo   make app-package   Portables Programm: dist-app/Strata/Strata.exe
+	@echo   make toolchain     Rust + llvm-mingw fuer die Desktop-App (ohne Admin, einmalig, Internet)
+	@echo   make app-test      E2E-Test der Desktop-App, headless (ohne sichtbare Fenster)
+	@echo   make sidecar-smoke Selbsttest des Node-Sidecars (Deck, PDF, HTML) nach export/sidecar-smoke
 	@echo   make edit          Editor: links Markdown, rechts Live-Vorschau (DECK=...)
 	@echo   make dev           Dev-Server starten           (DECK=$(DECK) PORT=$(PORT))
 	@echo   make dev-open      Dev-Server starten und Browser oeffnen
@@ -65,6 +77,30 @@ deps-update: $(NODE_EXE)
 
 node_modules: | $(NODE_EXE)
 	$(NPM) ci --offline
+
+# ---------- Desktop-App (Tauri) ----------
+
+toolchain:
+	powershell -NoProfile -ExecutionPolicy Bypass -File scripts\get-toolchain.ps1 -LlvmMingw $(LLVM_MINGW)
+
+# Debug-Build (schneller) und starten
+app: node_modules
+	$(NODE) src\desktop\runtime-build.ts
+	cd src-tauri && $(CARGO) build
+	$(APP_DEBUG) $(APP_DECK)
+
+app-build: node_modules
+	cd src-tauri && $(CARGO) build --release
+
+app-package: app-build
+	$(NODE) scripts\package-app.ts
+
+# headless: Fenster bleiben unsichtbar; VISIBLE=1 zeigt sie
+app-test: node_modules
+	$(NODE) scripts\app-e2e.ts
+
+sidecar-smoke: node_modules
+	$(NODE) scripts\sidecar-smoke.ts
 
 edit: node_modules
 	$(STRATA) edit "$(DECK)" --port $(PORT)
@@ -112,6 +148,7 @@ new: node_modules
 clean:
 	if exist "$(OUT)" rmdir /s /q "$(OUT)"
 	if exist export rmdir /s /q export
+	if exist dist-app rmdir /s /q dist-app
 
 distclean: clean
 	if exist node_modules rmdir /s /q node_modules
