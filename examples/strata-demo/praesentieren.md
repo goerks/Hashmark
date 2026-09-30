@@ -74,6 +74,37 @@ Eine Aussage pro Folie. Groß, mittig, ohne Ablenkung.
 - Der Rest steht daneben
 - `image-left` spiegelt das Layout
 
+## Vergleich {layout=comparison}
+
+::: col
+Ohne Strata
+
+- Folien linear
+- Details in Backup-Folien
+- Fragen bringen den Ablauf durcheinander
+:::
+::: col
+Mit Strata
+
+- Baum statt Liste
+- Abtauchen per ↓, zurück per ↑
+- Der Hauptpfad bleibt erhalten
+:::
+
+## Code im Fokus {layout=code-focus}
+
+Der Codeblock füllt die Folie, der Text steht klein darüber.
+
+```ts {title="login.ts" lines="1-2|4-6|all"}
+export async function login(user: User) {
+  const ok = await verify(user.password)
+
+  if (!ok) throw new AuthError()
+  const token = sign({ sub: user.id })
+  return token
+}
+```
+
 ## Hinweiskästen
 
 ::: columns cols=3

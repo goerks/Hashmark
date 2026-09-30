@@ -254,6 +254,8 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   | `statement` | eine Kernaussage groß und mittig (Titel = Aussage) |
   | `quote` | Blockquote groß mit Anführungszeichen, Titel klein darüber, Text darunter = Quelle |
   | `image-right` / `image-left` | das erste Bild (bzw. Mermaid-Diagramm) füllt eine Hälfte, der Rest steht daneben |
+  | `comparison` | `::: col`-Blöcke als gleich hohe Karten nebeneinander (2 bis 4), die erste Zeile jeder Karte ist ihre Überschrift |
+  | `code-focus` | der Codeblock füllt die Folie, Text steht klein darüber. Passt zu `lines="…"` und `steps="…"` |
   | `agenda` | Liste der Kapitel des Hauptpfads. Erledigte gedämpft, das nächste (zwischen Kapiteln) bzw. aktuelle (unter einem Kapitel) hervorgehoben. Ab 10 Kapiteln zweispaltig |
 
 - **Knoten-Attribute:** `layout=…`, `id=…`, `transition=slide|zoom|fade|none`, `.klasse`, `duration=5m` (Budget in der Presenter-View), `bg=…` (Hintergrund: Farbe `#123`, Verlauf `"linear-gradient(…)"` oder Bild `bilder/x.jpg`), `bgdim=0.5` (Bild abdunkeln)

@@ -149,6 +149,22 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .layout-statement .slide-title { font-size: 68px; line-height: 1.1; }
 .layout-statement .content { flex: none; align-items: center; color: var(--color-muted); font-size: 32px; }
 
+/* Vergleich: `::: col`-Blöcke als gleich hohe Karten nebeneinander, die erste Zeile jeder Karte ist die Überschrift */
+.layout-comparison .content { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: stretch; gap: var(--space-3); min-height: 0; }
+.layout-comparison .d-col {
+  padding: 24px 28px; border-radius: var(--radius); border-top: 6px solid var(--color-accent);
+  background: var(--color-surface); gap: var(--space-1);
+}
+.layout-comparison .d-col:nth-child(even) { border-top-color: var(--color-muted); }
+.layout-comparison .d-col > :first-child { font-family: var(--font-heading); font-size: 32px; font-weight: 700; line-height: 1.15; color: var(--color-heading); }
+.layout-comparison .d-col ul, .layout-comparison .d-col ol { margin: 0; padding-left: 1.2em; }
+
+/* Code im Fokus: der Codeblock füllt die Folie, erklärender Text steht klein darüber */
+.layout-code-focus .content { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.layout-code-focus .content > :not(.code-block) { margin: 0; font-size: 24px; color: var(--color-muted); }
+.layout-code-focus .code-block { flex: 1; }
+.layout-code-focus .code-block pre { flex: 1; font-size: 27px; line-height: 1.5; }
+
 /* Zitat: Blockquote groß, Titel klein darüber, Rest (Quelle) darunter */
 .layout-quote { justify-content: center; }
 .layout-quote header .slide-title { font-size: 22px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-accent); }
