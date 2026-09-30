@@ -230,6 +230,29 @@ function markSteps(children: AnyNode[], start: number) {
   }
 }
 
+/**
+ * `## Titel {steps}`: alle Listenpunkte der Folie erscheinen nacheinander, ohne `::: steps` um die Liste.
+ * Gezählt wird die oberste Listenebene (Unterpunkte kommen mit ihrem Elternpunkt), auch in Spalten/Grids.
+ * Ein ausdrückliches `::: steps` in der Folie hat Vorrang, dann passiert hier nichts.
+ */
+function markAutoSteps(blocks: AnyNode[]) {
+  const hasSteps = (nodes: AnyNode[]): boolean =>
+    nodes.some((n) => (n.type === 'containerDirective' && n.name === 'steps') || hasSteps(n.children ?? []))
+  if (hasSteps(blocks)) return
+  let step = 1
+  const walk = (nodes: AnyNode[]) => {
+    for (const n of nodes) {
+      if (n.type === 'list') {
+        for (const item of n.children ?? []) {
+          const data = (item.data ??= {}) as { hProperties?: Record<string, unknown> }
+          data.hProperties = { ...data.hProperties, dataStep: String(step++) }
+        }
+      } else if (n.type === 'containerDirective') walk(n.children ?? [])
+    }
+  }
+  walk(blocks)
+}
+
 /** `cols=3` → 3 gleiche Spalten, `cols="2:1"` → 2fr 1fr, sonst CSS unverändert (`"2fr 1fr"`, `"300px 1fr"`). */
 export function gridColumns(cols: string): string {
   if (/^\d+$/.test(cols)) return `repeat(${cols},minmax(0,1fr))`
@@ -407,7 +430,7 @@ async function renderSlide(blocks: AnyNode[], ctx: RenderContext, layout?: strin
 }
 
 /** Rendert den Inhalt eines Knotens: `---` trennt Sub-Slides. `layout` = wirksames Layout des Knotens. */
-export async function renderNodeContent(blocks: RootContent[], ctx: RenderContext, layout?: string): Promise<{ slides: Slide[]; notes?: string }> {
+export async function renderNodeContent(blocks: RootContent[], ctx: RenderContext, layout?: string, autoSteps = false): Promise<{ slides: Slide[]; notes?: string }> {
   const groups: AnyNode[][] = [[]]
   for (const b of blocks as AnyNode[]) {
     if (b.type === 'thematicBreak') groups.push([])
@@ -424,6 +447,7 @@ export async function renderNodeContent(blocks: RootContent[], ctx: RenderContex
   const slides: Slide[] = []
   const notes: string[] = []
   for (const { content, notes: n } of parts) {
+    if (autoSteps) markAutoSteps(content)
     const slide = await renderSlide(content, ctx, layout)
     if (n.length) {
       slide.notes = (await blocksToHtml(n, ctx)).html

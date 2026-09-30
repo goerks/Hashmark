@@ -104,7 +104,8 @@ async function finalize(raw: RawNode[], parentId: string, ctx: FinalizeContext):
     const id = parentId ? `${parentId}/${s}` : s
     const layout = effectiveLayout(n.attrs, n.depth, ctx.manifest)
     const nodeCtx = { ...ctx, file: n.source.file }
-    const { slides, notes } = await renderNodeContent(n.content, nodeCtx, layout)
+    const autoSteps = !!n.attrs.steps && !['false', 'off', 'no'].includes(n.attrs.steps.toLowerCase())
+    const { slides, notes } = await renderNodeContent(n.content, nodeCtx, layout, autoSteps)
     const duration = parseDuration(n.attrs.duration)
     if (n.attrs.duration && duration === undefined) {
       ctx.warnings?.push(`Ungültige Dauer "${n.attrs.duration}" bei "${n.title}" (z. B. 5m, 90s, 1h30m)`)

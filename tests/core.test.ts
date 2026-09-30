@@ -149,6 +149,28 @@ describe('Schritte', () => {
     expect(second.steps).toHaveLength(1)
     expect(second.html).toContain('data-step="0" data-until="1"')
   })
+
+  it('blendet Listen mit {steps} an der Überschrift automatisch schrittweise ein', async () => {
+    const dir = await tempDeck({
+      'a.md': [
+        '# Auto {steps}', '- Eins', '  - Unter', '- Zwei', '', '1. Drei',
+        '# Explizit {steps}', '- Davor', '::: steps', '- Eins', '- Zwei', ':::',
+        '# Aus', '- Eins', '- Zwei',
+        '# Spalten {steps}', '::: col', '- A', ':::', '::: col', '- B', ':::',
+      ].join('\n'),
+    })
+    const { deck } = await loadDeck(dir)
+    const [auto, explicit, off, cols] = deck.nodes
+    const a = auto.slides[0]
+    expect(a.steps).toHaveLength(3)
+    expect(a.html).toMatch(/<li data-step="1">Eins/)
+    expect(a.html).toMatch(/<li data-step="3">Drei/)
+    expect(a.html).not.toMatch(/Unter<\/li>[^]*data-step="\d+">Unter/)
+    expect(explicit.slides[0].html).toContain("<li>Davor")
+    expect(explicit.slides[0].html).toMatch(/<li data-step="1">Eins/)
+    expect(off.slides[0].steps).toHaveLength(0)
+    expect(cols.slides[0].steps).toHaveLength(2)
+  })
 })
 
 describe('Navigator mit Schritten', () => {

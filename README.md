@@ -263,6 +263,7 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
 - **Mermaid:** ` ```mermaid `, gerendert im Browser. Die Farben kommen aus den Theme-Tokens.
 - **Schritt für Schritt:** Die Schritte einer Folie werden über ihre Nummer synchronisiert. Gleiche Nummer bedeutet gleichzeitig: Links erscheint Bullet 2, rechts Code-Teil 2. Oben rechts zeigen Punkte den Fortschritt.
   - `::: steps` um eine Liste: Jeder Listenpunkt (bzw. jeder Block) ist ein Schritt. `::: steps start=2` beginnt später.
+  - `## Titel {steps}`: Alle Listen der Folie (auch in Spalten) werden automatisch schrittweise eingeblendet, die Liste selbst bleibt unverändert. Gezählt wird die oberste Ebene, Unterpunkte erscheinen mit ihrem Elternpunkt. Ein ausdrücklich gesetztes `::: steps` in der Folie hat Vorrang. Das Attribut gilt für alle Sub-Slides (`---`) des Knotens, `{steps=off}` schaltet es ab.
   - Code ` ```ts {steps="1,6|2-3|4-5"} `: Je `|`-Abschnitt kommen Zeilen hinzu, neue Zeilen werden kurz hervorgehoben. Zeilen ohne Schritt sind sofort sichtbar (Gerüst), leere Abschnitte bedeuten keine Änderung.
   - Mermaid: Eine Zeile `%% step` beginnt den nächsten Abschnitt, und das Diagramm wächst kumulativ.
 

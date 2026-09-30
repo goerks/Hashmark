@@ -9,7 +9,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | Befehl | Zweck |
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
-| `make test` | Vitest (`tests/*.test.ts`, 52 Tests, Kern-Logik ohne DOM) |
+| `make test` | Vitest (`tests/*.test.ts`, 59 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-build` / `make app-package` | Tauri-App: Debug bauen + starten (`DECK=…` optional) / Release bauen / portables `dist-app/Strata/` |
 | `make toolchain` | einmalig Rust (`stable-x86_64-pc-windows-gnullvm`) + llvm-mingw nach `%LOCALAPPDATA%\strata-toolchain` (ohne Admin) |
 | `make sidecar-smoke` | Node-Sidecar wie aus der App ansprechen: Deck, Datei-API, Aktionen, PDF, Handout, HTML (`SIDECAR_BUNDLE=1`: das Bündel) |
@@ -85,7 +85,7 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **`---`** teilt einen Knoten in Sub-Slides. Auch direkt unter Text ist es ein Trenner (Setext-Fix nach dem Parsen, damit die Zeilennummern stimmen).
 - **Container:** `::: col`, `::: columns`, `::: grid cols=… gap=…`, `::: steps [start=N]`, `::: notes`, `::: children`. Notizen auch per `<!-- notes -->`.
 - **Schritte** synchronisieren sich über die Nummer:
-  - Listenpunkte in `::: steps`;
+  - Listenpunkte in `::: steps` bzw. automatisch per `## Titel {steps}` (`markAutoSteps` in render.ts; `{steps}` ist das einzige Überschriften-Flag ohne `=`/`.`/`#`, siehe `splitHeadingAttrs`; `::: steps` in der Folie hat Vorrang);
   - Code ` ```ts {steps="1,6|2-3||4"} ` (Zeilen ohne Schritt bilden das Gerüst);
   - Mermaid `%% step` (kumulative Versionen übereinander).
 - **Layouts:** `title`, `section` (Kacheln der Kinder), `default`, `two-col`, `three-col`, `statement`, `quote`, `image-left`, `image-right`, `agenda`. Je Ebene über `layouts: { 1: section }`.
