@@ -26,6 +26,28 @@ Aus 1..n Dateien entsteht ein Baum. Diese Folie hat Kinder aus einer eigenen Dat
 
 ![Schichten](bilder/schichten.svg)
 
+## Gesamtbild {layout=default}
+
+::: columns cols="1:1"
+::: col
+::: steps
+- **Quellen:** Markdown, `deck.yaml`, Bilder
+- **Kern:** Parser → Baum → Renderer
+- **Server:** Vite-Plugin, JSON, Hot Reload
+- **Client:** Svelte-App, Navigator, Themes
+- **Ausgabe:** Vollbild, Presenter, PDF
+:::
+:::
+
+::: col
+![Architektur von Strata](bilder/strata-architektur.drawio.svg){steps=layers}
+:::
+:::
+
+::: notes
+Jeder Punkt links deckt die passende Ebene im draw.io-Diagramm rechts auf. Gleiche Schrittnummer = gleichzeitig.
+:::
+
 ## Datenmodell {layout=default}
 
 ```ts {title="core/types.ts" lines="2-4|all"}
