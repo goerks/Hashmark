@@ -300,6 +300,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .mermaid-block > * { grid-area: 1 / 1; min-width: 0; }
 .mermaid-block svg { display: block; margin: 0 auto; }
 
+/* draw.io: Inline-SVG, Ebenen blenden per data-step ein */
+.drawio-block svg { display: block; margin: 0 auto; max-width: 100%; height: auto; max-height: 460px; }
+
 .step-dots { display: inline-flex; gap: 5px; margin-right: 10px; vertical-align: middle; }
 .step-dots i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--color-muted); }
 .step-dots i.done { background: var(--color-accent); border-color: var(--color-accent); }

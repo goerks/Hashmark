@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="521px" height="241px" viewBox="-0.5 -0.5 521 241" content="&lt;mxfile host=&quot;app.diagrams.net&quot;&gt;&lt;diagram name=&quot;Seite-1&quot; id=&quot;p1&quot;&gt;&lt;mxGraphModel dx=&quot;800&quot; dy=&quot;500&quot; grid=&quot;1&quot; gridSize=&quot;10&quot;&gt;&lt;root&gt;&lt;mxCell id=&quot;0&quot;/&gt;&lt;mxCell id=&quot;1&quot; value=&quot;Basis&quot; parent=&quot;0&quot;/&gt;&lt;mxCell id=&quot;daten&quot; value=&quot;Daten&quot; parent=&quot;0&quot;/&gt;&lt;mxCell id=&quot;auth&quot; value=&quot;Sicherheit&quot; parent=&quot;0&quot;/&gt;&lt;mxCell id=&quot;b&quot; value=&quot;Browser&quot; style=&quot;rounded=1;&quot; vertex=&quot;1&quot; parent=&quot;1&quot;&gt;&lt;mxGeometry x=&quot;20&quot; y=&quot;140&quot; width=&quot;120&quot; height=&quot;60&quot; as=&quot;geometry&quot;/&gt;&lt;/mxCell&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;&lt;/diagram&gt;&lt;/mxfile&gt;">
+  <defs/>
+  <g>
+    <g data-cell-id="0">
+      <g data-cell-id="1">
+        <g data-cell-id="b">
+          <rect x="20" y="140" width="120" height="60" rx="9" ry="9" fill="#dae8fc" stroke="#6c8ebf" pointer-events="all"/>
+          <text x="80" y="176" text-anchor="middle" font-family="Helvetica" font-size="14" fill="#000">Browser</text>
+        </g>
+        <g data-cell-id="a">
+          <rect x="200" y="140" width="120" height="60" rx="9" ry="9" fill="#d5e8d4" stroke="#82b366" pointer-events="all"/>
+          <text x="260" y="176" text-anchor="middle" font-family="Helvetica" font-size="14" fill="#000">API</text>
+        </g>
+        <g data-cell-id="e1">
+          <path d="M 140 170 L 193 170" fill="none" stroke="#000" stroke-miterlimit="10" pointer-events="stroke"/>
+          <path d="M 198 170 L 191 173.5 L 191 166.5 Z" fill="#000" stroke="#000" stroke-miterlimit="10" pointer-events="all"/>
+        </g>
+      </g>
+      <g data-cell-id="daten">
+        <g data-cell-id="d">
+          <rect x="380" y="140" width="120" height="60" rx="9" ry="9" fill="#fff2cc" stroke="#d6b656" pointer-events="all"/>
+          <text x="440" y="176" text-anchor="middle" font-family="Helvetica" font-size="14" fill="#000">Datenbank</text>
+        </g>
+        <g data-cell-id="e2">
+          <path d="M 320 170 L 373 170" fill="none" stroke="#000" stroke-miterlimit="10" pointer-events="stroke"/>
+          <path d="M 378 170 L 371 173.5 L 371 166.5 Z" fill="#000" stroke="#000" stroke-miterlimit="10" pointer-events="all"/>
+        </g>
+      </g>
+      <g data-cell-id="auth">
+        <g data-cell-id="s">
+          <rect x="200" y="20" width="120" height="60" rx="9" ry="9" fill="#f8cecc" stroke="#b85450" pointer-events="all"/>
+          <text x="260" y="56" text-anchor="middle" font-family="Helvetica" font-size="14" fill="#000">Auth-Dienst</text>
+        </g>
+        <g data-cell-id="e3">
+          <path d="M 260 140 L 260 87" fill="none" stroke="#000" stroke-miterlimit="10" pointer-events="stroke"/>
+          <path d="M 260 82 L 263.5 89 L 256.5 89 Z" fill="#000" stroke="#000" stroke-miterlimit="10" pointer-events="all"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

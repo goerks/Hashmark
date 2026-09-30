@@ -8,6 +8,7 @@ import rehypeStringify from 'rehype-stringify'
 import { visit, SKIP } from 'unist-util-visit'
 import { bundledLanguages, createCssVariablesTheme, createHighlighter, type Highlighter } from 'shiki'
 import type { Root, RootContent, Code } from 'mdast'
+import { drawioSteps } from './drawio.ts'
 import { parseAttrs } from './syntax.ts'
 import type { Slide } from './types.ts'
 
@@ -338,6 +339,33 @@ function splitMedia(blocks: AnyNode[]): { media: AnyNode[]; body: AnyNode[] } | 
   return { media: [blocks[i]], body: blocks.filter((_, k) => k !== i) }
 }
 
+// ---------- draw.io ----------
+
+/**
+ * `![](arch.drawio.svg){steps=layers}` → SVG inline einbetten, Ebenen als Schritte.
+ * Ohne `steps=layers` (oder ohne lesbares Modell) bleibt es ein normales Bild.
+ */
+function inlineDrawio(root: Root, ctx: RenderContext) {
+  visit(root, 'paragraph', (node, index, parent) => {
+    const p = node as unknown as AnyNode
+    if (!parent || index === undefined || !isImageBlock(p)) return
+    const kids = p.children ?? []
+    const image = kids.find((k) => k.type === 'image') as unknown as { url: string } | undefined
+    if (!image || !/\.drawio\.svg$/i.test(image.url) || isUrl(image.url)) return
+    const attrText = kids.find((k) => k.type === 'text') as { value: string } | undefined
+    const m = attrText?.value.match(/^\s*\{([^{}]*)\}/)
+    if (!m || parseAttrs(m[1]).steps !== 'layers') return
+    const file = path.resolve(path.dirname(ctx.file), decodeURI(image.url))
+    if (!fs.existsSync(file)) return // resolveImage meldet die fehlende Datei
+    const result = drawioSteps(fs.readFileSync(file, 'utf8'))
+    if (!result) {
+      ctx.warnings?.push(`Kein draw.io-Modell in ${image.url} (${path.relative(ctx.deckDir, ctx.file)}) – als Bild eingebunden`)
+      return
+    }
+    parent.children![index] = { type: 'html', value: `<div class="drawio-block">${result.svg.trim()}</div>` } as RootContent
+  })
+}
+
 // ---------- Pipeline ----------
 
 const toHtml = unified().use(remarkRehype, { allowDangerousHtml: true }).use(rehypeStringify, { allowDangerousHtml: true })
@@ -354,6 +382,7 @@ async function blocksToHtml(blocks: AnyNode[], ctx: RenderContext): Promise<{ ht
     parent.children![index] = { type: 'html', value: result.html } as AnyNode
   }
 
+  inlineDrawio(root, ctx)
   applyDirectives(root, ctx)
   const hast = await toHtml.run(root)
   const html = String(toHtml.stringify(hast)).trim()
