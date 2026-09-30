@@ -439,3 +439,11 @@ button.nc-next:hover { color: var(--color-accent); }
 }
 .example-switcher:hover, .example-switcher:focus { opacity: 1; }
 @media print { .example-switcher { display: none; } }
+
+/* Überlauf-Hinweis (Slide.svelte, nur Dev-Server und Editor-Vorschau); `{fit}` verkleinert per zoom */
+.overflow-badge {
+  position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5;
+  padding: 2px 12px; border-radius: 999px; font-size: 16px; font-weight: 700; letter-spacing: 0.04em;
+  background: var(--color-danger); color: #fff; cursor: help;
+}
+@media print { .overflow-badge { display: none; } }

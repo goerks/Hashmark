@@ -258,6 +258,7 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   | `code-focus` | der Codeblock füllt die Folie, Text steht klein darüber. Passt zu `lines="…"` und `steps="…"` |
   | `agenda` | Liste der Kapitel des Hauptpfads. Erledigte gedämpft, das nächste (zwischen Kapiteln) bzw. aktuelle (unter einem Kapitel) hervorgehoben. Ab 10 Kapiteln zweispaltig |
 
+- **Auto-Fit und Überlauf:** `## Titel {fit}` verkleinert den Inhalt der Folie in 5-%-Schritten bis auf 70 %, bis er passt (`{fit=off}` schaltet ab). Läuft etwas über (Inhalt höher oder breiter als die Folie, auch breiter Code), zeigt die Folie beim Schreiben ein rotes Badge „Überlauf“, im Dev-Server und in der Editor-Vorschau, auch in den Miniaturen der Übersicht. Im Vortrag, im Export und im PDF gibt es kein Badge. Besser als Verkleinern ist meist Kürzen oder `---`.
 - **Knoten-Attribute:** `layout=…`, `id=…`, `transition=slide|zoom|fade|none`, `.klasse`, `duration=5m` (Budget in der Presenter-View), `bg=…` (Hintergrund: Farbe `#123`, Verlauf `"linear-gradient(…)"` oder Bild `bilder/x.jpg`), `bgdim=0.5` (Bild abdunkeln)
 - **Container:** `::: columns`/`::: col`, `::: columns cols=3` bzw. `cols="2:1"` (feste Spalten, Verhältnis), `::: grid cols="2fr 1fr" gap=2`, `::: children`, `::: notes` (`step=2`). Verschachtelung im Pandoc-Stil mit gleicher Anzahl Doppelpunkte.
 - **Hinweiskästen** wie auf GitHub: `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`. Titel auf Deutsch (Hinweis, Tipp, Wichtig, Warnung, Achtung), eigener Titel mit `> [!TIP] Mein Titel`.

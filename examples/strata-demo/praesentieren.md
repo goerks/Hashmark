@@ -105,6 +105,23 @@ export async function login(user: User) {
 }
 ```
 
+## Auto-Fit {layout=default fit}
+
+Zu viel Inhalt? `{fit}` an der Überschrift verkleinert die Folie, bis alles passt.
+
+- Gemessen wird der Inhalt der Folie, nicht die Anzahl der Zeilen
+- Verkleinert wird in 5-%-Schritten bis auf 70 %
+- Passt es dann nicht, erscheint beim Schreiben das rote Badge „Überlauf“
+- Das Badge zeigt sich im Dev-Server und in der Editor-Vorschau
+- Im Vortrag, im Export und im PDF ist es nie zu sehen
+- Ohne `{fit}` bleibt die Schrift unverändert, das Badge warnt trotzdem
+- Besser als Verkleinern: kürzen oder mit `---` auf zwei Folien verteilen
+- Breiter Code wird ebenfalls als Überlauf gemeldet
+- Diagramme werden nach dem Rendern neu gemessen
+- Schritte belegen ihren Platz, die Messung gilt für die volle Folie
+- `{fit=off}` schaltet es für eine Folie wieder ab
+- Auch die Übersicht (Ctrl+Shift+O) zeigt das Badge in den Miniaturen
+
 ## Hinweiskästen
 
 ::: columns cols=3

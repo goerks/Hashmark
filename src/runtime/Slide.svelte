@@ -2,6 +2,7 @@
   import { untrack } from 'svelte'
   import type { DeckNode } from '../core/types.ts'
   import { renderMermaid } from './mermaid.ts'
+  import { MIN_ZOOM, fitSlide } from './fit.ts'
 
   let { node, slide, layout, step = Infinity, titleTag = 'h1' }: {
     node: DeckNode
@@ -15,6 +16,11 @@
 
   let el: HTMLElement
   const html = $derived(node.slides[slide]?.html ?? '')
+  const fit = $derived(!!node.attrs.fit && !['false', 'off', 'no'].includes(node.attrs.fit.toLowerCase()))
+  // Überlauf-Hinweis nur beim Schreiben (Dev-Server, Editor-Vorschau), nie im Vortrag oder Export
+  const showOverflow = import.meta.env.DEV || window.parent !== window
+  let overflow = $state(false)
+  let zoom = $state(1)
   const showTiles = $derived(layout === 'section' && node.children.length > 0 && !html.includes('data-children'))
 
   const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
@@ -44,12 +50,22 @@
     }
   }
 
+  function measure() {
+    const r = fitSlide(el, fit)
+    overflow = r.overflow
+    zoom = r.zoom
+  }
+
   $effect(() => {
     void html
+    void layout
+    void fit
     // `::: children` als Kacheln füllen, Diagramme rendern (neue SVGs danach ebenfalls ein-/ausblenden)
     for (const slot of el.querySelectorAll<HTMLElement>('[data-children]')) slot.innerHTML = tiles(node.children)
-    untrack(() => applySteps(el, step))
-    renderMermaid(el).then(() => untrack(() => applySteps(el, step)))
+    untrack(() => { applySteps(el, step); measure() })
+    // Diagramme und Schriften ändern die Größe erst nach dem Laden: danach neu messen
+    renderMermaid(el).then(() => untrack(() => { applySteps(el, step); measure() }))
+    void document.fonts?.ready.then(() => untrack(measure))
   })
 
   $effect(() => {
@@ -63,8 +79,13 @@
   data-depth={node.depth}
   style:background={node.attrs.bg}
   style:--bg-dim={node.attrs.bgdim}
+  data-fit={zoom < 1 ? zoom : undefined}
+  data-overflow={overflow ? '' : undefined}
   bind:this={el}
 >
+  {#if overflow && showOverflow}
+    <span class="overflow-badge" title={fit ? `Der Inhalt passt auch bei ${Math.round(MIN_ZOOM * 100)} % nicht: kürzen oder auf mehrere Folien verteilen` : 'Der Inhalt ist höher oder breiter als die Folie: kürzen, auf mehrere Folien verteilen (---) oder {fit} an die Überschrift setzen'}>Überlauf</span>
+  {/if}
   {#if layout === 'title' || layout === 'statement'}
     <div class="title-wrap">
       <svelte:element this={titleTag} class="slide-title">{node.title}</svelte:element>

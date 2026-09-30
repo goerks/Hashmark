@@ -20,6 +20,9 @@ describe('Syntax', () => {
   it('parst Überschriften-Attribute', () => {
     expect(splitHeadingAttrs('Backend {layout=two-col id=backend}')).toEqual({ text: 'Backend', attrs: 'layout=two-col id=backend' })
     expect(splitHeadingAttrs('Mengen {a, b}').attrs).toBeNull()
+    expect(splitHeadingAttrs('Viel Text {fit}')).toEqual({ text: 'Viel Text', attrs: 'fit' })
+    expect(splitHeadingAttrs('Liste {steps fit}').attrs).toBe('steps fit')
+    expect(parseAttrs('steps fit')).toEqual({ steps: 'true', fit: 'true' })
     expect(parseAttrs('layout=two-col title="a b" .x #y')).toEqual({ layout: 'two-col', title: 'a b', class: 'x', id: 'y' })
   })
 })
