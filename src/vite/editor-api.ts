@@ -102,7 +102,16 @@ export function appApi(onAction: (action: Record<string, unknown>) => void): Con
   }
 }
 
-export function editorApi(deckDir: string): Connect.NextHandleFunction {
+export interface EditorApiOptions {
+  /**
+   * Welche Host-Header zugelassen sind. Standard: nur localhost. `hashmark serve` lässt jeden zu, schützt den
+   * Editor aber mit Passwort (der Server prüft das, bevor die Anfrage hier ankommt).
+   */
+  allowHost?: (host: string) => boolean
+}
+
+export function editorApi(deckDir: string, options: EditorApiOptions = {}): Connect.NextHandleFunction {
+  const allowHost = options.allowHost ?? ((h: string) => LOCAL_HOST.test(h))
   return async (req, res: ServerResponse, next) => {
     if (!req.url?.startsWith(API_PREFIX + '/')) return next()
     const send = (status: number, data: unknown, type = 'application/json') => {
@@ -112,8 +121,15 @@ export function editorApi(deckDir: string): Connect.NextHandleFunction {
       res.end(type === 'application/json' ? JSON.stringify(data) : (data as string))
     }
     try {
-      if (!LOCAL_HOST.test(req.headers.host ?? '')) throw new HttpError(403, 'Editor nur über localhost')
+      if (!allowHost(req.headers.host ?? '')) throw new HttpError(403, 'Editor nur über localhost')
       if (req.headers['x-hashmark-editor'] !== '1') throw new HttpError(403, 'Header fehlt')
+      // Browser schicken gespeicherte Zugangsdaten auch von fremden Seiten mit: der Ursprung muss zum Host passen
+      const origin = req.headers.origin
+      if (origin) {
+        let originHost = ''
+        try { originHost = new URL(origin).host } catch { /* ungültig */ }
+        if (originHost !== req.headers.host) throw new HttpError(403, 'Fremder Ursprung')
+      }
 
       const url = new URL(req.url, 'http://localhost')
       const route = url.pathname.slice(API_PREFIX.length)

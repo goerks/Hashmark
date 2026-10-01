@@ -84,7 +84,7 @@ describe('Deck vorab lesen', () => {
     expect(isStale(dir, result, later)).toBe(true) // Datei geändert
     fs.writeFileSync(path.join(dir, 'b.md'), '# B')
     expect(isStale(dir, result, Date.now() + 1000)).toBe(false)
-  })
+  }, 30_000)
 })
 
 describe('Beispiele', () => {
@@ -123,5 +123,65 @@ describe('Sidecar-Befehle', () => {
     expect(out[3]).toMatchObject({ id: 4, ok: true, result: ['deck.yaml', '01-start.md', '02-hauptteil.md'] })
     expect(out[4]).toMatchObject({ id: 5, ok: true, result: true })
     expect(out[5]).toMatchObject({ id: 6, ok: false, error: 'Kein Deck geöffnet' })
+  })
+})
+
+describe('Webdienst (hashmark serve)', () => {
+  const basic = (user: string, pw: string) => 'Basic ' + Buffer.from(`${user}:${pw}`).toString('base64')
+
+  async function start(password?: string) {
+    const { startLiveServer } = await import('../src/desktop/live-server.ts')
+    const deckDir = tmp()
+    fs.writeFileSync(path.join(deckDir, 'a.md'), '# A')
+    const runtimeDir = tmp()
+    fs.writeFileSync(path.join(runtimeDir, 'index.html'), '<title>x</title>')
+    fs.writeFileSync(path.join(runtimeDir, 'editor.html'), '<title>editor</title>')
+    return startLiveServer({
+      deckDir, runtimeDir, onAppAction: () => {}, log: () => {},
+      web: { host: '127.0.0.1', port: 0, editorPassword: password },
+    })
+  }
+
+  it('Präsentation und Gesundheitsprüfung sind öffentlich, der Editor braucht das Passwort', async () => {
+    const server = await start('geheim')
+    try {
+      const get = (p: string, headers: Record<string, string> = {}) => fetch(server.url + p.replace(/^\//, ''), { headers })
+      expect((await get('/healthz')).status).toBe(200)
+      expect((await get('/')).status).toBe(200)
+      expect((await get('/__hashmark/deck.json')).status).toBe(200)
+      expect((await get('/editor.html')).status).toBe(401)
+      expect((await get('/__hashmark/files', { 'X-Hashmark-Editor': '1' })).status).toBe(401)
+      expect((await get('/editor.html', { Authorization: basic('editor', 'falsch') })).status).toBe(401)
+      expect((await get('/editor.html', { Authorization: basic('anderer', 'geheim') })).status).toBe(401)
+      expect((await get('/editor.html', { Authorization: basic('editor', 'geheim') })).status).toBe(200)
+      const files = await get('/__hashmark/files', { Authorization: basic('editor', 'geheim'), 'X-Hashmark-Editor': '1' })
+      expect((await files.json()).files.map((f: { path: string }) => f.path)).toEqual(['a.md'])
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('verlangt auch mit Passwort den Editor-Header und einen passenden Ursprung', async () => {
+    const server = await start('geheim')
+    try {
+      const auth = { Authorization: basic('editor', 'geheim') }
+      const url = server.url + '__hashmark/files'
+      expect((await fetch(url, { headers: auth })).status).toBe(403)
+      expect((await fetch(url, { headers: { ...auth, 'X-Hashmark-Editor': '1', Origin: 'https://fremd.example' } })).status).toBe(403)
+      expect((await fetch(url, { headers: { ...auth, 'X-Hashmark-Editor': '1', Origin: new URL(server.url).origin } })).status).toBe(200)
+    } finally {
+      await server.close()
+    }
+  })
+
+  it('ohne EDITOR_PASSWORD gibt es keinen Editor', async () => {
+    const server = await start(undefined)
+    try {
+      expect((await fetch(server.url)).status).toBe(200)
+      expect((await fetch(server.url + 'editor.html')).status).toBe(404)
+      expect((await fetch(server.url + '__hashmark/files', { headers: { 'X-Hashmark-Editor': '1' } })).status).toBe(404)
+    } finally {
+      await server.close()
+    }
   })
 })

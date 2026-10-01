@@ -23,6 +23,7 @@
 </script>
 
 <!-- mousedown nicht weitergeben: der Editor soll den Fokus (und die Tastatur) behalten -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div class="ed-keybar" style="bottom: {bottom}px" role="toolbar" aria-label="Schnelltasten" onmousedown={(e) => e.preventDefault()}>
   <button class="acc" onclick={onblocks}>+ Baustein</button>
   <button onclick={() => ed.tab()} aria-label="Einrücken">⇥</button>

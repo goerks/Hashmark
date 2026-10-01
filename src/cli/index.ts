@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CLI: hashmark dev | build | preview | export
+// CLI: hashmark dev | edit | serve | build | preview | export | pdf | check
 
 import path from 'node:path'
 import cac from 'cac'
@@ -8,6 +8,7 @@ import { PROJECT_ROOT, config } from './config.ts'
 import { exportSingleFile } from './export.ts'
 import { checkDeck, formatFinding } from './check.ts'
 import { exportPdf } from './pdf.ts'
+import { serve } from './serve.ts'
 import { printQuery } from '../core/print.ts'
 
 /** `--host` ohne Wert = alle Netzwerk-Interfaces, sonst die angegebene Adresse */
@@ -41,6 +42,22 @@ cli
     const url = server.resolvedUrls?.local[0]
     server.config.logger.info(`\n  Editor:        ${url}editor.html\n  Präsentation:  ${url}\n`)
     server.bindCLIShortcuts({ print: true })
+  })
+
+cli
+  .command('serve [deck]', 'Webdienst (Docker/Render): Präsentation öffentlich, Editor mit Passwort (EDITOR_PASSWORD)')
+  .option('--port <port>', 'Port (Standard: $PORT oder 3030)')
+  .option('--host <host>', 'Adresse', { default: '0.0.0.0' })
+  .option('--seed <dir>', 'Deck, das in einen leeren Deck-Ordner kopiert wird')
+  .action(async (deck = process.env.DECK_DIR ?? '.', opts: { port?: string; host: string; seed?: string }) => {
+    await serve({
+      deck,
+      seed: opts.seed ?? process.env.DECK_SEED,
+      host: opts.host,
+      port: Number(opts.port ?? process.env.PORT ?? 3030),
+      editorUser: process.env.EDITOR_USER || undefined,
+      editorPassword: process.env.EDITOR_PASSWORD || undefined,
+    })
   })
 
 cli

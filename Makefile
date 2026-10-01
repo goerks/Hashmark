@@ -18,6 +18,7 @@ OUT          ?= dist
 DOCKER_PORT  ?= 8080
 IMAGE        ?= hashmark/$(notdir $(DECK))
 EXAMPLES_IMAGE ?= hashmark/beispiele
+SERVER_IMAGE ?= hashmark/server
 # ohne ausdrückliches DECK= bietet `make dev` die Beispiel-Decks in der Seite zur Auswahl an
 EXAMPLES_SWITCH := $(if $(filter command line environment,$(origin DECK)),,--examples)
 
@@ -35,7 +36,7 @@ APP_RELEASE := src-tauri\target\release\hashmark.exe
 # Deck nur übergeben, wenn es auf der Kommandozeile steht – sonst zeigt die App ihre Startseite
 APP_DECK := $(if $(filter command line,$(origin DECK)),"$(DECK)")
 
-.PHONY: help setup node install toolchain app app-build app-package app-test sidecar-smoke deps-update edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf check build-examples docker-examples docker docker-run test new clean distclean
+.PHONY: help setup node install toolchain app app-build app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf check build-examples docker-examples docker docker-run test new clean distclean
 
 help:
 	@echo Hashmark - Maechtige Praesentationen aus reinem Markdown
@@ -47,6 +48,9 @@ help:
 	@echo   make app-test      E2E-Test der Desktop-App, headless (ohne sichtbare Fenster)
 	@echo   make sidecar-smoke Selbsttest des Node-Sidecars (Deck, PDF, HTML) nach export/sidecar-smoke
 	@echo   make edit          Editor: links Markdown, rechts Live-Vorschau (DECK=...)
+	@echo   make serve         Webdienst lokal (Praesentation oeffentlich, Editor mit Passwort EDITOR_PASSWORD)
+	@echo   make image         Docker-Image des Webdienstes bauen (Dockerfile im Root, Name: $(SERVER_IMAGE))
+	@echo   make image-run     Webdienst-Image starten (http://localhost:$(DOCKER_PORT), Editor-Passwort: EDITOR_PASSWORD)
 	@echo   make dev           Dev-Server starten           (DECK=$(DECK) PORT=$(PORT))
 	@echo   make dev-open      Dev-Server starten und Browser oeffnen
 	@echo   make dev-lan       Dev-Server im Netzwerk erreichbar (LAN/VPN)
@@ -141,6 +145,16 @@ pdf: node_modules
 # Deck prüfen (Layouts, Attribute, Bilder, Theme, Überlauf); NOOVERFLOW=1 = ohne Browser, STRICT=1 = Hinweise sind Fehler
 check: node_modules
 	$(HASHMARK) check "$(DECK)" $(if $(NOOVERFLOW),--no-overflow) $(if $(STRICT),--strict) $(if $(BROWSER),--browser "$(BROWSER)")
+
+# Webdienst wie auf Render: Praesentation oeffentlich, Editor unter /editor.html mit Passwort
+serve: node_modules
+	set "DECK_DIR=$(DECK)" && set "PORT=$(PORT)" && set "EDITOR_PASSWORD=$(if $(EDITOR_PASSWORD),$(EDITOR_PASSWORD),geheim)" && $(HASHMARK) serve
+
+image:
+	docker build -t $(SERVER_IMAGE) .
+
+image-run:
+	docker run --rm -p $(DOCKER_PORT):10000 -e EDITOR_PASSWORD="$(if $(EDITOR_PASSWORD),$(EDITOR_PASSWORD),geheim)" -v hashmark-data:/data $(SERVER_IMAGE)
 
 docker: build
 	docker build -f docker/Dockerfile -t $(IMAGE) .

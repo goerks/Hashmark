@@ -88,6 +88,37 @@ Es muss nichts global installiert werden:
 
 Voraussetzungen: Windows x64 und GNU Make (z. B. `choco install make`).
 
+## Deployment (GitLab-Registry und Render)
+
+Ein einziger Container liefert die Präsentation (`/`, öffentlich) und den Editor (`/editor.html`, mit Passwort). Beide arbeiten auf demselben Deck-Ordner, Änderungen im Editor erscheinen sofort in der Präsentation. Es braucht deshalb **nur eine Bereitstellung**.
+
+```sh
+make serve                         # lokal ohne Docker: http://localhost:3030, Editor-Passwort „geheim“ (EDITOR_PASSWORD)
+make image && make image-run       # dasselbe als Docker-Image, http://localhost:8080
+```
+
+**Einstellungen** (Umgebungsvariablen des Containers):
+
+| Variable | Bedeutung |
+| --- | --- |
+| `EDITOR_PASSWORD` | schaltet den Editor frei, ohne gibt es nur die Präsentation |
+| `EDITOR_USER` | Benutzername, Standard `editor` |
+| `PORT` | Standard 10000, Render setzt ihn selbst |
+| `DECK_DIR` | Deck-Ordner, Standard `/data/deck` |
+| `DECK_SEED` | wird beim ersten Start in einen leeren `DECK_DIR` kopiert, Standard das Beispiel-Deck |
+
+**Automatik:** `.gitlab-ci.yml` führt bei jedem Push auf den Standard-Branch die Tests aus, baut das Image mit Kaniko, legt es als `:<commit>` und `:latest` in die GitLab-Registry und stößt Render über den Deploy-Hook an.
+
+**Einmalig einrichten:**
+
+1. In GitLab ein **Deploy-Token** mit `read_registry` anlegen (Settings → Repository → Deploy tokens).
+2. In Render unter *Workspace Settings → Registry Credentials* Zugangsdaten anlegen: Registry `registry.gitlab.com`, Benutzername und Token aus Schritt 1, Name `gitlab`.
+3. In `render.yaml` die Image-Adresse eintragen (`registry.gitlab.com/<gruppe>/<projekt>:latest`) und das Blueprint in Render anlegen, oder den Dienst von Hand erstellen: *Existing image*, Port 10000, Health Check `/healthz`, Festplatte auf `/data`.
+4. In Render `EDITOR_PASSWORD` setzen.
+5. In Render die **Deploy-Hook-URL** des Dienstes kopieren und in GitLab als CI/CD-Variable `RENDER_DEPLOY_HOOK_URL` eintragen (maskiert und geschützt).
+
+**Wichtig zur Festplatte:** Ohne Festplatte ist das Dateisystem bei Render flüchtig, Änderungen aus dem Editor gehen bei jedem Neustart und Deploy verloren (kostenlose Dienste haben keine Festplatte). Mit der Festplatte auf `/data` bleiben sie erhalten, das Image selbst enthält nur das Beispiel-Deck als Startinhalt. Die Zugangsdaten gehen per HTTP Basic über HTTPS (Render terminiert TLS).
+
 ## Editor
 
 ```sh

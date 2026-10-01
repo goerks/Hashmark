@@ -4,6 +4,7 @@
 // Anders als der Vite-Dev-Server muss er nichts vorbündeln – Start und erstes Laden dauern Sekunden.
 
 import fs from 'node:fs'
+import crypto from 'node:crypto'
 import http from 'node:http'
 import path from 'node:path'
 import type { AddressInfo } from 'node:net'
@@ -24,6 +25,11 @@ export interface LiveServerOptions {
   log?: (msg: string) => void
   /** schon gelesenes Deck (Vorab-Lesen der App) – spart das erste loadDeck */
   initial?: LoadResult
+  /**
+   * Betrieb als Webdienst (`hashmark serve`): Adresse und Port, Gesundheitsprüfung unter /healthz.
+   * Die Präsentation ist öffentlich, der Editor nur mit Passwort (HTTP Basic). Ohne Passwort gibt es keinen Editor.
+   */
+  web?: { host?: string; port?: number; editorUser?: string; editorPassword?: string }
 }
 
 export interface LiveServer {
@@ -72,7 +78,30 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
   }
 
   const app = appApi(onAppAction)
-  const editor = editorApi(deckDir)
+  const web = opts.web
+  const editor = editorApi(deckDir, web ? { allowHost: () => true } : {})
+
+  // Webdienst: nur Deck, Theme, Ereignisse und Bilder sind öffentlich; Editor-Seite und Datei-API brauchen das Passwort
+  const PUBLIC_API = new Set(['/__hashmark/deck.json', '/__hashmark/theme.css', '/__hashmark/events'])
+  const equal = (a: string, b: string) => {
+    const ha = crypto.createHash('sha256').update(a).digest()
+    const hb = crypto.createHash('sha256').update(b).digest()
+    return crypto.timingSafeEqual(ha, hb)
+  }
+  /** true, wenn die Anfrage weiterlaufen darf; sonst ist die Antwort schon gesendet */
+  function authorize(req: http.IncomingMessage, res: http.ServerResponse): boolean {
+    if (!web) return true
+    if (!web.editorPassword) { res.statusCode = 404; res.end(); return false }
+    const [scheme, token] = (req.headers.authorization ?? '').split(' ')
+    const [user, ...rest] = scheme?.toLowerCase() === 'basic' && token ? Buffer.from(token, 'base64').toString('utf8').split(':') : ['']
+    if (equal(user, web.editorUser ?? 'editor') && equal(rest.join(':'), web.editorPassword)) return true
+    // Fehlversuche bremsen
+    setTimeout(() => {
+      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hashmark Editor", charset="UTF-8"', 'Content-Type': 'text/plain; charset=utf-8' })
+      res.end('Anmeldung nötig')
+    }, 400)
+    return false
+  }
 
   function sendFile(res: http.ServerResponse, file: string, cache: string) {
     res.setHeader('Content-Type', MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream')
@@ -91,6 +120,9 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
   const server = http.createServer((req, res) => {
     const pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname)
     const notFound = () => { res.statusCode = 404; res.end() }
+
+    if (web && pathname === '/healthz') { res.setHeader('Content-Type', 'text/plain'); return void res.end('ok') }
+    if (web && (pathname === '/editor.html' || (pathname.startsWith('/__hashmark/') && !PUBLIC_API.has(pathname))) && !authorize(req, res)) return
 
     if (pathname === '/__hashmark/deck.json') {
       res.setHeader('Content-Type', 'application/json')
@@ -125,8 +157,12 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     sendFile(res, file, rel.startsWith('assets/') ? 'public, max-age=31536000, immutable' : 'no-cache')
   })
 
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
-  const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`
+  const host = web?.host ?? '127.0.0.1'
+  await new Promise<void>((resolve) => server.listen(web?.port ?? 0, host, resolve))
+  const url = `http://${host === '0.0.0.0' ? 'localhost' : host}:${(server.address() as AddressInfo).port}/`
+  // Proxys (z. B. Render) beenden stille Verbindungen: Ereignisstrom regelmäßig anstupsen
+  const heartbeat = setInterval(() => { for (const res of clients) res.write(': ♥\n\n') }, 25_000)
+  heartbeat.unref()
 
   // Deck-Dateien beobachten (rekursiv; Windows und macOS können das nativ)
   let timer: NodeJS.Timeout | undefined
@@ -150,6 +186,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     reload,
     close: async () => {
       clearTimeout(timer)
+      clearInterval(heartbeat)
       for (const w of watchers) w.close()
       for (const res of clients) res.end()
       clients.clear()
