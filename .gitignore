@@ -4,6 +4,7 @@
 # vendor/ (Node.js + npm-Cache) wird bewusst mit eingecheckt
 /export/
 /dist-app/
+/dist-go/
 /src-tauri/target/
 /src-tauri/gen/
 /runtime-dist/

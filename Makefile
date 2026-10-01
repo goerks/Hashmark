@@ -35,15 +35,20 @@ APP_DEBUG   := src-tauri\target\debug\hashmark.exe
 APP_RELEASE := src-tauri\target\release\hashmark.exe
 # Deck nur übergeben, wenn es auf der Kommandozeile steht – sonst zeigt die App ihre Startseite
 APP_DECK := $(if $(filter command line,$(origin DECK)),"$(DECK)")
+# Desktop-App (Go, ohne CGO, desktop-go/): Go muss im PATH liegen
+GO_TARGETS := windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
+GO_LDFLAGS := -s -w -H windowsgui
 
-.PHONY: help setup node install toolchain app app-build app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf check build-examples docker-examples docker docker-run test new clean distclean
+.PHONY: go-app go-cross help setup node install toolchain app app-build app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf check build-examples docker-examples docker docker-run test new clean distclean
 
 help:
 	@echo Hashmark - Maechtige Praesentationen aus reinem Markdown
 	@echo.
 	@echo   make setup         Node.js nach vendor/node holen und Pakete offline installieren
 	@echo   make app           Desktop-App (Tauri) bauen und starten, optional DECK=...
-	@echo   make app-package   Portables Programm: dist-app/Hashmark/Hashmark.exe
+	@echo   make go-app        Desktop-App (Go) bauen und starten, optional DECK=...
+	@echo   make go-cross      Go-Huelle fuer Windows/Linux/macOS (amd64, arm64) nach dist-go/
+	@echo   make app-package  Portables Programm: dist-app/Hashmark/Hashmark.exe
 	@echo   make toolchain     Rust + llvm-mingw fuer die Desktop-App (ohne Admin, einmalig, Internet)
 	@echo   make app-test      E2E-Test der Desktop-App, headless (ohne sichtbare Fenster)
 	@echo   make sidecar-smoke Selbsttest des Node-Sidecars (Deck, PDF, HTML) nach export/sidecar-smoke
@@ -86,6 +91,18 @@ deps-update: $(NODE_EXE)
 
 node_modules: | $(NODE_EXE)
 	$(NPM) ci --offline
+
+# ---------- Desktop-App (Go) ----------
+
+# Go-Hülle (Windows) bauen und starten, optional DECK=...
+go-app: node_modules
+	$(NODE) src\desktop\runtime-build.ts
+	cd desktop-go && go build -trimpath -ldflags="$(GO_LDFLAGS)" -o ..\export\hashmark-go.exe .
+	export\hashmark-go.exe $(APP_DECK)
+
+# alle Plattformen ohne CGO, auch von Linux/macOS aus: dist-go/hashmark-<os>-<arch>
+go-cross:
+	cd desktop-go && set "CGO_ENABLED=0" && $(foreach t,$(GO_TARGETS),set "GOOS=$(word 1,$(subst /, ,$(t)))" && set "GOARCH=$(word 2,$(subst /, ,$(t)))" && go build -trimpath -ldflags="-s -w$(if $(findstring windows,$(t)), -H windowsgui)" -o ..\dist-go\hashmark-$(word 1,$(subst /, ,$(t)))-$(word 2,$(subst /, ,$(t)))$(if $(findstring windows,$(t)),.exe) . &&) echo fertig
 
 # ---------- Desktop-App (Tauri) ----------
 
