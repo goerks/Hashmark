@@ -10,7 +10,7 @@ services:
     name: hashmark
     runtime: image
     image:
-      url: registry.gitlab.com/DEINE-GRUPPE/hashmark:latest
+      url: registry.gitlab.com/goerks/hashmark:latest
       creds:
         fromRegistryCreds:
           name: gitlab
