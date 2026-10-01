@@ -404,7 +404,7 @@ func (a *app) menu() []menuItem {
 			it("readme", "Anleitung (README)", "", true),
 			it("data-dir", "Datenordner öffnen (Einstellungen, Logs)", "", true),
 			sep,
-			it("about", "Hashmark 0.1.0 · Go "+goVersion, "", false),
+			it("about", "Hashmark "+version+" · Go "+goVersion, "", false),
 		}},
 	}
 }

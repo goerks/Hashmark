@@ -86,7 +86,29 @@ Es muss nichts global installiert werden:
 - `vendor/npm-cache/` enthält alle npm-Pakete als Tarballs. `make setup` installiert daraus **ohne Internet**, weil `.npmrc` auf diesen Cache zeigt.
 - Zur Laufzeit gibt es keine CDNs und keine Web-Fonts. Mermaid und Shiki werden mitgebündelt, Schriften kommen aus dem System.
 
-Voraussetzungen: Windows x64 und GNU Make (z. B. `choco install make`).
+Voraussetzungen: Windows x64 und GNU Make (z. B. `choco install make`). Für die Desktop-App zusätzlich Go (ab 1.26) im `PATH`.
+
+## Versionen und Releases der Desktop-App
+
+**Version:** `<letzter Tag ohne v>.<Kurz-Hash>`, z. B. `1.2.0.a1b2c3d` (ohne Tag `0.0.0.<hash>`). Sie wird beim Bauen in die Hülle eingebettet und ist abfragbar:
+
+```sh
+hashmark --version       # Hashmark 1.2.0.a1b2c3d   (Windows: Hashmark.exe --version)
+```
+
+Außerdem steht sie im Menü Hilfe → Über. `make app`, `make app-cross` und `make app-exe` setzen sie aus `git describe` (mit `VERSION=…` überschreibbar).
+
+**Pipeline (`.gitlab-ci.yml`), bei jedem Push:**
+1. `version` ermittelt die Version und gibt sie an alle Jobs weiter.
+2. `test` führt Vitest aus.
+3. `build-app` baut die Go-Hülle ohne CGO für Windows, Linux und macOS (amd64 und arm64).
+4. `package` baut je Ziel ein Standalone-Paket, ohne Installer: Hülle, Node (von nodejs.org, SHA256 geprüft) und die App mit den Laufzeit-Paketen des Ziels. Als Artefakt `dist-app/hashmark-<version>-<ziel>.zip` (Windows) bzw. `.tar.gz`. Lokal: `node scripts/package-app.ts <ziel> --version=… --archive`.
+
+**Release:** Ein Tag (z. B. `git tag v1.0.0 && git push origin v1.0.0`) erzeugt zusätzlich ein GitLab-Release. Die Pakete landen in der Generic Package Registry des Projekts und sind im Release verlinkt. Die Notizen entstehen aus den Commit-Betreffzeilen seit dem vorherigen Tag (`scripts/release-notes.ts`):
+- **Behobene Fehler:** Betreffzeile beginnt mit `Fix` (z. B. `Fix: Überlauf bei Tabellen`) oder enthält „behoben“, „behebt“, „Fehler“ oder „Bug“.
+- **Neue Funktionen:** alles andere. Weggelassen werden Merge-Commits, `docs:`/`chore:`/`ci:`/`test:`/`style:` und `[skip changelog]`.
+
+**Hinweise zu den Paketen:** Die Programme sind nicht signiert. Unter macOS (`Hashmark.app`) warnt Gatekeeper beim ersten Start (Rechtsklick → Öffnen, oder `xattr -dr com.apple.quarantine Hashmark.app`), unter Windows kann SmartScreen warnen. Linux braucht WebKitGTK, für Dialoge zenity oder kdialog.
 
 ## Deployment (GitLab-Registry und Render)
 
@@ -107,7 +129,7 @@ make image && make image-run       # dasselbe als Docker-Image, http://localhost
 | `DECK_DIR` | Deck-Ordner, Standard `/data/deck` |
 | `DECK_SEED` | wird beim ersten Start in einen leeren `DECK_DIR` kopiert, Standard das Beispiel-Deck |
 
-**Automatik:** `.gitlab-ci.yml` führt bei jedem Push auf den Standard-Branch die Tests aus, baut das Image mit Kaniko, legt es als `:<commit>` und `:latest` in die GitLab-Registry und stößt Render über den Deploy-Hook an.
+**Automatik:** `.gitlab-ci.yml` führt bei jedem Push auf den Standard-Branch die Tests aus (die Desktop-App-Jobs stehen oben), baut das Image mit Kaniko, legt es als `:<commit>` und `:latest` in die GitLab-Registry und stößt Render über den Deploy-Hook an.
 
 **Einmalig einrichten:**
 

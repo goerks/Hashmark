@@ -32,8 +32,11 @@ HASHMARK   := $(NODE) src\cli\index.ts
 APP_DECK := $(if $(filter command line,$(origin DECK)),"$(DECK)")
 # Desktop-App (Go, ohne CGO, desktop-go/): Go muss im PATH liegen
 APP_TARGETS := windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
+# Version: <letzter Tag ohne v>.<Kurz-Hash> (ohne Tag 0.0.0), wie in der Pipeline; hashmark.exe --version gibt sie aus
+GIT_TAG := $(patsubst v%,%,$(shell git describe --tags --abbrev=0 2>nul || echo 0.0.0))
+VERSION ?= $(GIT_TAG).$(shell git rev-parse --short HEAD)
 
-.PHONY: help setup node install app app-cross app-exe app-package app-testsidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf check build-examples docker-examples docker docker-run test new clean distclean
+.PHONY: help setup node install app app-cross app-exe app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf check build-examples docker-examples docker docker-run test new clean distclean
 
 help:
 	@echo Hashmark - Maechtige Praesentationen aus reinem Markdown
@@ -89,16 +92,16 @@ node_modules: | $(NODE_EXE)
 # Hülle bauen und starten, optional DECK=...
 app: node_modules
 	$(NODE) src\desktop\runtime-build.ts
-	cd desktop-go && go build -trimpath -ldflags="-s -w -H windowsgui" -o ..\export\hashmark.exe .
+	cd desktop-go && go build -trimpath -ldflags="-s -w -X main.version=$(VERSION) -H windowsgui" -o ..\export\hashmark.exe .
 	export\hashmark.exe $(APP_DECK)
 
 # alle Plattformen ohne CGO (auch von Linux/macOS aus): dist-go/hashmark-<os>-<arch>
 app-cross:
-	cd desktop-go && set "CGO_ENABLED=0" && $(foreach t,$(APP_TARGETS),set "GOOS=$(word 1,$(subst /, ,$(t)))" && set "GOARCH=$(word 2,$(subst /, ,$(t)))" && go build -trimpath -ldflags="-s -w$(if $(findstring windows,$(t)), -H windowsgui)" -o ..\dist-go\hashmark-$(word 1,$(subst /, ,$(t)))-$(word 2,$(subst /, ,$(t)))$(if $(findstring windows,$(t)),.exe) . &&) echo fertig
+	cd desktop-go && set "CGO_ENABLED=0" && $(foreach t,$(APP_TARGETS),set "GOOS=$(word 1,$(subst /, ,$(t)))" && set "GOARCH=$(word 2,$(subst /, ,$(t)))" && go build -trimpath -ldflags="-s -w -X main.version=$(VERSION)$(if $(findstring windows,$(t)), -H windowsgui)" -o ..\dist-go\hashmark-$(word 1,$(subst /, ,$(t)))-$(word 2,$(subst /, ,$(t)))$(if $(findstring windows,$(t)),.exe) . &&) echo fertig
 
 # nur die Windows-EXE (für das portable Paket)
 app-exe:
-	cd desktop-go && set "CGO_ENABLED=0" && go build -trimpath -ldflags="-s -w -H windowsgui" -o ..\dist-go\hashmark-windows-amd64.exe .
+	cd desktop-go && set "CGO_ENABLED=0" && go build -trimpath -ldflags="-s -w -X main.version=$(VERSION) -H windowsgui" -o ..\dist-go\hashmark-windows-amd64.exe .
 
 app-package: app-exe
 	$(NODE) scripts\package-app.ts

@@ -24,6 +24,9 @@ import (
 //go:embed icon.ico
 var iconFS embed.FS
 
+// version wird beim Bauen gesetzt: -ldflags "-X main.version=<letzter Tag>.<Hash>" (make, .gitlab-ci.yml)
+var version = "dev"
+
 var goVersion = strings.TrimPrefix(runtime.Version(), "go")
 
 func exists(p string) bool { _, err := os.Stat(p); return err == nil }
@@ -131,8 +134,14 @@ func main() {
 	win := flag.String("window", "", "nur ein Fenster mit dieser URL öffnen (Kindprozess)")
 	title := flag.String("title", "Hashmark", "Fenstertitel (mit --window)")
 	mode := flag.String("mode", "presentation", "presentation | presenter (mit --window)")
+	showVersion := flag.Bool("version", false, "Version ausgeben und beenden")
 	selftest := flag.Bool("selftest", false, "Sidecar starten, Beispiel-Deck öffnen, URL ausgeben, beenden")
 	flag.Parse()
+	if *showVersion {
+		attachConsole() // die GUI-EXE hat unter Windows keine Konsole
+		fmt.Println("Hashmark " + version)
+		return
+	}
 	if *win != "" {
 		runChild(*win, *title, *mode)
 		return

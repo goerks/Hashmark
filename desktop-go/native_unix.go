@@ -11,6 +11,8 @@ import (
 
 func hideConsole(c *exec.Cmd) {}
 
+func attachConsole() {}
+
 func documentsDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {

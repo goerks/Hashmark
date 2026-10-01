@@ -3,6 +3,7 @@ package main
 // Windows-Teil der Hülle: Menü, Vollbild/Monitorwahl, Symbol – direkt über user32, ohne CGO.
 
 import (
+	"os"
 	"os/exec"
 	"sync"
 	"syscall"
@@ -33,6 +34,7 @@ var (
 	pSendMessageW        = user32.NewProc("SendMessageW")
 	pLoadImageW          = user32.NewProc("LoadImageW")
 	pSetDpiAwarenessCtx  = user32.NewProc("SetProcessDpiAwarenessContext")
+	pAttachConsole       = windows.NewLazySystemDLL("kernel32.dll").NewProc("AttachConsole")
 )
 
 const (
@@ -255,4 +257,18 @@ func documentsDir() string {
 
 func openPath(p string) error {
 	return exec.Command("rundll32", "url.dll,FileProtocolHandler", p).Start()
+}
+
+// attachConsole hängt die als GUI gebaute EXE an die Konsole des Aufrufers, damit --version etwas ausgeben kann
+func attachConsole() {
+	if _, err := os.Stdout.Stat(); err == nil {
+		return // Ausgabe ist umgeleitet (Datei, Pipe): dorthin schreiben
+	}
+	if r, _, _ := pAttachConsole.Call(^uintptr(0)); r == 0 { // ATTACH_PARENT_PROCESS = -1
+		return
+	}
+	h, err := windows.CreateFile(utf16("CONOUT$"), windows.GENERIC_WRITE, windows.FILE_SHARE_WRITE, nil, windows.OPEN_EXISTING, 0, 0)
+	if err == nil {
+		os.Stdout = os.NewFile(uintptr(h), "stdout")
+	}
 }
