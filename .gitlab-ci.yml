@@ -4,7 +4,7 @@
 #   CI/CD-Variable RENDER_DEPLOY_HOOK_URL  (maskiert, geschützt)  Deploy-Hook-URL des Render-Dienstes
 # Die Registry-Anmeldung (CI_REGISTRY_*) stellt GitLab selbst bereit.
 
-stages: [test, image, deploy]
+stages: [test, build, deploy]
 
 workflow:
   rules:
@@ -23,8 +23,9 @@ test:
     - npx vitest run
 
 # Image mit Kaniko bauen (kein Docker-in-Docker nötig). Auf Merge Requests nur bauen, nicht veröffentlichen.
-image:
-  stage: image
+# Der Job darf nicht „image“ heißen: das ist in GitLab CI ein reserviertes Schlüsselwort.
+build-image:
+  stage: build
   image:
     name: gcr.io/kaniko-project/executor:v1.23.2-debug
     entrypoint: [""]
@@ -44,7 +45,7 @@ image:
 deploy:
   stage: deploy
   image: curlimages/curl:8.11.1
-  needs: [image]
+  needs: [build-image]
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $RENDER_DEPLOY_HOOK_URL
   environment:
