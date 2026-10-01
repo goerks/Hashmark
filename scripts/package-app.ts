@@ -1,13 +1,13 @@
-// Portables Windows-Programm aus dem Release-Build: make app-package → dist-app/Hashmark/Hashmark.exe
+// Portables Windows-Programm aus der Go-Hülle: make app-package → dist-app/Hashmark/Hashmark.exe (kein Installer)
 //
 //   Hashmark/
-//     Hashmark.exe        Tauri-App (Fenster, Menü, Dialoge)
-//     WebView2Loader.dll  Loader für WebView2 (bei der GNU-Toolchain dynamisch gelinkt)
-//     node/node.exe     Node aus vendor/node für den Sidecar
+//     Hashmark.exe        Go-Hülle (Fenster, Menü, Dialoge, Webview-Bibliothek eingebettet)
+//     node/node.exe       Node aus vendor/node für den Sidecar
 //     app/              src/, examples/, README.md, package.json + nur die Laufzeit-Pakete (npm ci --omit=dev, offline)
 //     app/runtime-dist/ vorgebaute Runtime (Präsentation, Editor, Presenter) – die App startet ohne Vite-Dev-Server
 //
 // Braucht auf dem Zielrechner nur WebView2 (in Windows 10/11 enthalten) und – für PDF – Edge.
+// Die eingebettete Webview-Bibliothek entpackt sich beim Start nach %TEMP%\webview-<Version>.
 
 import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -16,27 +16,18 @@ import { ensureRuntime, RUNTIME_OUT } from '../src/desktop/runtime-build.ts'
 import { bundleSidecar, cleanBundle } from './bundle-sidecar.ts'
 
 const root = path.resolve(import.meta.dirname, '..')
-const exe = path.join(root, 'src-tauri/target/x86_64-pc-windows-gnullvm/release/hashmark.exe')
-const exeFallback = path.join(root, 'src-tauri/target/release/hashmark.exe')
+const built = path.join(root, 'dist-go/hashmark-windows-amd64.exe')
 const out = path.resolve(process.argv[2] ?? path.join(root, 'dist-app/Hashmark'))
 const started = Date.now()
 
-const built = [exe, exeFallback].find((p) => fs.existsSync(p))
-if (!built) {
-  console.error('Release-Build fehlt – zuerst "make app-build".')
+if (!fs.existsSync(built)) {
+  console.error('Go-Build fehlt – zuerst "make app-cross" (oder über "make app-package").')
   process.exit(1)
 }
 
 fs.rmSync(out, { recursive: true, force: true })
 fs.mkdirSync(path.join(out, 'node'), { recursive: true })
 fs.copyFileSync(built, path.join(out, 'Hashmark.exe'))
-// Mit der GNU-Toolchain ist der WebView2-Loader nicht statisch gelinkt – die DLL muss neben die EXE
-const loader = path.join(path.dirname(built), 'WebView2Loader.dll')
-if (!fs.existsSync(loader)) {
-  console.error(`WebView2Loader.dll fehlt neben ${built}`)
-  process.exit(1)
-}
-fs.copyFileSync(loader, path.join(out, 'WebView2Loader.dll'))
 fs.copyFileSync(path.join(root, 'vendor/node/node.exe'), path.join(out, 'node/node.exe'))
 
 const app = path.join(out, 'app')

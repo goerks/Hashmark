@@ -1,10 +1,9 @@
-// Startseite der Desktop-App. Spricht nur über die App-Befehle: Tauri-invoke (src-tauri) bzw. fetch an den lokalen
-// Server der Go-Hülle (desktop-go/api.go; der Header X-Hashmark-App schützt vor fremden Seiten).
+// Startseite der Desktop-App. Spricht nur über die App-Befehle: fetch an den lokalen Server der Go-Hülle
+// (desktop-go/api.go; der Header X-Hashmark-App schützt vor fremden Seiten).
 
-const invoke = (cmd, args) => window.__TAURI__
-  ? window.__TAURI__.core.invoke(cmd, args)
-  : fetch(`api/${cmd}`, { method: 'POST', headers: { 'X-Hashmark-App': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(args ?? {}) })
-      .then(async (r) => { if (!r.ok) throw new Error(await r.text()); return r.json() })
+const invoke = (cmd, args) =>
+  fetch(`api/${cmd}`, { method: 'POST', headers: { 'X-Hashmark-App': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(args ?? {}) })
+    .then(async (r) => { if (!r.ok) throw new Error(await r.text()); return r.json() })
 const $ = (id) => document.getElementById(id)
 
 /** Befehl ausführen und währenddessen den Status zeigen (Deck öffnen dauert beim ersten Mal einige Sekunden) */

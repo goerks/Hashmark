@@ -1,4 +1,4 @@
-// Desktop-App: Logik des Sidecars ohne Tauri (Einstellungen, Deck-Erkennung, Protokoll).
+// Desktop-App: Logik des Sidecars ohne Fenster (Einstellungen, Deck-Erkennung, Protokoll).
 
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'

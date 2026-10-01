@@ -1,5 +1,0 @@
-# Linker und Laufzeit für die GNU-LLVM-Toolchain (llvm-mingw, ohne Visual Studio)
-[target.x86_64-pc-windows-gnullvm]
-linker = "x86_64-w64-mingw32-clang"
-# libunwind und C-Laufzeit statisch: die EXE braucht keine DLLs aus llvm-mingw
-rustflags = ["-C", "target-feature=+crt-static"]

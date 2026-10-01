@@ -22,7 +22,7 @@ make dev DECK=decks/mein-vortrag
 | Befehl | Wirkung |
 | --- | --- |
 | `make setup` | Node.js nach `vendor/node` (falls fehlend) und `npm ci --offline` aus `vendor/npm-cache` |
-| `make app` / `make app-package` | Desktop-App (Tauri) bauen und starten bzw. als portables `Hashmark.exe` packen, siehe „Desktop-App“ |
+| `make app` / `make app-package` / `make app-cross` | Desktop-App (Go) bauen und starten / als portables `Hashmark.exe` packen / für alle Plattformen bauen, siehe „Desktop-App“ |
 | `make edit` | Editor mit Live-Vorschau im Browser (`DECK=…`), siehe unten |
 | `make dev` / `make dev-open` | Dev-Server mit Hot Reload (`DECK=…`, `PORT=…`). Ohne `DECK=` zeigt die Seite unten links eine Auswahl der Beispiel-Decks (`examples/`), z. B. `hashmark-demo` und `theme-demo`. |
 | `make build` | Statisches HTML nach `dist/` (`OUT=…`) |
@@ -37,19 +37,22 @@ make dev DECK=decks/mein-vortrag
 | `make deps-update` | Pakete online aktualisieren und im Cache ablegen |
 | `make clean` / `make distclean` | `dist/` bzw. zusätzlich `node_modules/` löschen |
 
-## Desktop-App (Windows, Tauri)
+## Desktop-App (Go)
 
 ```sh
-make toolchain                    # einmalig: Rust + llvm-mingw (ohne Admin, braucht Internet)
 make app                          # bauen und starten: Startseite mit Deck öffnen / neu / Beispiel / zuletzt geöffnet
 make app DECK=decks/mein-vortrag  # direkt ein Deck öffnen
 make app-package                  # portables Programm: dist-app/Hashmark/Hashmark.exe
+make app-cross                    # Hülle für Windows, Linux und macOS (amd64, arm64) nach dist-go/
 ```
 
-Die App ist ein schlankes Tauri-Fenster (WebView2 aus Windows). Die eigentliche Arbeit macht Hashmark wie bisher in Node. Die App startet dafür das Node aus `vendor/node` als **Sidecar**.
+Die App ist eine schlanke Go-Hülle (ohne CGO, ca. 7 MB) um die Webview des Systems (WebView2 unter Windows). Die eigentliche Arbeit macht Hashmark wie bisher in Node. Die App startet dafür das Node aus `vendor/node` als **Sidecar**. Es gibt keinen Installer, das Programm ist immer ein Ordner bzw. eine Datei zum Kopieren.
+
+- **Plattformen:** Windows ist umgesetzt und getestet. Linux und macOS bauen (`make app-cross`), sind aber noch nicht gestartet worden und haben bis jetzt weder Menü noch Vollbild/Monitorwahl.
+- **Voraussetzung:** Windows WebView2 (in Windows 10/11 enthalten), Linux WebKitGTK, macOS nichts. Zum Bauen genügt Go (ab 1.26) im `PATH`, keine weitere Toolchain.
 
 - **Schnell:** Ein Deck ist in wenigen Sekunden offen, das PDF ist in etwa 5 s fertig. Im Hintergrund wärmt die App schon beim Start auf: Sie lädt den Kern, startet die Code-Hervorhebung und liest das zuletzt geöffnete Deck vorab. Ein Klick darauf öffnet es dann in Millisekunden. Das gepackte Programm bündelt den Node-Teil zu wenigen Dateien, damit auch der allererste Start auf frisch kopierten Dateien (USB-Stick, Virenscanner) schnell ist.
-- **Zeiten im Log:** `%APPDATA%app.hashmark.desktopsidecar.log` zeigt, wo die Zeit bleibt (Aufwärmen, Deck geöffnet in … ms, PDF in … ms).
+- **Zeiten im Log:** `%APPDATA%\app.hashmark.desktop\sidecar.log` zeigt, wo die Zeit bleibt (Aufwärmen, Deck geöffnet in … ms, PDF in … ms).
 - **Vorgebaute Runtime:** Die Oberfläche (Präsentation, Editor, Presenter) wird einmal vorgebaut (`runtime-dist/`, nur nach Änderungen an den Quellen). Ein kleiner Live-Server liefert sie aus, zusammen mit dem Deck. Änderungen an den Markdown-Dateien erscheinen sofort, auch bei Bearbeitung in einem anderen Editor. Der Ordner `dist-app/Hashmark/` lässt sich kopieren und läuft ohne Installation: `Hashmark.exe` bzw. `Hashmark.exe <deck-ordner>`.
 
 - **Startseite:** Deck öffnen (Ctrl+O), Neues Deck (Ctrl+N, leeren Ordner wählen oder anlegen), Liste der Beispiele (`examples/`: `hashmark-demo`, `theme-demo`), zuletzt geöffnete Decks.
@@ -59,24 +62,21 @@ Die App ist ein schlankes Tauri-Fenster (WebView2 aus Windows). Die eigentliche 
   - Mit nur einem Bildschirm öffnet S die Presenter-View als eigenes Fenster.
   - Ctrl+W beendet die Präsentation, Alt+F4 geht ebenfalls.
 - **Export** (Menü Datei): Als HTML-Datei (Ctrl+Shift+E), PDF mit allen Folien (Ctrl+Shift+P), nur Hauptpfad, jeder Schritt eine Seite, Handout mit Notizen. Das PDF entsteht wie bei `make pdf` über Edge headless, direkt vom laufenden Deck, ohne neuen Build.
-- **Ansicht:** Editor (Ctrl+1), Präsentation im Fenster (Ctrl+2), Neu laden, Entwicklertools, Vollbild (F11).
+- **Ansicht:** Editor (Ctrl+1), Präsentation im Fenster (Ctrl+2), Neu laden (Ctrl+R), Vollbild (F11), Entwicklertools (F12). Die Tastenkürzel des Menüs sind Skripte in den Seiten, weil WebView2 Tasten selbst verarbeitet.
 - **Sicherheit:**
-  - Der interne Server lauscht nur auf 127.0.0.1 mit zufälligem Port.
-  - Die Seiten vom Server (Editor, Folien) dürfen keine App-Befehle aufrufen, nur die eigene Startseite.
+  - Die internen Server lauschen nur auf 127.0.0.1 mit zufälligem Port.
+  - Die Startseite hat einen eigenen Server mit App-Befehlen. Sie verlangen den Header `X-Hashmark-App`, den fremde Seiten wegen CORS nicht senden können. Die Seiten des Deck-Servers (Editor, Folien) erreichen sie nicht.
   - Aktionen wie „Präsentieren“ melden die Seiten per HTTP mit Schutz-Header an den Sidecar.
-  - Externe Links öffnen im Standardbrowser.
+  - Bekannte Lücke: Externe Links (`target=_blank`) öffnen nicht im Standardbrowser, die Webview-Bibliothek hat dafür keinen Hook.
+- **Fenster:** Präsentation und Presenter-View laufen als eigene Prozesse derselben EXE, weil die Webview-Bibliothek nur ein Fenster je Prozess kennt.
 - **Daten:** zuletzt geöffnete Decks und `sidecar.log` in `%APPDATA%\app.hashmark.desktop\` (Menü Hilfe → Datenordner).
 
-**Werkzeuge zum Bauen** (nicht im Repo, nur auf dem Entwicklungsrechner):
-- Rust über rustup, Toolchain `stable-x86_64-pc-windows-gnullvm`
-- [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) in `%LOCALAPPDATA%\hashmark-toolchain\`, SHA256-geprüft
-
-Visual Studio bzw. Admin-Rechte braucht es nicht. Beim ersten Build lädt cargo die Rust-Bibliotheken (~400 Crates) aus dem Internet nach `%USERPROFILE%\.cargo`, danach geht es offline. Die App selbst bringt keine weiteren Binärdateien ins Repo, Node liegt ohnehin schon in `vendor/node`.
+**Bauen:** Go (nicht im Repo) genügt, die Abhängigkeiten (`go-webview`, `zenity`) lädt Go beim ersten Build ins Modulcache. Die Webview-Bibliothek ist in die EXE eingebettet und entpackt sich beim Start nach `%TEMP%\webview-<Version>`. Die App bringt keine weiteren Binärdateien ins Repo, Node liegt ohnehin in `vendor/node`.
 
 **Tests (alle headless, ohne sichtbare Fenster):**
 - `make test` – Unit-Tests
 - `make sidecar-smoke` – Node-Teil so, wie die App ihn anspricht (Deck öffnen, Datei-API, App-Aktionen, PDF, Handout, HTML). `SIDECAR_BUNDLE=1` prüft das Bündel.
-- `make app-test` – die ganze App: Startseite, Deck öffnen, Editor, Rechte, Präsentation, Presenter, Tasten, Ctrl+W, dazu die Zeiten. Nutzt das gepackte Programm bzw. den Release-Build. `VISIBLE=1` zeigt die Fenster, `node scripts/app-e2e.ts <exe>` testet eine beliebige EXE.
+- `make app-test` – die ganze App: Startseite, Deck öffnen, Editor, Rechte, Präsentation, Presenter, Tasten, Ctrl+W, dazu die Zeiten. Nutzt das gepackte Programm bzw. `export/hashmark.exe` (`make app`). `VISIBLE=1` zeigt die Fenster, `node scripts/app-e2e.ts <exe>` testet eine beliebige EXE.
 
 ## Alle Abhängigkeiten liegen im Projekt
 
@@ -366,7 +366,7 @@ src/runtime/   Svelte-5-App: Bühne, Layouts, Übergänge, Breadcrumb, Übersich
 src/runtime/editor/  Editor (editor.html): CodeMirror, Vorschau-Sync, Bild-Upload
 src/cli/       hashmark dev | build | preview | export | pdf, gemeinsame Vite-Konfiguration, Deck-Gerüst
 src/desktop/   Node-Sidecar der Desktop-App (stdin/stdout-Protokoll), Startseite (ui/)
-src-tauri/     Desktop-App in Rust (Tauri 2): Fenster, Menü, Dialoge, Bildschirmwahl
+desktop-go/    Desktop-App in Go (ohne CGO): Fenster, Menü, Dialoge, Bildschirmwahl
 examples/      Beispiel-Decks: hashmark-demo (Funktionen, 3 Ebenen) und theme-demo (eigenes Theme)
 ```
 

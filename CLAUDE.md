@@ -11,11 +11,11 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
 | `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen (mit Datei: Logo zuschneiden und ersetzen) |
 | `make test` | Vitest (`tests/*.test.ts`, 84 Tests, Kern-Logik ohne DOM) |
-| `make app` / `make app-build` / `make app-package` | Tauri-App: Debug bauen + starten (`DECK=…` optional) / Release bauen / portables `dist-app/Hashmark/` |
-| `make toolchain` | einmalig Rust (`stable-x86_64-pc-windows-gnullvm`) + llvm-mingw nach `%LOCALAPPDATA%\hashmark-toolchain` (ohne Admin) |
+| `make app` / `make app-cross` / `make app-package` | Desktop-App (Go): bauen + starten (`DECK=…` optional) / Hülle für Windows, Linux, macOS (amd64, arm64) nach `dist-go/` / portables `dist-app/Hashmark/` (nur Windows) |
+| Go | liegt **nicht** im Repo (ab 1.26, im `PATH`). Mehr braucht die Desktop-Hülle nicht: kein CGO, kein C-Compiler, kein Rust |
 | `make sidecar-smoke` | Node-Sidecar wie aus der App ansprechen: Deck, Datei-API, Aktionen, PDF, Handout, HTML (`SIDECAR_BUNDLE=1`: das Bündel) |
 | `make build-examples` / `make docker-examples` | alle `examples/*` als statische Seiten mit Auswahlseite (`scripts/build-examples.ts`, `src/cli/examples.ts` teilt die Liste mit der Desktop-Startseite); Docker-Image `hashmark/beispiele` |
-| `make app-test` | E2E der Tauri-App **headless** (`HASHMARK_HEADLESS=1`, Fenster unsichtbar) über WebView2-CDP; `VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json` mit Zeiten |
+| `make app-test` | E2E der Desktop-App **headless** (`HASHMARK_HEADLESS=1`, Fenster unsichtbar) über WebView2-CDP, nutzt `dist-app/Hashmark` bzw. `export/hashmark.exe` (`make app`); `VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json` mit Zeiten |
 | `make serve` / `make image` / `make image-run` | Webdienst lokal (`hashmark serve`, `EDITOR_PASSWORD`, Standard „geheim“) / Docker-Image des Webdienstes (`Dockerfile` im Root) bauen / starten |
 | `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/hashmark-demo`, 3030). `make dev` ohne ausdrückliches `DECK=` startet mit `--examples`: Plugin-Option `examples` (plugin.ts, `/__hashmark/examples` GET/POST wechselt das Deck) + `src/runtime/example-switcher.ts` (nur `import.meta.env.DEV`) |
 | `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless |
@@ -62,17 +62,18 @@ src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
   complete.ts   `completionAt(text, pos)`: Vorschläge je Kontext (`/`, `::: `, ```` ```x ````, `> [!`, `{…}`, `layout=`); rein, getestet
   lint.ts       `lintText(text)`: unbekannte Layouts/Attribute/Container, offene `:::`/Codeblöcke, mit Offsets und Korrektur; rein, getestet
   excalidraw.ts Excalidraw-SVG: Szene aus `<metadata>` (zlib/bstring) → Gruppen per Reihenfolge den Top-Level-`<g>` zuordnen → `data-step`; drawio.ts analog mit Ebenen
-src/desktop/  Node-Sidecar der Tauri-App: sidecar.ts (stdin JSON-Zeilen → stdout `@@hashmark {…}`; open/isDeck/scaffold/examples/
-              recent/forget/pdf/html/position/close; Ereignis `action` aus den Seiten), settings.ts, ui/ (Startseite, Tauri-invoke)
+src/desktop/  Node-Sidecar der Desktop-App: sidecar.ts (stdin JSON-Zeilen → stdout `@@hashmark {…}`; open/isDeck/scaffold/examples/
+              recent/forget/pdf/html/position/close; Ereignis `action` aus den Seiten), settings.ts, ui/ (Startseite, `fetch` an `api/<befehl>` der Hülle)
   live-server.ts   statt Vite-Dev-Server: runtime-dist/ statisch, /__hashmark/deck.json, /__hashmark/theme.css,
                    /__hashmark/events (SSE: deck | reload), deck-assets/, Datei-API + App-Aktionen; fs.watch rekursiv
   paths.ts (src/cli) PROJECT_ROOT/realPath ohne Abhängigkeiten – der Sidecar importiert nur Leichtes beim Start, alles Schwere per import()
   bundle-sidecar (scripts/) sidecar.ts → sidecar.bundle.mjs + bundle-*.mjs (Vite SSR-Build, Vite/Svelte/Shiki extern); nur im Paket
   runtime-build.ts vorgebaute Runtime (liveConfig + src/vite/live-plugin.ts), Stempel = Inhalts-Hash der Quellen
 src/runtime/deck-source.ts  onDeckUpdate(): Vite-HMR ('hashmark:deck') bzw. EventSource in der App (window.__HASHMARK_LIVE__)
-src-tauri/    Tauri 2 (Rust): main.rs startet vendor/node/node.exe mit dem Sidecar (gepackt: node/ + app/ neben der EXE),
-              Hauptfenster = Startseite (tauri://) bzw. Editor (http://127.0.0.1), Menü, Dialoge, Präsentation (Vollbild
-              extern) + Presenter (primär), on_new_window → Deny. Capability nur für das Hauptfenster/lokale Startseite.
+desktop-go/   Desktop-Hülle in Go ohne CGO (go-webview per purego, zenity für Dialoge): main.go (Ablauf, `locate`, Kindprozess `--window`), app.go (Decks, Export,
+              Menü, Präsentation/Presenter als eigene Prozesse, Tastenkürzel-JS), api.go (Server der Startseite, `api/<befehl>` mit Header X-Hashmark-App),
+              sidecar.go (JSON-Zeilen), native_windows.go (Win32-Menü, Vollbild/Monitore, Symbol), native_other.go (Linux/macOS: Platzhalter);
+              gepackt `node/` + `app/` neben der EXE, sonst das Repository (`locate`)
 src/vite/     plugin.ts: virtual:hashmark/deck (JSON), virtual:hashmark/theme.css, File-Watcher → HMR-Event
               'hashmark:deck', Bild-Middleware, Asset-Emit; editor-api.ts: Datei-API nur für `hashmark edit`
 src/cli/      index.ts (cac: dev | edit | serve | build | preview | export | pdf | check), serve.ts (Webdienst: Seed, Runtime, Live-Server mit `web`-Option), config.ts (gemeinsame Vite-Konfiguration),
@@ -130,21 +131,23 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Navigator:** `down()`/`forward()` merken sich die Position für ↑. Für reine Anzeige immer `peek = true` übergeben.
 - **Slugs behalten Umlaute** (github-slugger): `# Präsentieren` → Id `präsentieren`, im Hash `#pr%C3%A4sentieren`. In CDP-Tests die Ids kodieren.
 - **Presenter-Link** (`presenter-link.ts`):
-  - Unter http(s) läuft er über BroadcastChannel (`hashmark-presenter:<pfad>`). Der funktioniert ohne `window.opener`, also auch mit Tauri-Fenstern und eigenen Tabs.
+  - Unter http(s) läuft er über BroadcastChannel (`hashmark-presenter:<pfad>`). Der funktioniert ohne `window.opener`, also auch mit App-Fenstern und eigenen Tabs.
   - Unter file:// (Export) läuft er über postMessage an das Partnerfenster. Vertraut wird über `e.source` bzw. denselben Origin.
   - Jede Präsentation hat eine `session`. Die Presenter-View koppelt sich an eine und adressiert Tasten per `target`. Die Editor-Vorschau (`embedded`) nimmt nicht teil.
   - Hello jede Sekunde, so übersteht die Verbindung ein Neuladen. Quelle der Wahrheit bleibt die Präsentation.
 - **Desktop-Modus der Seiten:** Das Vite-Plugin mit `onAppAction` setzt `window.__HASHMARK_DESKTOP__` (transformIndexHtml). Dann gehen P/S/PDF/Präsentieren/Ctrl+W per `POST /__hashmark/app` (Header `X-Hashmark-Editor`) an den Sidecar statt per `window.open`.
-- **Tauri spritzt `__TAURI__` in jede Seite ein**, auch in die vom lokalen Server. Aufrufe werden dort aber abgelehnt („not allowed“), weil die Capability nur das Hauptfenster mit der lokalen Startseite abdeckt. Nie `remote`-URLs in die Capability aufnehmen.
-- **Tauri-Build ohne Visual Studio:** Toolchain `x86_64-pc-windows-gnullvm` + llvm-mingw (`src-tauri/rust-toolchain.toml`, `.cargo/config.toml`). `+crt-static` ist nötig, sonst hängt die EXE an `libunwind.dll` und startet außerhalb der Build-Umgebung nicht. Git Bash meldet das irreführend als fehlende `api-ms-win-crt-…`-DLL.
+- **Go-Hülle (`desktop-go/`):**
+  - Die Webview-Bibliothek kennt **ein Fenster je Prozess** und keinen Hook für neue Fenster. Präsentation und Presenter sind deshalb Kindprozesse derselben EXE (`--window URL --mode presentation|presenter`). Schließt die Präsentation, beendet der Hauptprozess auch den Presenter.
+  - Das Menü ist ein Win32-Menü über eine Fensterprozedur (`SetWindowLongPtr`). Tastenkürzel greifen darüber nicht, weil WebView2 Tasten selbst verarbeitet: `shortcutsJS` (app.go) fängt sie in jeder Seite des Hauptfensters (nicht in iframes) ab und ruft `window.hmMenu(id)` (Bind).
+  - Die Startseite hat einen eigenen Server (api.go). Ihre Befehle verlangen den Header `X-Hashmark-App`, das löst bei fremden Origins einen Preflight aus, den der Server nicht beantwortet. Die Prüfung auf `127.0.0.1` im Host schützt vor DNS-Rebinding.
+  - Die eingebettete Webview-Bibliothek entpackt sich nach `%TEMP%\webview-<Version>`.
+  - Go-Builds **immer mit `CGO_ENABLED=0`** (`make app-cross` setzt es), sonst hängt purego-fremder Code am C-Compiler. Windows: `-ldflags="-H windowsgui"`, sonst erscheint ein Konsolenfenster.
+  - Backslashes in Pfaden: Beim Bearbeiten von Makefile/Skripten per Shell gehen sie leicht verloren (aus `\d` wird ein Steuerzeichen). Das Edit-Werkzeug nehmen.
 - **Kaltstart auf frisch kopierten Dateien:** Node liest beim ersten Import hunderte kleine Dateien (unified, remark, micromark …). Jede prüft der Virenscanner: kalt 10–30 s, warm 0,3 s. Deshalb ist der Sidecar im Paket ein Bündel (`scripts/bundle-sidecar.ts`, wird von `package-app.ts` erzeugt und danach wieder gelöscht, damit die Entwicklung bei den Quellen bleibt; `HASHMARK_SIDECAR_SOURCE=1` erzwingt die Quelle). Dazu `NODE_COMPILE_CACHE` im Datenordner. Messen mit frischer Kopie (`robocopy`) an einen neuen Ort, nicht mit dem zuletzt benutzten Ordner.
 - **Aufwärmen im Sidecar** (`warmUp()`): Kern + Shiki laden und das zuletzt geöffnete Deck lesen, während die Startseite zu sehen ist. `open` nutzt das vorab gelesene Deck nur, wenn `isStale()` keine Änderung seit dem Lesen findet (mtime von Ordner und Deck-Dateien).
 - **Headless-Tests der App:** `HASHMARK_HEADLESS=1` macht alle Fenster unsichtbar (Hauptfenster `visible(false)`, Präsentation/Presenter werden nicht gezeigt). Die Seiten laufen trotzdem, WebView2-CDP funktioniert. Screenshots unsichtbarer Fenster sind unzuverlässig, daher nur bei `VISIBLE=1` sinnvoll.
 - **Kein Vite-Dev-Server in der App:** Die Vorbündelung (`deps_temp_… → deps`) scheitert unter Windows oft mit `EPERM rename`, weil Virenscanner oder Indexer die Dateien sperren. Die Seite wartet dann minutenlang. Deshalb liefert die App eine vorgebaute Runtime über `live-server.ts` aus. `make dev`/`make edit` nutzen weiterhin Vite. Neue virtuelle Module oder HMR-Ereignisse brauchen beide Wege (`hashmark()` und `hashmarkLive()`, `onDeckUpdate`).
-- **8.3-Kurznamen (`C:\Users\MICHAE~1\…`, typisch in %TEMP%):** Vite verweigert Dateien, wenn Freigabe und Anfrage in unterschiedlicher Form vorliegen (`outside of Vite serving allow list`, `/@vite/client` → 404). Deshalb löst `config.ts` (`realPath`), `deck.ts` (Themes) und `main.rs` (`long_path` für EXE- und App-Ordner) alles auf lange Pfade auf.
-- **Gepacktes Programm:** Mit der GNU-Toolchain ist der WebView2-Loader dynamisch gelinkt, `WebView2Loader.dll` muss neben `Hashmark.exe` liegen (erledigt `package-app.ts`).
-- **Ohne Feature `custom-protocol`** erwartet Tauri einen Dev-Server. Es steht als Default in `Cargo.toml`.
-- **Drag & Drop:** Das Hauptfenster nutzt `disable_drag_drop_handler()`, damit Bilder im Editor per HTML5-Drag & Drop funktionieren.
+- **8.3-Kurznamen (`C:\Users\MICHAE~1\…`, typisch in %TEMP%):** Vite verweigert Dateien, wenn Freigabe und Anfrage in unterschiedlicher Form vorliegen (`outside of Vite serving allow list`, `/@vite/client` → 404). Deshalb löst `config.ts` (`realPath`), `deck.ts` (Themes) und `main.go` (`longPath` für EXE- und App-Ordner) alles auf lange Pfade auf.
 - **WebView2 per CDP testen:** App mit `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>` starten, dann wie bei Edge über `/json/list`.
 - **Tasten per CDP:** Für `window.open` (Taste S) braucht es `Input.dispatchKeyEvent`, also eine echte Nutzer-Geste. Synthetische Events öffnen kein Popup.
 - **Shell:** Markdown mit Backticks nie in `node -e "…"` bzw. doppelten Anführungszeichen bearbeiten, Bash führt sie als Befehle aus. Dafür das Edit-Werkzeug nehmen.
@@ -177,8 +180,8 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
     - Code-Zeilen hervorheben, Hinweiskästen
     - Layouts `statement`, `quote`, `image-*`, `agenda`, `three-col`, dazu `cols=`, `bg=` und Layouts je Ebene
     - Titel-Bug auf Ebene ≥ 2 behoben (`:where` bei den Größen je Ebene)
-  - **Desktop-App mit Tauri** (Node als Sidecar). Eine Electron-Version wurde gebaut und auf Wunsch komplett zurückgenommen, auch aus der Git-Historie: Sie war zu groß.
+  - **Desktop-App in Go** (Node als Sidecar, Windows getestet; Linux/macOS bauen, laufen aber ungetestet und ohne Menü/Vollbild). Davor Tauri/Rust (am 01.10.2026 entfernt, siehe `roadmap.md`) und davor Electron: Eine Electron-Version wurde gebaut und auf Wunsch komplett zurückgenommen, auch aus der Git-Historie, sie war zu groß.
 - **Offen:** Stufen 2–6 in `roadmap.md`, u. a. Plugin-API, Theme v2, FS-Abstraktion, Editor-Inspector, Auto-Fit, weitere Diagrammsprachen, Animationen, Outliner.
-- **Regel:** keine großen Binärdateien ins Repo (über das bestehende `vendor/` hinaus). Build-Werkzeuge (Rust, llvm-mingw, Crates) liegen im Benutzerprofil.
+- **Regel:** keine großen Binärdateien ins Repo (über das bestehende `vendor/` hinaus), auch keine Build-Ergebnisse (`dist-go/`, `export/` sind ignoriert). Es werden **nie Installer** erzeugt, die App ist immer standalone. Go liegt im Benutzerprofil.
 - **Git:** Es gibt noch **kein Remote**, pushen ist erst mit URL möglich. Grösse ca. 125 MB wegen `vendor/`, `node.exe` hat 93 MB (Limit bei GitHub: 100 MB pro Datei).
 - **Beispiel-Deck:** `01-einfuehrung.md` enthält einen Test-Abschnitt des Nutzers („### Test“). Nur auf Wunsch entfernen.

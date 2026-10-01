@@ -3,7 +3,7 @@
 //
 // Zwei Transportwege:
 // - http(s): BroadcastChannel – funktioniert zwischen beliebigen Fenstern desselben Servers, auch ohne
-//   window.opener (Tauri-Fenster, Presenter in einem eigenen Tab, Neuladen beider Seiten).
+//   window.opener (App-Fenster, Presenter in einem eigenen Tab, Neuladen beider Seiten).
 // - file:// (Single-File-Export): postMessage an das Partnerfenster, weil der Origin dort undurchsichtig ist.
 //
 // Mehrere Präsentationen können gleichzeitig offen sein (Hauptfenster + Vollbild). Jede hat eine `session`;

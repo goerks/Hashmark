@@ -1,4 +1,4 @@
-// Selbsttest des Desktop-Sidecars über stdin/stdout, genau wie die Tauri-App ihn anspricht.
+// Selbsttest des Desktop-Sidecars über stdin/stdout, genau wie die Desktop-App ihn anspricht.
 // Aufruf: node scripts/sidecar-smoke.ts [deck] [ausgabeordner]   (make sidecar-smoke)
 // SIDECAR_BUNDLE=1 testet das gebündelte Programm (src/desktop/sidecar.bundle.mjs) statt der Quellen.
 

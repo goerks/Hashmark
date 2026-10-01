@@ -28,28 +28,20 @@ RUN      := set "PATH=%CD%\vendor\node;%PATH%" &&
 NODE     := $(RUN) vendor\node\node.exe
 NPM      := $(RUN) vendor\node\npm.cmd
 HASHMARK   := $(NODE) src\cli\index.ts
-# Desktop-App (Tauri): Rust + llvm-mingw im Benutzerprofil (make toolchain), nicht im Repo
-LLVM_MINGW ?= 20260922
-CARGO    := set "PATH=%LOCALAPPDATA%\hashmark-toolchain\llvm-mingw-$(LLVM_MINGW)-ucrt-x86_64\bin;%USERPROFILE%\.cargo\bin;%PATH%" && cargo
-APP_DEBUG   := src-tauri\target\debug\hashmark.exe
-APP_RELEASE := src-tauri\target\release\hashmark.exe
 # Deck nur übergeben, wenn es auf der Kommandozeile steht – sonst zeigt die App ihre Startseite
 APP_DECK := $(if $(filter command line,$(origin DECK)),"$(DECK)")
 # Desktop-App (Go, ohne CGO, desktop-go/): Go muss im PATH liegen
-GO_TARGETS := windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
-GO_LDFLAGS := -s -w -H windowsgui
+APP_TARGETS := windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/amd64 darwin/arm64
 
-.PHONY: go-app go-cross help setup node install toolchain app app-build app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf check build-examples docker-examples docker docker-run test new clean distclean
+.PHONY: help setup node install app app-cross app-exe app-package app-testsidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf check build-examples docker-examples docker docker-run test new clean distclean
 
 help:
 	@echo Hashmark - Maechtige Praesentationen aus reinem Markdown
 	@echo.
 	@echo   make setup         Node.js nach vendor/node holen und Pakete offline installieren
-	@echo   make app           Desktop-App (Tauri) bauen und starten, optional DECK=...
-	@echo   make go-app        Desktop-App (Go) bauen und starten, optional DECK=...
-	@echo   make go-cross      Go-Huelle fuer Windows/Linux/macOS (amd64, arm64) nach dist-go/
-	@echo   make app-package  Portables Programm: dist-app/Hashmark/Hashmark.exe
-	@echo   make toolchain     Rust + llvm-mingw fuer die Desktop-App (ohne Admin, einmalig, Internet)
+	@echo   make app           Desktop-App (Go) bauen und starten, optional DECK=...
+	@echo   make app-cross     Desktop-Huelle fuer Windows/Linux/macOS (amd64, arm64) nach dist-go/
+	@echo   make app-package   Portables Programm: dist-app/Hashmark/Hashmark.exe
 	@echo   make app-test      E2E-Test der Desktop-App, headless (ohne sichtbare Fenster)
 	@echo   make sidecar-smoke Selbsttest des Node-Sidecars (Deck, PDF, HTML) nach export/sidecar-smoke
 	@echo   make edit          Editor: links Markdown, rechts Live-Vorschau (DECK=...)
@@ -94,31 +86,21 @@ node_modules: | $(NODE_EXE)
 
 # ---------- Desktop-App (Go) ----------
 
-# Go-Hülle (Windows) bauen und starten, optional DECK=...
-go-app: node_modules
-	$(NODE) src\desktop\runtime-build.ts
-	cd desktop-go && go build -trimpath -ldflags="$(GO_LDFLAGS)" -o ..\export\hashmark-go.exe .
-	export\hashmark-go.exe $(APP_DECK)
-
-# alle Plattformen ohne CGO, auch von Linux/macOS aus: dist-go/hashmark-<os>-<arch>
-go-cross:
-	cd desktop-go && set "CGO_ENABLED=0" && $(foreach t,$(GO_TARGETS),set "GOOS=$(word 1,$(subst /, ,$(t)))" && set "GOARCH=$(word 2,$(subst /, ,$(t)))" && go build -trimpath -ldflags="-s -w$(if $(findstring windows,$(t)), -H windowsgui)" -o ..\dist-go\hashmark-$(word 1,$(subst /, ,$(t)))-$(word 2,$(subst /, ,$(t)))$(if $(findstring windows,$(t)),.exe) . &&) echo fertig
-
-# ---------- Desktop-App (Tauri) ----------
-
-toolchain:
-	powershell -NoProfile -ExecutionPolicy Bypass -File scripts\get-toolchain.ps1 -LlvmMingw $(LLVM_MINGW)
-
-# Debug-Build (schneller) und starten
+# Hülle bauen und starten, optional DECK=...
 app: node_modules
 	$(NODE) src\desktop\runtime-build.ts
-	cd src-tauri && $(CARGO) build
-	$(APP_DEBUG) $(APP_DECK)
+	cd desktop-go && go build -trimpath -ldflags="-s -w -H windowsgui" -o ..\export\hashmark.exe .
+	export\hashmark.exe $(APP_DECK)
 
-app-build: node_modules
-	cd src-tauri && $(CARGO) build --release
+# alle Plattformen ohne CGO (auch von Linux/macOS aus): dist-go/hashmark-<os>-<arch>
+app-cross:
+	cd desktop-go && set "CGO_ENABLED=0" && $(foreach t,$(APP_TARGETS),set "GOOS=$(word 1,$(subst /, ,$(t)))" && set "GOARCH=$(word 2,$(subst /, ,$(t)))" && go build -trimpath -ldflags="-s -w$(if $(findstring windows,$(t)), -H windowsgui)" -o ..\dist-go\hashmark-$(word 1,$(subst /, ,$(t)))-$(word 2,$(subst /, ,$(t)))$(if $(findstring windows,$(t)),.exe) . &&) echo fertig
 
-app-package: app-build
+# nur die Windows-EXE (für das portable Paket)
+app-exe:
+	cd desktop-go && set "CGO_ENABLED=0" && go build -trimpath -ldflags="-s -w -H windowsgui" -o ..\dist-go\hashmark-windows-amd64.exe .
+
+app-package: app-exe
 	$(NODE) scripts\package-app.ts
 
 # headless: Fenster bleiben unsichtbar; VISIBLE=1 zeigt sie

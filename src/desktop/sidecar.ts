@@ -1,4 +1,4 @@
-// Node-Sidecar der Desktop-App (Tauri). Tauri bringt kein Node mit; die App startet dieses Skript mit
+// Node-Sidecar der Desktop-App (Go-Hülle in desktop-go/). Die Hülle bringt kein Node mit; sie startet dieses Skript mit
 // vendor/node/node.exe und spricht über stdin/stdout mit ihm.
 //
 // Protokoll (je eine Zeile JSON):

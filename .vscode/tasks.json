@@ -69,7 +69,7 @@
     },
     {
       "label": "Hashmark: Desktop-App",
-      "detail": "Tauri-App bauen und starten (make app)",
+      "detail": "Desktop-App (Go) bauen und starten (make app)",
       "type": "shell",
       "command": "make app",
       "isBackground": true,

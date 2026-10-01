@@ -226,7 +226,7 @@ interface DeckNode {
 
 - *Aufsetzen auf Slidev oder reveal.js*: reveal.js hat bereits 2D-Navigation (horizontal/vertikal), aber nur zwei Ebenen; Slidev bringt Shiki Magic Move und Mermaid mit, ist aber linear. Beide lassen sich als Prototyp nutzen, die beliebig tiefe Hierarchie müsste jedoch nachgebaut werden.
 - *Eigenständig*: mehr Aufwand, dafür sauberes Baum-Modell ab Tag 1. Empfehlung: eigene Runtime, bestehende Bibliotheken (Shiki, Mermaid, Motion) als Bausteine.
-- *Desktop-Variante* (Tauri) später, falls lokales PlantUML und Dateizugriff wichtig werden.
+- *Desktop-Variante* (Go) später, falls lokales PlantUML und Dateizugriff wichtig werden.
 
 ## Roadmap / MVP
 
@@ -237,7 +237,7 @@ flowchart LR
   p1["Phase 1 · MVP<br/>Parser + Deck-Baum<br/>Baum-Navigation<br/>Code mit Shiki<br/>Mermaid statisch<br/>2 Themes, 4 Layouts"]
   p2["Phase 2 · Ausbau<br/>PlantUML + Cache<br/>Presenter-View<br/>Übersicht + Suche<br/>PDF-/HTML-Export<br/>Auto-Layout"]
   p3["Phase 3 · Animation<br/>Fragmente + Steps<br/>Code-Zeilen-Steps<br/>Magic Move<br/>Diagramm-Steps<br/>Diagramm-Morphing"]
-  p4["Phase 4 · Ökosystem<br/>Plugin-API öffentlich<br/>Eigene Layouts<br/>VS-Code-Vorschau<br/>Editor-Sync<br/>Desktop (Tauri)"]
+  p4["Phase 4 · Ökosystem<br/>Plugin-API öffentlich<br/>Eigene Layouts<br/>VS-Code-Vorschau<br/>Editor-Sync<br/>Desktop (Go)"]
   p1 --> p2 --> p3 --> p4
 ```
 

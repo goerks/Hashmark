@@ -8,7 +8,8 @@ dist
 dist-app
 export
 runtime-dist
-src-tauri
+desktop-go
+dist-go
 scripts
 tests
 docker

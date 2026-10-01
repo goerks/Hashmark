@@ -94,7 +94,7 @@ Jetzt die Weichen stellen: Dateisystem-Abstraktion im Kern und Editor-API als In
 | --- | --- | --- | --- |
 | Node SEA (`hashmark.exe`) | ~95 MB | klein | schneller Zwischenschritt |
 | Electron | ~150 MB | mittel | passt zum Node-Stack, PDF über `printToPDF`, PlantUML-JAR als Sidecar |
-| Tauri | ~10 MB | groß | Kern muss im Browser laufen oder Node als Sidecar |
+| Tauri | ~10 MB | groß | Kern muss im Browser laufen oder Node als Sidecar (später durch die Go-Hülle ersetzt) |
 | PWA | – | klein | ohne echten Dateizugriff |
 
 Empfehlung: zuerst Node SEA, für die richtige App Electron.
@@ -112,7 +112,7 @@ Suche Ctrl+K, Includes (`!include`, Code aus dem Repo mit Zeilenbereich), `hidde
 | **3 · Inhalte** | Graphviz (WASM), D2 (WASM), KaTeX, PlantUML nur als JS-Version, Includes, Vega-Lite, Markmap, Handout n pro Seite |
 | **4 · Animation** | Schritt-Effekte, Zoom aus Kachel, View Transitions, Magic Move, Mermaid-Morph |
 | **5 · Editor-Outliner** | Drag & Drop, Ebene höher/tiefer, dateiübergreifend verschieben |
-| **6 · Desktop & Verteilung** | Tauri-App ✅ (Node als Sidecar), später ohne Node, PPTX-Export, Publikum folgt live |
+| **6 · Desktop & Verteilung** | Desktop-App ✅ (Go-Hülle, Node als Sidecar; Linux/macOS offen), später ohne Node, PPTX-Export, Publikum folgt live |
 
 Begründung: Stufe 1 macht Hashmark für echte Vorträge fertig und nutzt, was der Parser schon liefert. Stufe 2 vor Diagrammen, Themes und App, weil sonst jede neue Sprache und später die Desktop-App die heutigen Kopplungen (Vite-Middleware, feste Renderer) umbauen müsste.
 
@@ -121,30 +121,20 @@ Begründung: Stufe 1 macht Hashmark für echte Vorträge fertig und nutzt, was d
 - **Zielgruppe (29.09.2026):** vorerst nur eigene Vorträge. Corporate-Theme und PPTX-Export bleiben hinten.
 - **Diagrammsprachen (29.09.2026):** nur Engines, die als Bibliothek im Browser bzw. im Build laufen (JS/WASM), ohne externe Installation (kein Java, kein Graphviz-Binary, kein Server). Ohne solche Bibliothek wird die Sprache nicht unterstützt. Damit entfallen Kroki und PlantUML per JAR/Server. PlantUML nur, falls sich die JS-Version (TeaVM) offline bündeln lässt.
 
-- **Desktop (29.09.2026):** Tauri. Eine Electron-Version wurde gebaut und wieder verworfen: Sie war zu groß (Electron allein ~160 MB im Repo, Programm ~510 MB). Große Binärdateien kommen nicht ins Repo.
+- **Desktop (29.09.2026):** erst Tauri (am 01.10.2026 durch Go ersetzt, siehe unten). Eine Electron-Version wurde gebaut und wieder verworfen: Sie war zu groß (Electron allein ~160 MB im Repo, Programm ~510 MB). Große Binärdateien kommen nicht ins Repo.
 
 - **Tauri-Umsetzung (30.09.2026):** Node als Sidecar (vendor/node, Repo wächst nicht), Build ohne Admin mit Rust `gnullvm` + llvm-mingw. Die Crates kommen beim ersten Build aus dem Internet. Später möglich: Kern ganz im WebView (nach der FS-Abstraktion aus Stufe 2), dann ohne Node im Programm.
 
-- **Rust/Tauri bleibt (30.09.2026):** Ein Umbau auf Go wurde erwogen und verschoben, siehe Backlog.
+- **Wechsel auf Go (01.10.2026):** Die Hülle ist jetzt Go ohne CGO (`desktop-go/`, `go-webview` per purego, `zenity` für Dialoge) statt Rust/Tauri. Gründe: Es soll nie einen Installer geben, die EXE ist mit ~7 MB klein, `go build` braucht keine Toolchain außer Go und baut für Windows, Linux und macOS ohne C-Compiler (`make app-cross`). `src-tauri/` und die Rust-Toolchain (rustup, llvm-mingw) sind entfernt.
+  - Windows ist umgesetzt und getestet: Startseite, Win32-Menü, Vollbild/Monitorwahl, Dialoge, Präsentation und Presenter als eigene Prozesse.
+  - Offen: Linux und macOS laufen nie wirklich (nur gebaut). Dort fehlen Menü, Vollbild und Monitorwahl (`desktop-go/native_other.go` sind Platzhalter). Für macOS bräuchte es Objective-C-Aufrufe per purego oder ein HTML-Menü.
+  - Offen: Das Paket (`make app-package`) gibt es nur für Windows. Für Linux/macOS braucht es je System ein eigenes Node und die nativen npm-Pakete (der Vendor-Cache enthält nur Windows-Binärdateien).
+  - Bekannte Lücken: externe Links öffnen nicht im Standardbrowser, ein Fenster je Prozess, `go-webview` ist ein junges Projekt (März 2025).
 
 ## Backlog: mögliche Refactorings
 
 Nicht eingeplant, nur festgehalten. Jeder Punkt braucht vor dem Start einen kurzen Spike.
 
-### Desktop-App ohne Rust (Go oder Node-only)
-
-Anlass: Der Rust-Teil (`src-tauri/`, ~650 Zeilen) ist nicht beliebt, die Toolchain (Rust + llvm-mingw) ist eine externe Installation, und ein kalter Release-Build dauert 5–14 Minuten. Entschieden am 30.09.2026: Wir bleiben bei Tauri, weil es läuft, getestet ist und sich kaum ändert.
-
-| Option | Werkzeuge | Cross-Compile | Preis |
-| --- | --- | --- | --- |
-| Go + Wails v3 | ein Go-ZIP, kein C-Compiler unter Windows | Windows von überall, Mac/Linux brauchen cgo | Wails v2 kennt nur ein Fenster (wir brauchen 2–3), v3 war meines Wissens noch Alpha (vorher prüfen), ~650 Zeilen neu schreiben |
-| Node-only mit Edge im App-Modus | keine, nur Node | Kopieren genügt | kein natives Menü, Ordnerwahl per PowerShell-Dialog, Edge muss installiert sein (für PDF ohnehin nötig) |
-
-Hinweise für später:
-- Die Tests sind von der Fenster-Technik unabhängig: `make app-test` (`scripts/app-e2e.ts`) steuert jede EXE über WebView2-CDP, `make sidecar-smoke` prüft den Node-Teil allein.
-- Das Protokoll zwischen Fenster und Sidecar ist klein (`src/desktop/sidecar.ts`, JSON-Zeilen), ein neues Fenster müsste nur das nachbauen.
-- Die Programmgröße (233 MB) kommt von Node und den Paketen, nicht von Rust (`Hashmark.exe` hat 4 MB). Ein Wechsel der Fenster-Technik ändert daran nichts.
-
 ### Node aus dem Programm entfernen (Kern in Go oder im WebView)
 
-Erst sinnvoll, wenn Mac oder Linux wirklich gebraucht werden, denn Node ist der eigentliche Hemmschuh beim Cross-Compiling (pro System ein eigenes Node, WebView-Bibliothek je System mit cgo). Voraussetzung ist die Dateisystem-Abstraktion aus Stufe 2. Bringt: kleines Programm (~15 MB), ein Binary pro System, kein Sidecar. Kostet: Parser, Renderer und Export neu oder im WebView (remark, Shiki, Vite-Build laufen heute nur in Node). Wenn, dann zusammen mit dem Wechsel auf Go/Wails.
+Erst sinnvoll, wenn Mac oder Linux wirklich gebraucht werden, denn Node ist der eigentliche Hemmschuh beim Cross-Compiling (pro System ein eigenes Node mit eigenen nativen npm-Paketen). Voraussetzung ist die Dateisystem-Abstraktion aus Stufe 2. Bringt: kleines Programm (~15 MB), ein Binary pro System, kein Sidecar. Kostet: Parser, Renderer und Export neu oder im WebView (remark, Shiki, Vite-Build laufen heute nur in Node). Der Wechsel der Hülle auf Go ist erledigt, der Node-Sidecar bleibt vorerst.

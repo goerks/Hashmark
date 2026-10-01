@@ -3,7 +3,7 @@
 // Aufruf:
 //   node scripts/make-icon.ts [logo.png]
 //     Mit Datei: Logo zuschneiden (transparenten Rand weg), auf 512 px skalieren und als assets/hashmark.png ablegen.
-//     Immer:     aus assets/hashmark.png src-tauri/icons/icon.png (256 px) und icon.ico (16–256 px) schreiben
+//     Immer:     aus assets/hashmark.png desktop-go/icon.ico (16–256 px) schreiben
 //                und das Favicon (64 px, als Data-URI) in die HTML-Seiten eintragen.
 
 import fs from 'node:fs'
@@ -170,11 +170,8 @@ if (source) {
 }
 
 const master = decodePng(fs.readFileSync(MASTER))
-const icons = path.join(ROOT, 'src-tauri/icons')
-fs.mkdirSync(icons, { recursive: true })
-fs.writeFileSync(path.join(icons, 'icon.png'), encodePng(resize(master, 256)))
-fs.writeFileSync(path.join(icons, 'icon.ico'), encodeIco([16, 24, 32, 48, 64, 128, 256].map((s) => resize(master, s))))
-console.log('Programm-Icon: src-tauri/icons/icon.png, icon.ico')
+fs.writeFileSync(path.join(ROOT, 'desktop-go/icon.ico'), encodeIco([16, 24, 32, 48, 64, 128, 256].map((s) => resize(master, s))))
+console.log('Programm-Icon: desktop-go/icon.ico')
 
 // Favicon als Data-URI: funktioniert in der App, im Dev-Server, im Build und im Single-File-Export ohne weitere Datei
 const link = `<link rel="icon" type="image/png" href="data:image/png;base64,${encodePng(resize(master, 64)).toString('base64')}" />`

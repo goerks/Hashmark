@@ -1,6 +1,6 @@
-// Brücke zur Desktop-App (Tauri). Der Server der App liefert die Seiten mit `window.__HASHMARK_DESKTOP__`
+// Brücke zur Desktop-App (Go-Hülle). Der Server der App liefert die Seiten mit `window.__HASHMARK_DESKTOP__`
 // aus (Vite-Plugin, Option `desktop`). Aktionen gehen per HTTP an den Server (nur localhost, mit Header),
-// der sie an die App weiterreicht – die Seiten selbst haben keinen Zugriff auf Tauri.
+// der sie an die App weiterreicht – die Seiten selbst haben keinen Zugriff auf die Hülle.
 
 declare global {
   interface Window { __HASHMARK_DESKTOP__?: boolean }
