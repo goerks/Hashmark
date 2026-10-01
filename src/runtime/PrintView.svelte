@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import initial from 'virtual:strata/deck'
+  import initial from 'virtual:hashmark/deck'
   import { Navigator } from '../core/navigator.ts'
   import { printPages, printQuery, type PrintOptions } from '../core/print.ts'
   import PrintPages from './PrintPages.svelte'
@@ -22,7 +22,7 @@
   function onready() {
     if (ready) return
     ready = true
-    // Signal für `strata pdf` (Headless-Browser)
+    // Signal für `hashmark pdf` (Headless-Browser)
     document.documentElement.dataset.printReady = '1'
     if (autoprint) window.print()
   }
@@ -31,7 +31,7 @@
     const measure = () => (fit = Math.min(1, (window.innerWidth - 48) / (options.notes ? 794 : 1280)))
     measure()
     window.addEventListener('resize', measure)
-    document.title = `${deck?.title ?? 'Strata'} – Druckansicht`
+    document.title = `${deck?.title ?? 'Hashmark'} – Druckansicht`
     // Seitenformat: Folien 16:9 (1280 × 720 px = 13,33 × 7,5 Zoll), Handout A4 hoch
     const page = document.createElement('style')
     page.textContent = options.notes ? '@page { size: A4 portrait; margin: 12mm }' : '@page { size: 1280px 720px; margin: 0 }'
@@ -42,7 +42,7 @@
 
 <div class="print-root print-view {options.notes ? 'print-handout' : 'print-slides'}" style="--fit:{fit}">
   <header class="print-bar">
-    <strong>{deck?.title ?? 'Strata'}</strong>
+    <strong>{deck?.title ?? 'Hashmark'}</strong>
     <span class="print-count">{count} Seiten</span>
     <label>
       Tiefe

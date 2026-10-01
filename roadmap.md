@@ -34,7 +34,7 @@ Im Baum entscheidet man live, ob man abtaucht – dafür muss man sehen, welche 
 - Neue Layouts: `statement`/`quote`, `image-left`/`image-right`, Hintergrundbild `{bg=…}`, `agenda` (automatisch aus dem Baum), ✅ `comparison` und `code-focus`. Offen: `diagram`.
 - Hinweiskästen in GitHub-Syntax `> [!NOTE]`, `[!TIP]`, `[!WARNING]` …
 - Kapitel-Nummerierung optional, Fortschritt pro Kapitel.
-- ✅ Auto-Fit `{fit}` und Überlauf-Badge (Dev-Server, Editor-Vorschau), ✅ `strata check` (Linter inkl. Überlauf aller Folien, `make check`). Offen: Miniatur-Hinweis im Presenter, Prüfungen für Notizen/Schritte.
+- ✅ Auto-Fit `{fit}` und Überlauf-Badge (Dev-Server, Editor-Vorschau), ✅ `hashmark check` (Linter inkl. Überlauf aller Folien, `make check`). Offen: Miniatur-Hinweis im Presenter, Prüfungen für Notizen/Schritte.
 
 ### Themes
 
@@ -92,7 +92,7 @@ Jetzt die Weichen stellen: Dateisystem-Abstraktion im Kern und Editor-API als In
 
 | Option | Größe | Aufwand | Bewertung |
 | --- | --- | --- | --- |
-| Node SEA (`strata.exe`) | ~95 MB | klein | schneller Zwischenschritt |
+| Node SEA (`hashmark.exe`) | ~95 MB | klein | schneller Zwischenschritt |
 | Electron | ~150 MB | mittel | passt zum Node-Stack, PDF über `printToPDF`, PlantUML-JAR als Sidecar |
 | Tauri | ~10 MB | groß | Kern muss im Browser laufen oder Node als Sidecar |
 | PWA | – | klein | ohne echten Dateizugriff |
@@ -101,7 +101,7 @@ Empfehlung: zuerst Node SEA, für die richtige App Electron.
 
 ### Weiteres
 
-Suche Ctrl+K, Includes (`!include`, Code aus dem Repo mit Zeilenbereich), `hidden`-Knoten als Reserve, Bild-Zoom, Video/Embeds, `strata check` als Linter, Deck-Vorlagen, VS-Code-Extension, Barrierefreiheit (Alt-Texte, Kontrast).
+Suche Ctrl+K, Includes (`!include`, Code aus dem Repo mit Zeilenbereich), `hidden`-Knoten als Reserve, Bild-Zoom, Video/Embeds, `hashmark check` als Linter, Deck-Vorlagen, VS-Code-Extension, Barrierefreiheit (Alt-Texte, Kontrast).
 
 ## Umsetzungsreihenfolge
 
@@ -114,7 +114,7 @@ Suche Ctrl+K, Includes (`!include`, Code aus dem Repo mit Zeilenbereich), `hidde
 | **5 · Editor-Outliner** | Drag & Drop, Ebene höher/tiefer, dateiübergreifend verschieben |
 | **6 · Desktop & Verteilung** | Tauri-App ✅ (Node als Sidecar), später ohne Node, PPTX-Export, Publikum folgt live |
 
-Begründung: Stufe 1 macht Strata für echte Vorträge fertig und nutzt, was der Parser schon liefert. Stufe 2 vor Diagrammen, Themes und App, weil sonst jede neue Sprache und später die Desktop-App die heutigen Kopplungen (Vite-Middleware, feste Renderer) umbauen müsste.
+Begründung: Stufe 1 macht Hashmark für echte Vorträge fertig und nutzt, was der Parser schon liefert. Stufe 2 vor Diagrammen, Themes und App, weil sonst jede neue Sprache und später die Desktop-App die heutigen Kopplungen (Vite-Middleware, feste Renderer) umbauen müsste.
 
 ## Entscheidungen
 
@@ -143,7 +143,7 @@ Anlass: Der Rust-Teil (`src-tauri/`, ~650 Zeilen) ist nicht beliebt, die Toolcha
 Hinweise für später:
 - Die Tests sind von der Fenster-Technik unabhängig: `make app-test` (`scripts/app-e2e.ts`) steuert jede EXE über WebView2-CDP, `make sidecar-smoke` prüft den Node-Teil allein.
 - Das Protokoll zwischen Fenster und Sidecar ist klein (`src/desktop/sidecar.ts`, JSON-Zeilen), ein neues Fenster müsste nur das nachbauen.
-- Die Programmgröße (233 MB) kommt von Node und den Paketen, nicht von Rust (`Strata.exe` hat 4 MB). Ein Wechsel der Fenster-Technik ändert daran nichts.
+- Die Programmgröße (233 MB) kommt von Node und den Paketen, nicht von Rust (`Hashmark.exe` hat 4 MB). Ein Wechsel der Fenster-Technik ändert daran nichts.
 
 ### Node aus dem Programm entfernen (Kern in Go oder im WebView)
 

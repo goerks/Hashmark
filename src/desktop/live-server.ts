@@ -47,7 +47,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     try {
       current = await loadDeck(deckDir)
       payload = { deck: current.deck }
-      for (const w of current.warnings) log(`[strata] ${w}`)
+      for (const w of current.warnings) log(`[hashmark] ${w}`)
     } catch (e) {
       payload = { error: (e as Error).message }
     }
@@ -92,24 +92,24 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     const pathname = decodeURIComponent(new URL(req.url ?? '/', 'http://x').pathname)
     const notFound = () => { res.statusCode = 404; res.end() }
 
-    if (pathname === '/__strata/deck.json') {
+    if (pathname === '/__hashmark/deck.json') {
       res.setHeader('Content-Type', 'application/json')
       res.setHeader('Cache-Control', 'no-store')
       return res.end(JSON.stringify(payload))
     }
-    if (pathname === '/__strata/theme.css') {
+    if (pathname === '/__hashmark/theme.css') {
       res.setHeader('Content-Type', 'text/css; charset=utf-8')
       res.setHeader('Cache-Control', 'no-store')
       return res.end(current?.themeCss ?? '')
     }
-    if (pathname === '/__strata/events') {
+    if (pathname === '/__hashmark/events') {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' })
       res.write(': verbunden\n\n')
       clients.add(res)
       req.on('close', () => clients.delete(res))
       return
     }
-    if (pathname.startsWith('/__strata/')) {
+    if (pathname.startsWith('/__hashmark/')) {
       // App-Aktionen, danach die Datei-API des Editors (beide prüfen localhost + Header)
       return void app(req, res, () => editor(req, res, notFound))
     }
@@ -137,7 +137,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
       if (name && /\.(md|ya?ml|css)$/i.test(String(name)) && !String(name).split(/[\\/]/).some((p) => p.startsWith('.') || p === 'node_modules')) schedule()
     }))
   } catch (e) {
-    log(`[strata] Datei-Überwachung nicht möglich: ${(e as Error).message}`)
+    log(`[hashmark] Datei-Überwachung nicht möglich: ${(e as Error).message}`)
   }
   // Theme-Dateien außerhalb des Decks ebenfalls beobachten (eingebaute Themes nicht)
   for (const t of current?.themeFiles ?? []) {

@@ -1,7 +1,7 @@
-// End-to-End-Test der Desktop-App (Tauri) – headless: alle Fenster bleiben unsichtbar (STRATA_HEADLESS=1).
+// End-to-End-Test der Desktop-App (Tauri) – headless: alle Fenster bleiben unsichtbar (HASHMARK_HEADLESS=1).
 // Gesteuert über das Remote-Debugging von WebView2 (CDP), wie die Browser-Tests über Edge headless.
 //
-//   make app-test                       gepacktes Programm (dist-app/Strata) bzw. Release-Build
+//   make app-test                       gepacktes Programm (dist-app/Hashmark) bzw. Release-Build
 //   node scripts/app-e2e.ts [exe]       beliebige EXE; VISIBLE=1 zeigt die Fenster
 //
 // Prüft Startseite, Deck öffnen, Editor + Vorschau, Rechte der Seiten, Präsentation, Presenter, Tasten, Ctrl+W
@@ -13,10 +13,10 @@ import net from 'node:net'
 import path from 'node:path'
 
 const root = path.resolve(import.meta.dirname, '..')
-const candidates = [path.join(root, 'dist-app/Strata/Strata.exe'), path.join(root, 'src-tauri/target/release/strata.exe'), path.join(root, 'src-tauri/target/debug/strata.exe')]
+const candidates = [path.join(root, 'dist-app/Hashmark/Hashmark.exe'), path.join(root, 'src-tauri/target/release/hashmark.exe'), path.join(root, 'src-tauri/target/debug/hashmark.exe')]
 const exe = process.argv[2] ?? candidates.find((p) => fs.existsSync(p))
 if (!exe || !fs.existsSync(exe)) {
-  console.error('Keine Strata.exe gefunden – zuerst "make app-build" oder "make app-package".')
+  console.error('Keine Hashmark.exe gefunden – zuerst "make app-build" oder "make app-package".')
   process.exit(1)
 }
 const out = path.join(root, 'export/app-e2e')
@@ -37,7 +37,7 @@ const check = (name: string, ok: boolean, detail = '') => {
 }
 const timings: Record<string, string> = {}
 
-const env = { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`, STRATA_HEADLESS: process.env.VISIBLE ? '' : '1' }
+const env = { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`, HASHMARK_HEADLESS: process.env.VISIBLE ? '' : '1' }
 delete env.ELECTRON_RUN_AS_NODE
 const app = spawn(exe, [], { env, stdio: 'ignore' })
 
@@ -94,11 +94,11 @@ try {
   const start = await connect(startT!)
   check('Tauri-Befehle auf der Startseite', await until(() => start.eval(`!!window.__TAURI__?.core?.invoke`), 10_000))
   check('Liste „zuletzt geöffnet“', await until(() => start.eval(`document.querySelectorAll('#recent li').length > 0 || !document.getElementById('empty').hidden`), 15_000))
-  check('Beispiele auf der Startseite (strata-demo, theme-demo)', await until(() => start.eval(`['strata-demo', 'theme-demo'].every((n) => [...document.querySelectorAll('#examples .deck strong')].some((s) => s.textContent === n))`), 15_000))
+  check('Beispiele auf der Startseite (hashmark-demo, theme-demo)', await until(() => start.eval(`['hashmark-demo', 'theme-demo'].every((n) => [...document.querySelectorAll('#examples .deck strong')].some((s) => s.textContent === n))`), 15_000))
   // realistisch: kurz auf der Startseite, dann das Beispiel-Deck öffnen
   await sleep(1500)
   const click = Date.now()
-  await start.eval(`[...document.querySelectorAll('#examples .deck')].find((b) => b.querySelector('strong').textContent === 'strata-demo').click()`)
+  await start.eval(`[...document.querySelectorAll('#examples .deck')].find((b) => b.querySelector('strong').textContent === 'hashmark-demo').click()`)
   start.close()
 
   const edT = await waitTarget((u) => u.includes('127.0.0.1') && u.includes('editor.html'))
@@ -109,7 +109,7 @@ try {
   timings['Klick auf Deck → Editor + Vorschau'] = secs(click)
   const denied = await ed.eval(`(window.__TAURI_INTERNALS__ ? window.__TAURI_INTERNALS__.invoke('recent').then(() => 'ERLAUBT', (e) => String(e)) : Promise.resolve('keine IPC'))`)
   check('Seiten vom lokalen Server dürfen keine App-Befehle', denied !== 'ERLAUBT', denied)
-  check('vorgebaute Runtime (Live-Server)', (await ed.eval('window.__STRATA_LIVE__ === true && window.__STRATA_DESKTOP__ === true')) === true)
+  check('vorgebaute Runtime (Live-Server)', (await ed.eval('window.__HASHMARK_LIVE__ === true && window.__HASHMARK_DESKTOP__ === true')) === true)
 
   const present = Date.now()
   await ed.eval(`document.querySelector('.ed-present').click()`)

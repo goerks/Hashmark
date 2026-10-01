@@ -7,7 +7,7 @@ import { deflateRawSync } from 'node:zlib'
 import { drawioLayers, drawioModel, drawioSteps } from '../src/core/drawio.ts'
 import { loadDeck } from '../src/core/deck.ts'
 
-const DEMO = path.resolve(import.meta.dirname, '../examples/strata-demo/bilder/architektur.drawio.svg')
+const DEMO = path.resolve(import.meta.dirname, '../examples/hashmark-demo/bilder/architektur.drawio.svg')
 
 const MODEL = '<mxGraphModel><root><mxCell id="0"/><mxCell id="1" value="Basis" parent="0"/>'
   + '<mxCell id="l2" value="Extra &amp; mehr" parent="0"/><mxCell id="x" value="Box" vertex="1" parent="1"/></root></mxGraphModel>'
@@ -48,7 +48,7 @@ describe('draw.io', () => {
   })
 
   it('bindet das Demo-Diagramm mit steps=layers als Schritte ein', async () => {
-    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'strata-'))
+    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'hashmark-'))
     fs.copyFileSync(DEMO, path.join(dir, 'a.drawio.svg'))
     await fsp.writeFile(path.join(dir, 'a.md'), '# A\n\n![Arch](a.drawio.svg){steps=layers}\n\n![Plain](a.drawio.svg)\n')
     const { deck } = await loadDeck(dir)

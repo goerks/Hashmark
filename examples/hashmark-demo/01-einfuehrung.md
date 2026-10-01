@@ -1,4 +1,4 @@
-# Strata {layout=title}
+# Hashmark {layout=title}
 
 Präsentieren entlang der Überschriften – mit Abstechern in die Tiefe.
 

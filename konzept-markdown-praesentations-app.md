@@ -4,7 +4,7 @@ Stand: 27.09.2026
 
 ## Vision & Ziele
 
-Arbeitstitel **Strata**: Eine Präsentations-App, die aus 1..n Markdown-Dateien eine *navigierbare Wissenslandschaft* statt einer linearen Foliensequenz macht. Die Überschriften-Hierarchie ist die Struktur: Man präsentiert auf der Hauptebene und taucht bei Bedarf in Details ab – live, je nach Publikum und Fragen.
+Arbeitstitel **Hashmark**: Eine Präsentations-App, die aus 1..n Markdown-Dateien eine *navigierbare Wissenslandschaft* statt einer linearen Foliensequenz macht. Die Überschriften-Hierarchie ist die Struktur: Man präsentiert auf der Hauptebene und taucht bei Bedarf in Details ab – live, je nach Publikum und Fragen.
 
 **Ziele**
 
@@ -205,7 +205,7 @@ flowchart LR
 | Dev-Server | Vite + File-Watcher | Hot Reload beim Speichern, Folie bleibt stehen |
 | Presenter-View | zweites Fenster via BroadcastChannel | Notizen, Timer, nächster Step, Baum-Minimap |
 | Export | Playwright | PDF (linear oder bis `maxDepth`), statisches HTML |
-| CLI | Node | `strata dev`, `strata build`, `strata export` |
+| CLI | Node | `hashmark dev`, `hashmark build`, `hashmark export` |
 
 **Deck-Baum (Kern-Datenmodell)**
 
@@ -243,7 +243,7 @@ flowchart LR
 
 **MVP ist fertig, wenn**
 
-- [ ] ein realer Vortrag aus 3+ Dateien mit 3 Ebenen komplett in Strata gehalten werden kann,
+- [ ] ein realer Vortrag aus 3+ Dateien mit 3 Ebenen komplett in Hashmark gehalten werden kann,
 - [ ] Hot Reload die aktuelle Position im Baum behält,
 - [ ] Code und Mermaid im Deck-Theme erscheinen,
 - [ ] Deep-Links und Baum-Übersicht funktionieren.

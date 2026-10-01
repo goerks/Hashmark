@@ -1,4 +1,4 @@
-# Ein eigenes Theme für Strata {layout=title}
+# Ein eigenes Theme für Hashmark {layout=title}
 
 Beispiel „Acme“: Farben, Schrift, Logo, Fußzeile und zwei eigene Layouts, ohne ein eingebautes Theme zu kopieren.
 

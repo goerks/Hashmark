@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Strata",
+  "productName": "Hashmark",
   "version": "0.1.0",
-  "identifier": "app.strata.desktop",
+  "identifier": "app.hashmark.desktop",
   "build": {
     "frontendDist": "../src/desktop/ui"
   },

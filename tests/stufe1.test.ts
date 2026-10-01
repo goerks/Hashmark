@@ -12,7 +12,7 @@ import { buildSearchIndex, htmlToText, search } from '../src/core/search.ts'
 import type { DeckNode } from '../src/core/types.ts'
 
 async function tempDeck(files: Record<string, string>) {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'strata-'))
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'hashmark-'))
   for (const [name, content] of Object.entries(files)) {
     await fs.mkdir(path.dirname(path.join(dir, name)), { recursive: true })
     await fs.writeFile(path.join(dir, name), content)

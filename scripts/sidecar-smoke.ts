@@ -9,9 +9,9 @@ import path from 'node:path'
 import readline from 'node:readline'
 
 const root = path.resolve(import.meta.dirname, '..')
-const deck = path.resolve(process.argv[2] ?? path.join(root, 'examples/strata-demo'))
+const deck = path.resolve(process.argv[2] ?? path.join(root, 'examples/hashmark-demo'))
 const out = path.resolve(process.argv[3] ?? path.join(root, 'export/sidecar-smoke'))
-const data = fs.mkdtempSync(path.join(os.tmpdir(), 'strata-sidecar-'))
+const data = fs.mkdtempSync(path.join(os.tmpdir(), 'hashmark-sidecar-'))
 fs.mkdirSync(out, { recursive: true })
 
 const entry = process.env.SIDECAR_BUNDLE ? 'sidecar.bundle.mjs' : 'sidecar.ts'
@@ -24,8 +24,8 @@ const events: any[] = []
 let ready: () => void
 const readyP = new Promise<void>((r) => (ready = r))
 readline.createInterface({ input: child.stdout }).on('line', (line) => {
-  if (!line.startsWith('@@strata ')) return
-  const msg = JSON.parse(line.slice(9))
+  if (!line.startsWith('@@hashmark ')) return
+  const msg = JSON.parse(line.slice('@@hashmark '.length))
   if (msg.event === 'ready') ready()
   else if (msg.event) events.push(msg)
   else pending.get(msg.id)?.(msg)
@@ -57,15 +57,15 @@ try {
   check('Deck geöffnet', open.ok && /^http:\/\/127\.0\.0\.1:\d+\/$/.test(open.result?.url), open.result?.url ?? open.error)
   const url = open.result.url as string
   const html = await (await fetch(url)).text()
-  check('Seiten tragen die Desktop-Markierung', html.includes('window.__STRATA_DESKTOP__ = true'))
+  check('Seiten tragen die Desktop-Markierung', html.includes('window.__HASHMARK_DESKTOP__ = true'))
   const editor = await fetch(url + 'editor.html')
   check('Editor wird ausgeliefert', editor.ok)
-  const files = await fetch(url + '__strata/files', { headers: { 'X-Strata-Editor': '1' } })
+  const files = await fetch(url + '__hashmark/files', { headers: { 'X-Hashmark-Editor': '1' } })
   check('Datei-API aktiv', files.ok)
 
   // Aktion aus einer Seite → Ereignis an die App; Position wird im Sidecar gemerkt
-  const post = (body: object, headers: Record<string, string> = { 'X-Strata-Editor': '1' }) =>
-    fetch(url + '__strata/app', { method: 'POST', headers, body: JSON.stringify(body) })
+  const post = (body: object, headers: Record<string, string> = { 'X-Hashmark-Editor': '1' }) =>
+    fetch(url + '__hashmark/app', { method: 'POST', headers, body: JSON.stringify(body) })
   check('App-Aktion ohne Header abgelehnt', (await post({ action: 'present', hash: '' }, {})).status === 403)
   check('Unbekannte Aktion abgelehnt', (await post({ action: 'rm -rf' })).status === 400)
   await post({ action: 'position', hash: '#architektur' })

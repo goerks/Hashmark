@@ -7,7 +7,7 @@ import path from 'node:path'
 import { addRecent, existingRecent, isDeckDir, MAX_RECENT, readSettings, removeRecent, writeSettings } from '../src/desktop/settings.ts'
 import { createSidecar } from '../src/desktop/sidecar.ts'
 
-const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'strata-desktop-'))
+const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'hashmark-desktop-'))
 
 describe('Einstellungen', () => {
   it('liest fehlende oder kaputte Dateien als leer und schreibt/liest zurück', () => {
@@ -70,14 +70,16 @@ describe('Deck vorab lesen', () => {
     const { loadDeck } = await import('../src/core/deck.ts')
     const dir = tmp()
     fs.writeFileSync(path.join(dir, 'a.md'), '# A')
+    // Dateisystem-Zeitstempel können dem Zeitgeber leicht vorauseilen: erst warten, dann den Zeitpunkt nehmen
+    await new Promise((r) => setTimeout(r, 150))
     const at = Date.now()
-    await new Promise((r) => setTimeout(r, 30))
+    await new Promise((r) => setTimeout(r, 150))
     const result = await loadDeck(dir)
     expect(isStale(dir, result, at)).toBe(false) // vor dem Zeitpunkt entstanden
-    await new Promise((r) => setTimeout(r, 30))
+    await new Promise((r) => setTimeout(r, 150))
     const later = Date.now()
     expect(isStale(dir, result, later)).toBe(false)
-    await new Promise((r) => setTimeout(r, 30))
+    await new Promise((r) => setTimeout(r, 150))
     fs.writeFileSync(path.join(dir, 'a.md'), '# A2')
     expect(isStale(dir, result, later)).toBe(true) // Datei geändert
     fs.writeFileSync(path.join(dir, 'b.md'), '# B')
@@ -89,7 +91,7 @@ describe('Beispiele', () => {
   it('listet die Beispiel-Decks mit Titel, auch das Theme-Beispiel', async () => {
     const { listExamples } = await import('../src/cli/examples.ts')
     const examples = listExamples()
-    expect(examples.map((e) => e.name)).toEqual(expect.arrayContaining(['strata-demo', 'theme-demo']))
+    expect(examples.map((e) => e.name)).toEqual(expect.arrayContaining(['hashmark-demo', 'theme-demo']))
     expect(examples.find((e) => e.name === 'theme-demo')?.title).toContain('Eigenes Theme')
     expect(listExamples(path.join(tmp(), 'gibtsnicht'))).toEqual([])
   })

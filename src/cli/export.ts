@@ -10,7 +10,7 @@ import { build, type InlineConfig } from 'vite'
 const escapeScript = (code: string) => code.replace(/<\/script/gi, '<\\/script')
 
 export async function exportSingleFile(config: InlineConfig, outFile: string) {
-  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'strata-export-'))
+  const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'hashmark-export-'))
   try {
     await build({
       ...config,
@@ -47,12 +47,12 @@ export async function exportSingleFile(config: InlineConfig, outFile: string) {
       .filter((e) => e.isFile())
       .map((e) => path.relative(tmp, path.join(e.parentPath, e.name)).split(path.sep).join('/'))
       .filter((f) => !used.has(f))
-    if (leftovers.length) console.warn(`[strata] nicht eingebettet: ${leftovers.join(', ')}`)
+    if (leftovers.length) console.warn(`[hashmark] nicht eingebettet: ${leftovers.join(', ')}`)
 
     await fs.mkdir(path.dirname(outFile), { recursive: true })
     await fs.writeFile(outFile, html)
     const size = (await fs.stat(outFile)).size / 1024 / 1024
-    console.log(`[strata] Export: ${outFile} (${size.toFixed(1)} MB)`)
+    console.log(`[hashmark] Export: ${outFile} (${size.toFixed(1)} MB)`)
   } finally {
     await fs.rm(tmp, { recursive: true, force: true })
   }

@@ -1,6 +1,6 @@
 import { mount } from 'svelte'
 import './base.css'
-import 'virtual:strata/theme.css'
+import 'virtual:hashmark/theme.css'
 import './print.css'
 import { parsePrintOptions } from '../core/print.ts'
 

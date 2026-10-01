@@ -16,7 +16,7 @@ export interface Finding {
 export const BUILTIN_LAYOUTS = [
   'title', 'section', 'default', 'two-col', 'three-col', 'statement', 'quote', 'image-left', 'image-right', 'agenda', 'comparison', 'code-focus',
 ]
-/** Attribute einer Überschrift `{…}`, die Strata kennt */
+/** Attribute einer Überschrift `{…}`, die Hashmark kennt */
 export const KNOWN_ATTRS = ['layout', 'id', 'class', 'transition', 'duration', 'bg', 'bgdim', 'steps', 'fit']
 export const TRANSITIONS = ['slide', 'zoom', 'fade', 'none']
 

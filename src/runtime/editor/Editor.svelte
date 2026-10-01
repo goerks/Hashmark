@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte'
-  import initial from 'virtual:strata/deck'
+  import initial from 'virtual:hashmark/deck'
   import type { Deck, DeckNode } from '../../core/types.ts'
   import { formatHash, type Position } from '../../core/navigator.ts'
   import { lineOfSlide, nodeAtLine, pathToNode } from '../../core/sourcemap.ts'
@@ -19,7 +19,7 @@
   type Mode = 'write' | 'split' | 'preview'
   type Found = Problem & { found: string }
 
-  const STORAGE_KEY = 'strata-editor'
+  const STORAGE_KEY = 'hashmark-editor'
   const remember = (data: Record<string, unknown>) => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...recall(), ...data })) } catch { /* privat/blockiert */ }
   }
@@ -151,7 +151,7 @@
 
   function goto(id: string, slide: number) {
     requested = keyOf(id, slide)
-    frame?.contentWindow?.postMessage({ type: 'strata:goto', id, slide, step: 'all' }, location.origin)
+    frame?.contentWindow?.postMessage({ type: 'hashmark:goto', id, slide, step: 'all' }, location.origin)
   }
 
   function syncPreview() {
@@ -337,10 +337,10 @@
       onFocus: (f) => { focused = f },
     })
     // für Browser-Tests und Debugging
-    ;(window as unknown as { __strataEditor: Editor }).__strataEditor = ed
+    ;(window as unknown as { __hashmarkEditor: Editor }).__hashmarkEditor = ed
 
     const onMessage = (e: MessageEvent) => {
-      if (e.origin === location.origin && e.data?.type === 'strata:position') followPreview(e.data.pos)
+      if (e.origin === location.origin && e.data?.type === 'hashmark:position') followPreview(e.data.pos)
     }
     window.addEventListener('message', onMessage)
 

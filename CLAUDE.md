@@ -1,6 +1,6 @@
-# CLAUDE.md – Strata
+# CLAUDE.md – Hashmark
 
-Präsentations-App: 1..n Markdown-Dateien werden zu einem **navigierbaren Baum**. → erzählt auf dem Hauptpfad weiter, ↓ taucht ins Detail ab. Das Konzept steht in `konzept-markdown-praesentations-app.md`, die Bedienung für Anwender im `README.md`.
+Slogan: „Mächtige Präsentationen aus reinem Markdown.“ Präsentations-App: 1..n Markdown-Dateien werden zu einer Slideshow als **navigierbarem Baum**. → erzählt auf dem Hauptpfad weiter, ↓ taucht ins Detail ab. Das Konzept steht in `konzept-markdown-praesentations-app.md`, die Bedienung für Anwender im `README.md`.
 
 Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. Bezeichner im Code sind englisch.
 
@@ -10,14 +10,14 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
 | `make test` | Vitest (`tests/*.test.ts`, 81 Tests, Kern-Logik ohne DOM) |
-| `make app` / `make app-build` / `make app-package` | Tauri-App: Debug bauen + starten (`DECK=…` optional) / Release bauen / portables `dist-app/Strata/` |
-| `make toolchain` | einmalig Rust (`stable-x86_64-pc-windows-gnullvm`) + llvm-mingw nach `%LOCALAPPDATA%\strata-toolchain` (ohne Admin) |
+| `make app` / `make app-build` / `make app-package` | Tauri-App: Debug bauen + starten (`DECK=…` optional) / Release bauen / portables `dist-app/Hashmark/` |
+| `make toolchain` | einmalig Rust (`stable-x86_64-pc-windows-gnullvm`) + llvm-mingw nach `%LOCALAPPDATA%\hashmark-toolchain` (ohne Admin) |
 | `make sidecar-smoke` | Node-Sidecar wie aus der App ansprechen: Deck, Datei-API, Aktionen, PDF, Handout, HTML (`SIDECAR_BUNDLE=1`: das Bündel) |
-| `make build-examples` / `make docker-examples` | alle `examples/*` als statische Seiten mit Auswahlseite (`scripts/build-examples.ts`, `src/cli/examples.ts` teilt die Liste mit der Desktop-Startseite); Docker-Image `strata/beispiele` |
-| `make app-test` | E2E der Tauri-App **headless** (`STRATA_HEADLESS=1`, Fenster unsichtbar) über WebView2-CDP; `VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json` mit Zeiten |
-| `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/strata-demo`, 3030). `make dev` ohne ausdrückliches `DECK=` startet mit `--examples`: Plugin-Option `examples` (plugin.ts, `/__strata/examples` GET/POST wechselt das Deck) + `src/runtime/example-switcher.ts` (nur `import.meta.env.DEV`) |
+| `make build-examples` / `make docker-examples` | alle `examples/*` als statische Seiten mit Auswahlseite (`scripts/build-examples.ts`, `src/cli/examples.ts` teilt die Liste mit der Desktop-Startseite); Docker-Image `hashmark/beispiele` |
+| `make app-test` | E2E der Tauri-App **headless** (`HASHMARK_HEADLESS=1`, Fenster unsichtbar) über WebView2-CDP; `VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json` mit Zeiten |
+| `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/hashmark-demo`, 3030). `make dev` ohne ausdrückliches `DECK=` startet mit `--examples`: Plugin-Option `examples` (plugin.ts, `/__hashmark/examples` GET/POST wechselt das Deck) + `src/runtime/example-switcher.ts` (nur `import.meta.env.DEV`) |
 | `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless |
-| `make check` | `strata check`: `src/core/check.ts` (statisch: Layouts, Attribute, Übergänge, Hinweise des Ladens), `src/cli/check.ts` (Überlauf: Build + Druckansicht per Edge/Chrome, liest `data-overflow` der `.print-page[data-node][data-sub]`); Exit 1 bei Fehlern; `pdf.ts`: `withPrintView`/`serveBuild` geteilt mit dem PDF-Export |
+| `make check` | `hashmark check`: `src/core/check.ts` (statisch: Layouts, Attribute, Übergänge, Hinweise des Ladens), `src/cli/check.ts` (Überlauf: Build + Druckansicht per Edge/Chrome, liest `data-overflow` der `.print-page[data-node][data-sub]`); Exit 1 bei Fehlern; `pdf.ts`: `withPrintView`/`serveBuild` geteilt mit dem PDF-Export |
 | `make deps-update` | neue Pakete online holen, landen im Cache `vendor/npm-cache` |
 
 - Das Makefile nutzt `SHELL := cmd.exe`. Rezepte müssen in cmd funktionieren und stellen `vendor\node` vor den `PATH`.
@@ -60,19 +60,19 @@ src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
   complete.ts   `completionAt(text, pos)`: Vorschläge je Kontext (`/`, `::: `, ```` ```x ````, `> [!`, `{…}`, `layout=`); rein, getestet
   lint.ts       `lintText(text)`: unbekannte Layouts/Attribute/Container, offene `:::`/Codeblöcke, mit Offsets und Korrektur; rein, getestet
   excalidraw.ts Excalidraw-SVG: Szene aus `<metadata>` (zlib/bstring) → Gruppen per Reihenfolge den Top-Level-`<g>` zuordnen → `data-step`; drawio.ts analog mit Ebenen
-src/desktop/  Node-Sidecar der Tauri-App: sidecar.ts (stdin JSON-Zeilen → stdout `@@strata {…}`; open/isDeck/scaffold/examples/
+src/desktop/  Node-Sidecar der Tauri-App: sidecar.ts (stdin JSON-Zeilen → stdout `@@hashmark {…}`; open/isDeck/scaffold/examples/
               recent/forget/pdf/html/position/close; Ereignis `action` aus den Seiten), settings.ts, ui/ (Startseite, Tauri-invoke)
-  live-server.ts   statt Vite-Dev-Server: runtime-dist/ statisch, /__strata/deck.json, /__strata/theme.css,
-                   /__strata/events (SSE: deck | reload), deck-assets/, Datei-API + App-Aktionen; fs.watch rekursiv
+  live-server.ts   statt Vite-Dev-Server: runtime-dist/ statisch, /__hashmark/deck.json, /__hashmark/theme.css,
+                   /__hashmark/events (SSE: deck | reload), deck-assets/, Datei-API + App-Aktionen; fs.watch rekursiv
   paths.ts (src/cli) PROJECT_ROOT/realPath ohne Abhängigkeiten – der Sidecar importiert nur Leichtes beim Start, alles Schwere per import()
   bundle-sidecar (scripts/) sidecar.ts → sidecar.bundle.mjs + bundle-*.mjs (Vite SSR-Build, Vite/Svelte/Shiki extern); nur im Paket
   runtime-build.ts vorgebaute Runtime (liveConfig + src/vite/live-plugin.ts), Stempel = Inhalts-Hash der Quellen
-src/runtime/deck-source.ts  onDeckUpdate(): Vite-HMR ('strata:deck') bzw. EventSource in der App (window.__STRATA_LIVE__)
+src/runtime/deck-source.ts  onDeckUpdate(): Vite-HMR ('hashmark:deck') bzw. EventSource in der App (window.__HASHMARK_LIVE__)
 src-tauri/    Tauri 2 (Rust): main.rs startet vendor/node/node.exe mit dem Sidecar (gepackt: node/ + app/ neben der EXE),
               Hauptfenster = Startseite (tauri://) bzw. Editor (http://127.0.0.1), Menü, Dialoge, Präsentation (Vollbild
               extern) + Presenter (primär), on_new_window → Deny. Capability nur für das Hauptfenster/lokale Startseite.
-src/vite/     plugin.ts: virtual:strata/deck (JSON), virtual:strata/theme.css, File-Watcher → HMR-Event
-              'strata:deck', Bild-Middleware, Asset-Emit; editor-api.ts: Datei-API nur für `strata edit`
+src/vite/     plugin.ts: virtual:hashmark/deck (JSON), virtual:hashmark/theme.css, File-Watcher → HMR-Event
+              'hashmark:deck', Bild-Middleware, Asset-Emit; editor-api.ts: Datei-API nur für `hashmark edit`
 src/cli/      index.ts (cac: dev | edit | build | preview | export | pdf), config.ts (gemeinsame Vite-Konfiguration),
               export.ts (Single-File), pdf.ts (CDP), scaffold.ts (Deck-Gerüst für make new)
 src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print)
@@ -83,7 +83,7 @@ src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print
                     nur für die Vorschau (peek). Dazu ScaledSlide.svelte, Notes.svelte, Search.svelte, presenter.css
   NavControls/NavOverview/KeyHelp/PrintView/PrintPages, transitions.ts, mermaid.ts
   base.css, print.css, themes/*.css (nur Design-Tokens: --color-*, --font-*, --shiki-*, …)
-  editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*): codemirror.ts (Setup, API), strata-lang.ts (Decorations für ::: und {…}, Highlight-Klassen .tok-*/.st-*),
+  editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*): codemirror.ts (Setup, API), hashmark-lang.ts (Decorations für ::: und {…}, Highlight-Klassen .tok-*/.st-*),
                     assist.ts (Autocomplete, Linter, Formatleiste), Palette.svelte (Strg+K), KeyBar.svelte (Tablet), Editor.svelte; Layout A „Fokus“, unter 900 px Schublade + gestapelt
 ```
 
@@ -99,7 +99,7 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
   - Code ` ```ts {steps="1,6|2-3||4"} ` (Zeilen ohne Schritt bilden das Gerüst);
   - Mermaid `%% step` (kumulative Versionen übereinander).
 - **Layouts:** `title`, `section` (Kacheln der Kinder), `default`, `two-col`, `three-col`, `statement`, `quote`, `image-left`, `image-right`, `agenda`, `comparison`, `code-focus`. Je Ebene über `layouts: { 1: section }`.
-- **Themes:** `minimal`, `dark-tech`. Die Tokens enthalten auch `--color-success`, `--color-warning` und `--color-important` für Hinweiskästen. **Theme v2:** `theme:` darf ein Objekt sein (`extends`, `tokens`, `layouts`, `css`), Beispiel und Doku auf Folien in `examples/theme-demo`. Eigene Layouts = `.layout-<name>` in einer CSS-Datei. Das Theme-CSS ist kein Dateipfad mehr, sondern ein virtuelles Modul (`\0strata-theme.css`) bzw. `/__strata/theme.css` aus `themeCss`.
+- **Themes:** `minimal`, `dark-tech`. Die Tokens enthalten auch `--color-success`, `--color-warning` und `--color-important` für Hinweiskästen. **Theme v2:** `theme:` darf ein Objekt sein (`extends`, `tokens`, `layouts`, `css`), Beispiel und Doku auf Folien in `examples/theme-demo`. Eigene Layouts = `.layout-<name>` in einer CSS-Datei. Das Theme-CSS ist kein Dateipfad mehr, sondern ein virtuelles Modul (`\0hashmark-theme.css`) bzw. `/__hashmark/theme.css` aus `themeCss`.
 - **Auto-Fit/Überlauf:** `{fit}` (bares Flag, wie `{steps}`). `src/runtime/fit.ts` misst `scrollHeight/Width` der Folie, `.content` und `pre` (Layout-Maße ohne Skalierung) und setzt bei `fit` `zoom` am `.content` (Schritt 0,05, Minimum 0,7). `Slide.svelte` misst nach dem Rendern, nach Mermaid und `document.fonts.ready`, setzt `data-overflow`/`data-fit` und zeigt das Badge nur bei `import.meta.env.DEV` oder in einem Iframe (Editor-Vorschau).
 - **Knoten-Attribute:** `layout`, `id`, `transition`, `.klasse`, `duration=5m`, `bg=…` (Farbe/Verlauf bleibt CSS, sonst Bild → `url(…)`), `bgdim=0.5`.
 - **Code:** `lines="2-3|5|all"`: Abschnitt k gilt ab Schritt k (Abschnitt 0 sofort), `all` bzw. leer = nichts abdunkeln.
@@ -128,29 +128,29 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Navigator:** `down()`/`forward()` merken sich die Position für ↑. Für reine Anzeige immer `peek = true` übergeben.
 - **Slugs behalten Umlaute** (github-slugger): `# Präsentieren` → Id `präsentieren`, im Hash `#pr%C3%A4sentieren`. In CDP-Tests die Ids kodieren.
 - **Presenter-Link** (`presenter-link.ts`):
-  - Unter http(s) läuft er über BroadcastChannel (`strata-presenter:<pfad>`). Der funktioniert ohne `window.opener`, also auch mit Tauri-Fenstern und eigenen Tabs.
+  - Unter http(s) läuft er über BroadcastChannel (`hashmark-presenter:<pfad>`). Der funktioniert ohne `window.opener`, also auch mit Tauri-Fenstern und eigenen Tabs.
   - Unter file:// (Export) läuft er über postMessage an das Partnerfenster. Vertraut wird über `e.source` bzw. denselben Origin.
   - Jede Präsentation hat eine `session`. Die Presenter-View koppelt sich an eine und adressiert Tasten per `target`. Die Editor-Vorschau (`embedded`) nimmt nicht teil.
   - Hello jede Sekunde, so übersteht die Verbindung ein Neuladen. Quelle der Wahrheit bleibt die Präsentation.
-- **Desktop-Modus der Seiten:** Das Vite-Plugin mit `onAppAction` setzt `window.__STRATA_DESKTOP__` (transformIndexHtml). Dann gehen P/S/PDF/Präsentieren/Ctrl+W per `POST /__strata/app` (Header `X-Strata-Editor`) an den Sidecar statt per `window.open`.
+- **Desktop-Modus der Seiten:** Das Vite-Plugin mit `onAppAction` setzt `window.__HASHMARK_DESKTOP__` (transformIndexHtml). Dann gehen P/S/PDF/Präsentieren/Ctrl+W per `POST /__hashmark/app` (Header `X-Hashmark-Editor`) an den Sidecar statt per `window.open`.
 - **Tauri spritzt `__TAURI__` in jede Seite ein**, auch in die vom lokalen Server. Aufrufe werden dort aber abgelehnt („not allowed“), weil die Capability nur das Hauptfenster mit der lokalen Startseite abdeckt. Nie `remote`-URLs in die Capability aufnehmen.
 - **Tauri-Build ohne Visual Studio:** Toolchain `x86_64-pc-windows-gnullvm` + llvm-mingw (`src-tauri/rust-toolchain.toml`, `.cargo/config.toml`). `+crt-static` ist nötig, sonst hängt die EXE an `libunwind.dll` und startet außerhalb der Build-Umgebung nicht. Git Bash meldet das irreführend als fehlende `api-ms-win-crt-…`-DLL.
-- **Kaltstart auf frisch kopierten Dateien:** Node liest beim ersten Import hunderte kleine Dateien (unified, remark, micromark …). Jede prüft der Virenscanner: kalt 10–30 s, warm 0,3 s. Deshalb ist der Sidecar im Paket ein Bündel (`scripts/bundle-sidecar.ts`, wird von `package-app.ts` erzeugt und danach wieder gelöscht, damit die Entwicklung bei den Quellen bleibt; `STRATA_SIDECAR_SOURCE=1` erzwingt die Quelle). Dazu `NODE_COMPILE_CACHE` im Datenordner. Messen mit frischer Kopie (`robocopy`) an einen neuen Ort, nicht mit dem zuletzt benutzten Ordner.
+- **Kaltstart auf frisch kopierten Dateien:** Node liest beim ersten Import hunderte kleine Dateien (unified, remark, micromark …). Jede prüft der Virenscanner: kalt 10–30 s, warm 0,3 s. Deshalb ist der Sidecar im Paket ein Bündel (`scripts/bundle-sidecar.ts`, wird von `package-app.ts` erzeugt und danach wieder gelöscht, damit die Entwicklung bei den Quellen bleibt; `HASHMARK_SIDECAR_SOURCE=1` erzwingt die Quelle). Dazu `NODE_COMPILE_CACHE` im Datenordner. Messen mit frischer Kopie (`robocopy`) an einen neuen Ort, nicht mit dem zuletzt benutzten Ordner.
 - **Aufwärmen im Sidecar** (`warmUp()`): Kern + Shiki laden und das zuletzt geöffnete Deck lesen, während die Startseite zu sehen ist. `open` nutzt das vorab gelesene Deck nur, wenn `isStale()` keine Änderung seit dem Lesen findet (mtime von Ordner und Deck-Dateien).
-- **Headless-Tests der App:** `STRATA_HEADLESS=1` macht alle Fenster unsichtbar (Hauptfenster `visible(false)`, Präsentation/Presenter werden nicht gezeigt). Die Seiten laufen trotzdem, WebView2-CDP funktioniert. Screenshots unsichtbarer Fenster sind unzuverlässig, daher nur bei `VISIBLE=1` sinnvoll.
-- **Kein Vite-Dev-Server in der App:** Die Vorbündelung (`deps_temp_… → deps`) scheitert unter Windows oft mit `EPERM rename`, weil Virenscanner oder Indexer die Dateien sperren. Die Seite wartet dann minutenlang. Deshalb liefert die App eine vorgebaute Runtime über `live-server.ts` aus. `make dev`/`make edit` nutzen weiterhin Vite. Neue virtuelle Module oder HMR-Ereignisse brauchen beide Wege (`strata()` und `strataLive()`, `onDeckUpdate`).
+- **Headless-Tests der App:** `HASHMARK_HEADLESS=1` macht alle Fenster unsichtbar (Hauptfenster `visible(false)`, Präsentation/Presenter werden nicht gezeigt). Die Seiten laufen trotzdem, WebView2-CDP funktioniert. Screenshots unsichtbarer Fenster sind unzuverlässig, daher nur bei `VISIBLE=1` sinnvoll.
+- **Kein Vite-Dev-Server in der App:** Die Vorbündelung (`deps_temp_… → deps`) scheitert unter Windows oft mit `EPERM rename`, weil Virenscanner oder Indexer die Dateien sperren. Die Seite wartet dann minutenlang. Deshalb liefert die App eine vorgebaute Runtime über `live-server.ts` aus. `make dev`/`make edit` nutzen weiterhin Vite. Neue virtuelle Module oder HMR-Ereignisse brauchen beide Wege (`hashmark()` und `hashmarkLive()`, `onDeckUpdate`).
 - **8.3-Kurznamen (`C:\Users\MICHAE~1\…`, typisch in %TEMP%):** Vite verweigert Dateien, wenn Freigabe und Anfrage in unterschiedlicher Form vorliegen (`outside of Vite serving allow list`, `/@vite/client` → 404). Deshalb löst `config.ts` (`realPath`), `deck.ts` (Themes) und `main.rs` (`long_path` für EXE- und App-Ordner) alles auf lange Pfade auf.
-- **Gepacktes Programm:** Mit der GNU-Toolchain ist der WebView2-Loader dynamisch gelinkt, `WebView2Loader.dll` muss neben `Strata.exe` liegen (erledigt `package-app.ts`).
+- **Gepacktes Programm:** Mit der GNU-Toolchain ist der WebView2-Loader dynamisch gelinkt, `WebView2Loader.dll` muss neben `Hashmark.exe` liegen (erledigt `package-app.ts`).
 - **Ohne Feature `custom-protocol`** erwartet Tauri einen Dev-Server. Es steht als Default in `Cargo.toml`.
 - **Drag & Drop:** Das Hauptfenster nutzt `disable_drag_drop_handler()`, damit Bilder im Editor per HTML5-Drag & Drop funktionieren.
 - **WebView2 per CDP testen:** App mit `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>` starten, dann wie bei Edge über `/json/list`.
 - **Tasten per CDP:** Für `window.open` (Taste S) braucht es `Input.dispatchKeyEvent`, also eine echte Nutzer-Geste. Synthetische Events öffnen kein Popup.
 - **Shell:** Markdown mit Backticks nie in `node -e "…"` bzw. doppelten Anführungszeichen bearbeiten, Bash führt sie als Befehle aus. Dafür das Edit-Werkzeug nehmen.
-- **Editor-API:** nur localhost, Header `X-Strata-Editor: 1`, nur Pfade im Deck, nur `.md`/`.yaml`/Bilder. `strata edit` hat bewusst kein `--host`.
+- **Editor-API:** nur localhost, Header `X-Hashmark-Editor: 1`, nur Pfade im Deck, nur `.md`/`.yaml`/Bilder. `hashmark edit` hat bewusst kein `--host`.
 - Die Datei-API-Pfade und `deck-assets/` sind **relativ**, damit Builds auch in Unterverzeichnissen laufen (`base: './'`).
 
 - **Editor (CodeMirror 6):**
-  - Die Farben der Strata-Syntax (`.st-*`) stehen als Decorations innerhalb der Markdown-Überschrift (`.tok-h`) und brauchen `!important`, sonst gewinnt die Überschriftenfarbe.
+  - Die Farben der Hashmark-Syntax (`.st-*`) stehen als Decorations innerhalb der Markdown-Überschrift (`.tok-h`) und brauchen `!important`, sonst gewinnt die Überschriftenfarbe.
   - Bei `showTooltip` ist das gelieferte `dom` selbst das `.cm-tooltip`-Element. Eigene Farben brauchen deshalb `.cm-editor .cm-tooltip.st-bubble` (mehr Spezifität als das Basis-Theme).
   - Vorschläge starten nur bei Eingabe (`userEvent input.type`), nicht bei programmatischen Änderungen. Tests per CDP tippen mit `Input.dispatchKeyEvent` (`char`).
   - Headless: `Emulation.setTouchEmulationEnabled` macht `pointer: coarse` wahr (Tastaturleiste), `setFocusEmulationEnabled` liefert `view.hasFocus`.

@@ -26,9 +26,9 @@ const BROWSERS: Record<string, string[]> = {
 }
 
 export function findBrowser(explicit?: string): string {
-  const candidates = [explicit, process.env.STRATA_BROWSER, ...(BROWSERS[process.platform] ?? [])].filter(Boolean) as string[]
+  const candidates = [explicit, process.env.HASHMARK_BROWSER, ...(BROWSERS[process.platform] ?? [])].filter(Boolean) as string[]
   const found = candidates.find((p) => fs.existsSync(p))
-  if (!found) throw new Error('Kein Edge/Chrome gefunden. Pfad mit --browser <pfad> oder STRATA_BROWSER angeben.')
+  if (!found) throw new Error('Kein Edge/Chrome gefunden. Pfad mit --browser <pfad> oder HASHMARK_BROWSER angeben.')
   return found
 }
 
@@ -83,15 +83,26 @@ async function launch(browser: string, profile: string): Promise<{ proc: ChildPr
     '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--hide-scrollbars',
     `--user-data-dir=${profile}`, '--remote-debugging-port=0', 'about:blank',
   ], { stdio: ['ignore', 'ignore', 'pipe'] })
+  // Port aus stderr oder aus `DevToolsActivePort` im Profil. Neuere Edge-Versionen starten den Browser in einem
+  // weiteren Prozess und beenden den gestarteten mit Code 0 – das ist kein Fehler.
   const port = await new Promise<number>((resolve, reject) => {
     let log = ''
-    const timer = setTimeout(() => reject(new Error(`Browser startet nicht:\n${log}`)), 30_000)
+    let done = false
+    const finish = (fn: () => void) => { if (!done) { done = true; clearTimeout(timer); clearInterval(poll); fn() } }
+    const timer = setTimeout(() => finish(() => reject(new Error(`Browser startet nicht:\n${log}`))), 30_000)
+    const poll = setInterval(() => {
+      try {
+        const port = Number(fs.readFileSync(path.join(profile, 'DevToolsActivePort'), 'utf8').split('\n')[0])
+        if (port > 0) finish(() => resolve(port))
+      } catch { /* noch nicht da */ }
+    }, 150)
     proc.stderr!.on('data', (chunk) => {
       log += chunk
       const m = log.match(/DevTools listening on ws:\/\/[^:]+:(\d+)\//)
-      if (m) { clearTimeout(timer); resolve(Number(m[1])) }
+      if (m) finish(() => resolve(Number(m[1])))
     })
-    proc.on('exit', (code) => { clearTimeout(timer); reject(new Error(`Browser beendet (${code}):\n${log}`)) })
+    proc.on('error', (e) => finish(() => reject(e)))
+    proc.on('exit', (code) => { if (code) finish(() => reject(new Error(`Browser beendet (${code}):\n${log}`))) })
   })
   return { proc, port }
 }
@@ -109,11 +120,11 @@ type Cdp = Awaited<ReturnType<typeof connect>>
 
 /**
  * Seite unter `url` (Druckansicht) in Edge/Chrome headless öffnen, auf das Signal `printReady` warten und `fn` ausführen.
- * Räumt Browser und Profil danach auf. Basis für den PDF-Export und `strata check`.
+ * Räumt Browser und Profil danach auf. Basis für den PDF-Export und `hashmark check`.
  */
 export async function withPrintView<T>(url: string, browserPath: string | undefined, fn: (cdp: Cdp) => Promise<T>): Promise<T> {
   const browser = findBrowser(browserPath)
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'strata-print-'))
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'hashmark-print-'))
   let proc: ChildProcess | undefined
   try {
     const launched = await launch(browser, path.join(tmp, 'profile'))
@@ -135,6 +146,7 @@ export async function withPrintView<T>(url: string, browserPath: string | undefi
       }
       return await fn(cdp)
     } finally {
+      await cdp.send('Browser.close').catch(() => {})
       cdp.close()
     }
   } finally {
@@ -146,7 +158,7 @@ export async function withPrintView<T>(url: string, browserPath: string | undefi
 
 /**
  * Druckansicht unter `url` (…/?print&…) mit Edge/Chrome headless als PDF speichern.
- * Genutzt von `strata pdf` (nach einem Build) und von der Desktop-App (direkt vom laufenden Server).
+ * Genutzt von `hashmark pdf` (nach einem Build) und von der Desktop-App (direkt vom laufenden Server).
  */
 export function printUrlToPdf(url: string, out: string, browserPath?: string): Promise<PrintResult> {
   return withPrintView(url, browserPath, async (cdp) => {
@@ -168,7 +180,7 @@ export function printUrlToPdf(url: string, out: string, browserPath?: string): P
 
 /** Deck bauen und lokal ausliefern (für Druckansicht und Prüfung); `close()` räumt Server und Build auf. */
 export async function serveBuild(config: InlineConfig): Promise<{ url: string; close(): Promise<void> }> {
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'strata-pdf-'))
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'hashmark-pdf-'))
   const dist = path.join(tmp, 'dist')
   let server: http.Server | undefined
   const close = async () => {
@@ -187,13 +199,13 @@ export async function serveBuild(config: InlineConfig): Promise<{ url: string; c
 
 export async function exportPdf(config: InlineConfig, opts: PdfOptions) {
   const browser = findBrowser(opts.browser)
-  console.log('[strata] baue Deck …')
+  console.log('[hashmark] baue Deck …')
   const site = await serveBuild(config)
   try {
-    console.log(`[strata] rendere mit ${path.basename(browser)} …`)
+    console.log(`[hashmark] rendere mit ${path.basename(browser)} …`)
     const r = await printUrlToPdf(site.url + opts.query, opts.out, browser)
-    console.log(`[strata] PDF: ${opts.out} (${r.pages} Seiten, ${(r.bytes / 1024 / 1024).toFixed(1)} MB)`)
-    if (r.warnings.length) console.warn(`[strata] Hinweise aus dem Browser:\n${r.warnings.join('\n')}`)
+    console.log(`[hashmark] PDF: ${opts.out} (${r.pages} Seiten, ${(r.bytes / 1024 / 1024).toFixed(1)} MB)`)
+    if (r.warnings.length) console.warn(`[hashmark] Hinweise aus dem Browser:\n${r.warnings.join('\n')}`)
   } finally {
     await site.close()
   }

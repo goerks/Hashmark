@@ -7,7 +7,7 @@ import { deflateSync } from 'node:zlib'
 import { excalidrawElements, excalidrawSteps } from '../src/core/excalidraw.ts'
 import { loadDeck } from '../src/core/deck.ts'
 
-const DEMO = path.resolve(import.meta.dirname, '../examples/strata-demo/bilder/user-story-map.excalidraw.svg')
+const DEMO = path.resolve(import.meta.dirname, '../examples/hashmark-demo/bilder/user-story-map.excalidraw.svg')
 
 /** Minimaler Export: Szene wie Excalidraw (bstring + zlib, Base64 über latin1) und je Element ein `<g>`. */
 function svgOf(elements: { groupIds?: string[]; isDeleted?: boolean }[], body: string[]) {
@@ -59,7 +59,7 @@ describe('Excalidraw', () => {
   })
 
   it('bindet steps=groups als Schritte ein, ohne bleibt es ein Bild', async () => {
-    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'strata-'))
+    const dir = await fsp.mkdtemp(path.join(os.tmpdir(), 'hashmark-'))
     fs.copyFileSync(DEMO, path.join(dir, 'm.excalidraw.svg'))
     await fsp.writeFile(path.join(dir, 'a.md'), '# A\n\n![Map](m.excalidraw.svg){steps=groups order="3,1,2,4+5,6"}\n\n![Plain](m.excalidraw.svg)\n')
     const { deck, warnings } = await loadDeck(dir)

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CLI: strata dev | build | preview | export
+// CLI: hashmark dev | build | preview | export
 
 import path from 'node:path'
 import cac from 'cac'
@@ -13,7 +13,7 @@ import { printQuery } from '../core/print.ts'
 /** `--host` ohne Wert = alle Netzwerk-Interfaces, sonst die angegebene Adresse */
 const hostOf = (host: string | boolean | undefined) => (host === '' || host === true ? true : host || undefined)
 
-const cli = cac('strata')
+const cli = cac('hashmark')
 
 cli
   .command('dev [deck]', 'Dev-Server mit Hot Reload starten')
@@ -78,7 +78,7 @@ cli
   .option('--steps', 'jeder Schritt eine eigene Seite')
   .option('--notes', 'Handout: A4 hoch mit Sprechernotizen')
   .option('--no-footer', 'ohne Breadcrumb und Seitenzahl')
-  .option('--browser <path>', 'Pfad zu Edge/Chrome (sonst automatisch, oder STRATA_BROWSER)')
+  .option('--browser <path>', 'Pfad zu Edge/Chrome (sonst automatisch, oder HASHMARK_BROWSER)')
   .action(async (deck = '.', opts: { out?: string; depth?: string; steps?: boolean; notes?: boolean; footer: boolean; browser?: string }) => {
     const name = path.basename(path.resolve(deck)) + (opts.notes ? '-handout' : '')
     const out = path.resolve(opts.out ?? path.join('export', `${name}.pdf`))
@@ -89,14 +89,14 @@ cli
 cli
   .command('check [deck]', 'Deck prüfen: Layouts, Attribute, Bilder, Theme und Überlauf der Folien (Exit-Code 1 bei Fehlern)')
   .option('--no-overflow', 'nur statisch prüfen, ohne Browser (schnell)')
-  .option('--browser <path>', 'Pfad zu Edge/Chrome (sonst automatisch, oder STRATA_BROWSER)')
+  .option('--browser <path>', 'Pfad zu Edge/Chrome (sonst automatisch, oder HASHMARK_BROWSER)')
   .option('--strict', 'auch Hinweise gelten als Fehler')
   .action(async (deck = '.', opts: { overflow: boolean; browser?: string; strict?: boolean }) => {
     const findings = await checkDeck(deck, { overflow: opts.overflow, browser: opts.browser })
     for (const f of findings) console.log(formatFinding(f))
     const errors = findings.filter((f) => f.level === 'error').length
     const hints = findings.length - errors
-    console.log(findings.length ? `\n${errors} Fehler, ${hints} Hinweise` : '[strata] Alles in Ordnung')
+    console.log(findings.length ? `\n${errors} Fehler, ${hints} Hinweise` : '[hashmark] Alles in Ordnung')
     if (errors || (opts.strict && hints)) process.exitCode = 1
   })
 

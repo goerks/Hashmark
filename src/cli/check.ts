@@ -1,4 +1,4 @@
-// `strata check`: Deck prüfen wie ein Linter. Statisch (Laden, Layouts, Attribute, Bilder, Theme) und per Browser (Überlauf).
+// `hashmark check`: Deck prüfen wie ein Linter. Statisch (Laden, Layouts, Attribute, Bilder, Theme) und per Browser (Überlauf).
 
 import path from 'node:path'
 import { staticChecks, type Finding } from '../core/check.ts'

@@ -7,7 +7,7 @@ import path from 'node:path'
 import { PROJECT_ROOT } from '../cli/paths.ts'
 
 export const RUNTIME_OUT = path.join(PROJECT_ROOT, 'runtime-dist')
-const STAMP = '.strata-runtime.json'
+const STAMP = '.hashmark-runtime.json'
 const SOURCES = ['src/runtime', 'src/core', 'src/vite', 'package.json']
 
 function files(p: string): string[] {
@@ -45,18 +45,18 @@ export function isFresh(out = RUNTIME_OUT): boolean {
 export async function ensureRuntime(log: (msg: string) => void = console.error, out = RUNTIME_OUT, cacheDir?: string): Promise<string> {
   if (isFresh(out)) return out
   const started = Date.now()
-  log('[strata] baue die Runtime der App (einmalig nach Änderungen) …')
+  log('[hashmark] baue die Runtime der App (einmalig nach Änderungen) …')
   // Vite nur laden, wenn wirklich gebaut wird (spart beim Start der App ~1 s)
   const [{ build }, { liveConfig }] = await Promise.all([import('vite'), import('../cli/config.ts')])
   await build(liveConfig(out, { cacheDir }))
   ownHash = sourceHash()
   fs.writeFileSync(path.join(out, STAMP), JSON.stringify({ hash: ownHash, built: new Date().toISOString() }))
-  log(`[strata] Runtime gebaut in ${((Date.now() - started) / 1000).toFixed(0)} s`)
+  log(`[hashmark] Runtime gebaut in ${((Date.now() - started) / 1000).toFixed(0)} s`)
   return out
 }
 
 // Aufruf als Skript: node src/desktop/runtime-build.ts  (make app / make app-package)
 if (process.argv[1] && path.basename(process.argv[1]) === 'runtime-build.ts') {
   await ensureRuntime(console.log)
-  console.log(`[strata] Runtime: ${RUNTIME_OUT}${isFresh() ? ' (aktuell)' : ''}`)
+  console.log(`[hashmark] Runtime: ${RUNTIME_OUT}${isFresh() ? ' (aktuell)' : ''}`)
 }

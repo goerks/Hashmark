@@ -1,8 +1,8 @@
 [package]
-name = "strata"
+name = "hashmark"
 version = "0.1.0"
 edition = "2024"
-description = "Strata – Markdown-Präsentationen als navigierbarer Baum (Desktop)"
+description = "Hashmark – Mächtige Präsentationen aus reinem Markdown (Desktop)"
 
 [dependencies]
 serde = { version = "1.0.229", features = ["derive"] }

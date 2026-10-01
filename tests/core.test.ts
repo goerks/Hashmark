@@ -46,7 +46,7 @@ describe('Baum', () => {
 })
 
 async function tempDeck(files: Record<string, string>) {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'strata-'))
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'hashmark-'))
   for (const [name, content] of Object.entries(files)) {
     await fs.mkdir(path.dirname(path.join(dir, name)), { recursive: true })
     await fs.writeFile(path.join(dir, name), content)
@@ -418,7 +418,7 @@ describe('Theme v2', () => {
   })
 })
 
-describe('strata check (statisch)', () => {
+describe('hashmark check (statisch)', () => {
   it('meldet unbekannte Layouts, Attribute und Übergänge, kennt Theme-Layouts', async () => {
     const { staticChecks } = await import('../src/core/check.ts')
     const dir = await tempDeck({

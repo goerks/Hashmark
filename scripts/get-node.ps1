@@ -9,7 +9,7 @@ $ProgressPreference = "SilentlyContinue"
 
 $name = "node-v$Version-win-x64"
 $base = "https://nodejs.org/dist/v$Version"
-$tmp = Join-Path ([System.IO.Path]::GetTempPath()) "strata-node-$Version"
+$tmp = Join-Path ([System.IO.Path]::GetTempPath()) "hashmark-node-$Version"
 New-Item -ItemType Directory -Force $tmp | Out-Null
 $zip = Join-Path $tmp "$name.zip"
 

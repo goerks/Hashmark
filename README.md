@@ -1,6 +1,8 @@
-# Strata (MVP)
+# Hashmark (MVP)
 
-Präsentationen aus 1..n Markdown-Dateien als **navigierbarer Baum**: → erzählt weiter, ↓ taucht ins Detail ab.
+**Mächtige Präsentationen aus reinem Markdown.** Ein starker Editor, Folien als navigierbarer Baum.
+
+Hashmark macht aus 1..n Markdown-Dateien eine Slideshow: → erzählt auf dem Hauptpfad weiter, ↓ taucht ins Detail ab.
 Konzept: [konzept-markdown-praesentations-app.md](konzept-markdown-praesentations-app.md)
 
 ## Schnellstart
@@ -20,9 +22,9 @@ make dev DECK=decks/mein-vortrag
 | Befehl | Wirkung |
 | --- | --- |
 | `make setup` | Node.js nach `vendor/node` (falls fehlend) und `npm ci --offline` aus `vendor/npm-cache` |
-| `make app` / `make app-package` | Desktop-App (Tauri) bauen und starten bzw. als portables `Strata.exe` packen, siehe „Desktop-App“ |
+| `make app` / `make app-package` | Desktop-App (Tauri) bauen und starten bzw. als portables `Hashmark.exe` packen, siehe „Desktop-App“ |
 | `make edit` | Editor mit Live-Vorschau im Browser (`DECK=…`), siehe unten |
-| `make dev` / `make dev-open` | Dev-Server mit Hot Reload (`DECK=…`, `PORT=…`). Ohne `DECK=` zeigt die Seite unten links eine Auswahl der Beispiel-Decks (`examples/`), z. B. `strata-demo` und `theme-demo`. |
+| `make dev` / `make dev-open` | Dev-Server mit Hot Reload (`DECK=…`, `PORT=…`). Ohne `DECK=` zeigt die Seite unten links eine Auswahl der Beispiel-Decks (`examples/`), z. B. `hashmark-demo` und `theme-demo`. |
 | `make build` | Statisches HTML nach `dist/` (`OUT=…`) |
 | `make preview` | Gebautes Deck lokal ausliefern |
 | `make dev-lan` / `make preview-lan` | Wie `dev` / `preview`, aber im Netzwerk (LAN/VPN) erreichbar |
@@ -30,7 +32,7 @@ make dev DECK=decks/mein-vortrag
 | `make pdf` | PDF nach `export/<deck>.pdf` (Optionen siehe „PDF und Druck“) |
 | `make check` | Deck prüfen wie ein Linter (`DECK=…`): unbekannte Layouts/Attribute, fehlende Bilder, Theme-Fehler und Überlauf der Folien. `NOOVERFLOW=1` ohne Browser, `STRICT=1` Hinweise als Fehler. Exit-Code 1 bei Fehlern, geeignet für CI |
 | `make docker` / `make docker-run` | Build und Docker-Image mit nginx (`IMAGE=…`), starten auf `DOCKER_PORT` (8080) |
-| `make build-examples` / `make docker-examples` | Alle Beispiele unter `examples/` mit Auswahlseite (`dist/index.html` + `dist/<deck>/`), bzw. als nginx-Image `strata/beispiele` |
+| `make build-examples` / `make docker-examples` | Alle Beispiele unter `examples/` mit Auswahlseite (`dist/index.html` + `dist/<deck>/`), bzw. als nginx-Image `hashmark/beispiele` |
 | `make test` | Tests (Parser, Deck-Baum, Navigator, Layouts, Suche, Zeitplan) |
 | `make deps-update` | Pakete online aktualisieren und im Cache ablegen |
 | `make clean` / `make distclean` | `dist/` bzw. zusätzlich `node_modules/` löschen |
@@ -41,16 +43,16 @@ make dev DECK=decks/mein-vortrag
 make toolchain                    # einmalig: Rust + llvm-mingw (ohne Admin, braucht Internet)
 make app                          # bauen und starten: Startseite mit Deck öffnen / neu / Beispiel / zuletzt geöffnet
 make app DECK=decks/mein-vortrag  # direkt ein Deck öffnen
-make app-package                  # portables Programm: dist-app/Strata/Strata.exe
+make app-package                  # portables Programm: dist-app/Hashmark/Hashmark.exe
 ```
 
-Die App ist ein schlankes Tauri-Fenster (WebView2 aus Windows). Die eigentliche Arbeit macht Strata wie bisher in Node. Die App startet dafür das Node aus `vendor/node` als **Sidecar**.
+Die App ist ein schlankes Tauri-Fenster (WebView2 aus Windows). Die eigentliche Arbeit macht Hashmark wie bisher in Node. Die App startet dafür das Node aus `vendor/node` als **Sidecar**.
 
 - **Schnell:** Ein Deck ist in wenigen Sekunden offen, das PDF ist in etwa 5 s fertig. Im Hintergrund wärmt die App schon beim Start auf: Sie lädt den Kern, startet die Code-Hervorhebung und liest das zuletzt geöffnete Deck vorab. Ein Klick darauf öffnet es dann in Millisekunden. Das gepackte Programm bündelt den Node-Teil zu wenigen Dateien, damit auch der allererste Start auf frisch kopierten Dateien (USB-Stick, Virenscanner) schnell ist.
-- **Zeiten im Log:** `%APPDATA%app.strata.desktopsidecar.log` zeigt, wo die Zeit bleibt (Aufwärmen, Deck geöffnet in … ms, PDF in … ms).
-- **Vorgebaute Runtime:** Die Oberfläche (Präsentation, Editor, Presenter) wird einmal vorgebaut (`runtime-dist/`, nur nach Änderungen an den Quellen). Ein kleiner Live-Server liefert sie aus, zusammen mit dem Deck. Änderungen an den Markdown-Dateien erscheinen sofort, auch bei Bearbeitung in einem anderen Editor. Der Ordner `dist-app/Strata/` lässt sich kopieren und läuft ohne Installation: `Strata.exe` bzw. `Strata.exe <deck-ordner>`.
+- **Zeiten im Log:** `%APPDATA%app.hashmark.desktopsidecar.log` zeigt, wo die Zeit bleibt (Aufwärmen, Deck geöffnet in … ms, PDF in … ms).
+- **Vorgebaute Runtime:** Die Oberfläche (Präsentation, Editor, Presenter) wird einmal vorgebaut (`runtime-dist/`, nur nach Änderungen an den Quellen). Ein kleiner Live-Server liefert sie aus, zusammen mit dem Deck. Änderungen an den Markdown-Dateien erscheinen sofort, auch bei Bearbeitung in einem anderen Editor. Der Ordner `dist-app/Hashmark/` lässt sich kopieren und läuft ohne Installation: `Hashmark.exe` bzw. `Hashmark.exe <deck-ordner>`.
 
-- **Startseite:** Deck öffnen (Ctrl+O), Neues Deck (Ctrl+N, leeren Ordner wählen oder anlegen), Liste der Beispiele (`examples/`: `strata-demo`, `theme-demo`), zuletzt geöffnete Decks.
+- **Startseite:** Deck öffnen (Ctrl+O), Neues Deck (Ctrl+N, leeren Ordner wählen oder anlegen), Liste der Beispiele (`examples/`: `hashmark-demo`, `theme-demo`), zuletzt geöffnete Decks.
 - **Editor:** derselbe wie bei `make edit`. „Präsentieren ↗“ startet die Präsentation, „PDF“ speichert direkt ein PDF.
 - **Präsentieren:** F5 ab der aktuellen Folie, Shift+F5 von vorne.
   - Mit Beamer laufen die Folien dort im Vollbild, die Presenter-View öffnet sich auf dem Hauptbildschirm.
@@ -63,11 +65,11 @@ Die App ist ein schlankes Tauri-Fenster (WebView2 aus Windows). Die eigentliche 
   - Die Seiten vom Server (Editor, Folien) dürfen keine App-Befehle aufrufen, nur die eigene Startseite.
   - Aktionen wie „Präsentieren“ melden die Seiten per HTTP mit Schutz-Header an den Sidecar.
   - Externe Links öffnen im Standardbrowser.
-- **Daten:** zuletzt geöffnete Decks und `sidecar.log` in `%APPDATA%\app.strata.desktop\` (Menü Hilfe → Datenordner).
+- **Daten:** zuletzt geöffnete Decks und `sidecar.log` in `%APPDATA%\app.hashmark.desktop\` (Menü Hilfe → Datenordner).
 
 **Werkzeuge zum Bauen** (nicht im Repo, nur auf dem Entwicklungsrechner):
 - Rust über rustup, Toolchain `stable-x86_64-pc-windows-gnullvm`
-- [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) in `%LOCALAPPDATA%\strata-toolchain\`, SHA256-geprüft
+- [llvm-mingw](https://github.com/mstorsjo/llvm-mingw) in `%LOCALAPPDATA%\hashmark-toolchain\`, SHA256-geprüft
 
 Visual Studio bzw. Admin-Rechte braucht es nicht. Beim ersten Build lädt cargo die Rust-Bibliotheken (~400 Crates) aus dem Internet nach `%USERPROFILE%\.cargo`, danach geht es offline. Die App selbst bringt keine weiteren Binärdateien ins Repo, Node liegt ohnehin schon in `vendor/node`.
 
@@ -97,7 +99,7 @@ Der Browser öffnet `http://localhost:3030/editor.html`:
 
 - **Seitenleiste** (Symbol oben links): Dateien und Gliederung des Decks. Die Gliederung zeigt den Baum mit → für den Hauptpfad und ↓ für Details, ein Klick öffnet die Datei an der Überschrift und zeigt die Folie. Die Brotkrumen oben zeigen, wo du im Baum stehst.
 - **Ansicht:** *Schreiben*, *Geteilt* oder *Vorschau*. Den Trenner zwischen Text und Vorschau kannst du ziehen.
-- **Text** (CodeMirror): Markdown und die Strata-Syntax (`:::`, `{layout=…}`, Hinweiskästen, Code in Blöcken) sind farbig. Suchen/Ersetzen mit Ctrl+F, Undo, Listen setzen sich mit Enter fort, Tab rückt ein.
+- **Text** (CodeMirror): Markdown und die Hashmark-Syntax (`:::`, `{layout=…}`, Hinweiskästen, Code in Blöcken) sind farbig. Suchen/Ersetzen mit Ctrl+F, Undo, Listen setzen sich mit Enter fort, Tab rückt ein.
 - **Vorschau** rechts: Jede Änderung wird nach 0,4 s automatisch gespeichert und sofort angezeigt. Ctrl+S speichert direkt.
 - **Synchron** (Schalter oben): Die Vorschau zeigt die Folie unter dem Cursor, inklusive Sub-Slide, vollständig aufgedeckt. Umgekehrt scrollt der Editor mit, wenn du in der Vorschau mit den Pfeiltasten oder der Übersicht navigierst.
 - **Vorschläge** erscheinen beim Tippen, **Tab** oder **Enter** übernimmt, **Esc** schließt, **Strg+Leertaste** erzwingt sie:
@@ -121,14 +123,14 @@ Sicherheit: Die Datei-API existiert nur mit `make edit`. Sie ist nur über local
 **Per Befehl** (reproduzierbar, ohne Druckdialog):
 
 ```sh
-make pdf                          # alle Folien → export/strata-demo.pdf
+make pdf                          # alle Folien → export/hashmark-demo.pdf
 make pdf DEPTH=1                  # nur Hauptpfad (Kurzfassung)
 make pdf STEPS=1                  # jeder Schritt eine eigene Seite
 make pdf NOTES=1                  # Handout A4: Folie + Sprechernotizen → export/<deck>-handout.pdf
 make pdf DECK=decks/x PDF=vortrag.pdf
 ```
 
-`make pdf` baut das Deck und druckt es mit dem installierten **Edge oder Chrome** im Headless-Modus. Es braucht keine zusätzliche Software und läuft offline. Einen anderen Browser gibst du mit `BROWSER=pfad` oder der Umgebungsvariable `STRATA_BROWSER` an.
+`make pdf` baut das Deck und druckt es mit dem installierten **Edge oder Chrome** im Headless-Modus. Es braucht keine zusätzliche Software und läuft offline. Einen anderen Browser gibst du mit `BROWSER=pfad` oder der Umgebungsvariable `HASHMARK_BROWSER` an.
 
 **Im Browser:**
 
@@ -152,7 +154,7 @@ Das PDF hat:
 | Auf einem fremden Rechner / USB-Stick / per Mail | `make export` | `export/<deck>.html` per Doppelklick öffnen. Braucht weder Server noch Internet, alles ist eingebettet (~5 MB). |
 | Kollegen im selben Netz/VPN öffnen mit | `make dev-lan` oder `make preview-lan` | Vite zeigt die Netzwerk-URL (`Network: http://<ip>:3030/`) |
 | Dauerhaft auf einem Server | `make docker` + `make docker-run` | nginx-Container, http://<server>:8080 |
-| Webservice mit Auswahl aller Beispiel-Decks | `make docker-examples` + `make docker-run IMAGE=strata/beispiele` | http://<server>:8080 zeigt eine Auswahlseite, jedes Deck liegt unter `/<name>/` (z. B. `/theme-demo/`). Neue Ordner unter `examples/` erscheinen automatisch. |
+| Webservice mit Auswahl aller Beispiel-Decks | `make docker-examples` + `make docker-run IMAGE=hashmark/beispiele` | http://<server>:8080 zeigt eine Auswahlseite, jedes Deck liegt unter `/<name>/` (z. B. `/theme-demo/`). Neue Ordner unter `examples/` erscheinen automatisch. |
 | Beliebiges statisches Hosting (GitLab/GitHub Pages, IIS, S3 …) | `make build` | Inhalt von `dist/` hochladen. Funktioniert auch in Unterverzeichnissen. |
 
 Hinweise:
@@ -306,7 +308,7 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   - `embedImages: true` in `deck.yaml` bettet alle Bilder ein.
   - Größe/Klasse direkt hinter dem Bild: `![](x.png){width=60% height=200 .rund}`
   - Fehlende Bilder meldet das Terminal als Warnung.
-  - **Diagramme als Schritte:** `![](a.drawio.svg){steps=layers}` blendet die Ebenen eines draw.io-Diagramms der Reihe nach ein. `![](map.excalidraw.svg){steps=groups order="3,1,2+4"}` macht das mit den Gruppen einer Excalidraw-Zeichnung (Export als SVG mit **„Szene einbetten“**). Gruppe k in Z-Reihenfolge (äußerste Gruppe) ist Schritt k, `order` legt eine andere Reihenfolge fest (Nummer = Gruppe, `,` = nächster Schritt, `+` = gleichzeitig; nicht genannte Gruppen bleiben sichtbar). Ungruppierte Elemente sind immer sichtbar. Die Schritte laufen mit `::: steps` in der Folie synchron. Beispiel: `examples/strata-demo/story-map.md`.
+  - **Diagramme als Schritte:** `![](a.drawio.svg){steps=layers}` blendet die Ebenen eines draw.io-Diagramms der Reihe nach ein. `![](map.excalidraw.svg){steps=groups order="3,1,2+4"}` macht das mit den Gruppen einer Excalidraw-Zeichnung (Export als SVG mit **„Szene einbetten“**). Gruppe k in Z-Reihenfolge (äußerste Gruppe) ist Schritt k, `order` legt eine andere Reihenfolge fest (Nummer = Gruppe, `,` = nächster Schritt, `+` = gleichzeitig; nicht genannte Gruppen bleiben sichtbar). Ungruppierte Elemente sind immer sichtbar. Die Schritte laufen mit `::: steps` in der Folie synchron. Beispiel: `examples/hashmark-demo/story-map.md`.
 - **`---` als Folientrenner** funktioniert auch ohne Leerzeile darüber. CommonMark würde daraus sonst eine Überschrift machen.
 - **Theme** = CSS mit Tokens (`--color-*`, `--font-*`, `--radius`, `--space-*`, `--shiki-*`), eingebaute Themes in `src/runtime/themes/`. Kurzform: `theme: dark-tech` oder `theme: ./eigenes.css`. Ausführlich als Objekt (Beispiel: `examples/theme-demo`, `make dev DECK=examples/theme-demo`):
   ```yaml
@@ -331,10 +333,10 @@ src/core/      Parser (remark), Deck-Baum, Render-Plugins (Shiki, Mermaid), Navi
 src/vite/      Vite-Plugin: Deck als virtuelles Modul, Datei-Watcher, Hot Reload, Bild-Assets
 src/runtime/   Svelte-5-App: Bühne, Layouts, Übergänge, Breadcrumb, Übersicht, Themes
 src/runtime/editor/  Editor (editor.html): CodeMirror, Vorschau-Sync, Bild-Upload
-src/cli/       strata dev | build | preview | export | pdf, gemeinsame Vite-Konfiguration, Deck-Gerüst
+src/cli/       hashmark dev | build | preview | export | pdf, gemeinsame Vite-Konfiguration, Deck-Gerüst
 src/desktop/   Node-Sidecar der Desktop-App (stdin/stdout-Protokoll), Startseite (ui/)
 src-tauri/     Desktop-App in Rust (Tauri 2): Fenster, Menü, Dialoge, Bildschirmwahl
-examples/      Beispiel-Decks: strata-demo (Funktionen, 3 Ebenen) und theme-demo (eigenes Theme)
+examples/      Beispiel-Decks: hashmark-demo (Funktionen, 3 Ebenen) und theme-demo (eigenes Theme)
 ```
 
 ## Noch nicht umgesetzt

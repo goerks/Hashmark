@@ -190,7 +190,7 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
   warnings.push(...theme.warnings)
   return {
     deck: {
-      title: manifest.title ?? nodes[0]?.title ?? 'Strata',
+      title: manifest.title ?? nodes[0]?.title ?? 'Hashmark',
       maxDepth,
       layout: manifest.layout ?? 'default',
       ...(duration ? { duration } : {}),

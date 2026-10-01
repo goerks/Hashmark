@@ -9,25 +9,25 @@ import { loadDeck, type LoadResult } from '../core/deck.ts'
 import { ASSET_PREFIX, IMAGE_MIME, toDataUri } from '../core/render.ts'
 import { editorApi } from './editor-api.ts'
 
-export const DECK_ID = 'virtual:strata/deck'
-export const THEME_ID = 'virtual:strata/theme.css'
-const RESOLVED_DECK = '\0strata-deck'
-const RESOLVED_THEME = '\0strata-theme.css'
+export const DECK_ID = 'virtual:hashmark/deck'
+export const THEME_ID = 'virtual:hashmark/theme.css'
+const RESOLVED_DECK = '\0hashmark-deck'
+const RESOLVED_THEME = '\0hashmark-theme.css'
 
 /** Payload für den Client: entweder ein Deck oder eine Fehlermeldung. */
 type Payload = { deck: LoadResult['deck'] } | { error: string }
 
-export interface StrataOptions {
+export interface HashmarkOptions {
   deckDir: string
   /** Bilder als Data-URI in den Deck-Baum einbetten (Single-File-Export) */
   inlineAssets?: boolean
-  /** Datei-API für den Editor aktivieren (nur `strata edit`, nur localhost) */
+  /** Datei-API für den Editor aktivieren (nur `hashmark edit`, nur localhost) */
   editor?: boolean
   /** Dev-Server: Ordner mit Beispiel-Decks, zwischen denen die Seite umschalten darf (`make dev` ohne `DECK=`) */
   examples?: string
 }
 
-export function strata(options: StrataOptions): Plugin {
+export function hashmark(options: HashmarkOptions): Plugin {
   let deckDir = path.resolve(options.deckDir)
   let current: Promise<LoadResult> = loadDeck(deckDir)
   let lastTheme: string | undefined
@@ -42,7 +42,7 @@ export function strata(options: StrataOptions): Plugin {
   }
 
   const logWarnings = (log: (msg: string) => void) =>
-    current.then((r) => r.warnings.forEach((w) => log(`[strata] ${w}`)), () => {})
+    current.then((r) => r.warnings.forEach((w) => log(`[hashmark] ${w}`)), () => {})
 
   async function reload(server: ViteDevServer) {
     current = loadDeck(deckDir)
@@ -59,14 +59,14 @@ export function strata(options: StrataOptions): Plugin {
       server.ws.send({ type: 'full-reload' })
       return
     }
-    server.ws.send({ type: 'custom', event: 'strata:deck', data })
+    server.ws.send({ type: 'custom', event: 'hashmark:deck', data })
     const msg = 'error' in data ? `Fehler: ${data.error}` : `Deck neu geladen (${data.deck.nodes.length} Kapitel)`
-    server.config.logger.info(`[strata] ${msg}`, { timestamp: true })
+    server.config.logger.info(`[hashmark] ${msg}`, { timestamp: true })
     logWarnings((m) => server.config.logger.warn(m, { timestamp: true }))
   }
 
   return {
-    name: 'strata',
+    name: 'hashmark',
     enforce: 'pre',
 
     async resolveId(id) {
@@ -94,7 +94,7 @@ export function strata(options: StrataOptions): Plugin {
       if (options.examples) {
         const root = options.examples
         // GET: Liste + aktuelles Deck; POST {name}: Deck wechseln (nur Ordner aus der Liste), danach lädt die Seite neu
-        server.middlewares.use('/__strata/examples', (req, res) => {
+        server.middlewares.use('/__hashmark/examples', (req, res) => {
           const send = (status: number, data: unknown) => { res.statusCode = status; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(data)) }
           const examples = listExamples(root)
           const currentName = examples.find((e) => e.dir === realPath(deckDir))?.name

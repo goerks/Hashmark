@@ -64,7 +64,7 @@ Eine Aussage pro Folie. Groß, mittig, ohne Ablenkung.
 
 > Die Überschriften-Hierarchie *ist* die Struktur.
 
-— Konzept Strata, 2026
+— Konzept Hashmark, 2026
 
 ## Bild rechts {layout=image-right}
 
@@ -77,14 +77,14 @@ Eine Aussage pro Folie. Groß, mittig, ohne Ablenkung.
 ## Vergleich {layout=comparison}
 
 ::: col
-Ohne Strata
+Ohne Hashmark
 
 - Folien linear
 - Details in Backup-Folien
 - Fragen bringen den Ablauf durcheinander
 :::
 ::: col
-Mit Strata
+Mit Hashmark
 
 - Baum statt Liste
 - Abtauchen per ↓, zurück per ↑

@@ -1,4 +1,4 @@
-// Wortschatz der Strata-Syntax für Editor-Vorschläge und Linter. Die Listen der Laufzeit (check.ts) bleiben die Quelle.
+// Wortschatz der Hashmark-Syntax für Editor-Vorschläge und Linter. Die Listen der Laufzeit (check.ts) bleiben die Quelle.
 
 import { BUILTIN_LAYOUTS, KNOWN_ATTRS, TRANSITIONS } from './check.ts'
 

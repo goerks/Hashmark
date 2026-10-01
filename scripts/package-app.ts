@@ -1,7 +1,7 @@
-// Portables Windows-Programm aus dem Release-Build: make app-package → dist-app/Strata/Strata.exe
+// Portables Windows-Programm aus dem Release-Build: make app-package → dist-app/Hashmark/Hashmark.exe
 //
-//   Strata/
-//     Strata.exe        Tauri-App (Fenster, Menü, Dialoge)
+//   Hashmark/
+//     Hashmark.exe        Tauri-App (Fenster, Menü, Dialoge)
 //     WebView2Loader.dll  Loader für WebView2 (bei der GNU-Toolchain dynamisch gelinkt)
 //     node/node.exe     Node aus vendor/node für den Sidecar
 //     app/              src/, examples/, README.md, package.json + nur die Laufzeit-Pakete (npm ci --omit=dev, offline)
@@ -16,9 +16,9 @@ import { ensureRuntime, RUNTIME_OUT } from '../src/desktop/runtime-build.ts'
 import { bundleSidecar, cleanBundle } from './bundle-sidecar.ts'
 
 const root = path.resolve(import.meta.dirname, '..')
-const exe = path.join(root, 'src-tauri/target/x86_64-pc-windows-gnullvm/release/strata.exe')
-const exeFallback = path.join(root, 'src-tauri/target/release/strata.exe')
-const out = path.resolve(process.argv[2] ?? path.join(root, 'dist-app/Strata'))
+const exe = path.join(root, 'src-tauri/target/x86_64-pc-windows-gnullvm/release/hashmark.exe')
+const exeFallback = path.join(root, 'src-tauri/target/release/hashmark.exe')
+const out = path.resolve(process.argv[2] ?? path.join(root, 'dist-app/Hashmark'))
 const started = Date.now()
 
 const built = [exe, exeFallback].find((p) => fs.existsSync(p))
@@ -29,7 +29,7 @@ if (!built) {
 
 fs.rmSync(out, { recursive: true, force: true })
 fs.mkdirSync(path.join(out, 'node'), { recursive: true })
-fs.copyFileSync(built, path.join(out, 'Strata.exe'))
+fs.copyFileSync(built, path.join(out, 'Hashmark.exe'))
 // Mit der GNU-Toolchain ist der WebView2-Loader nicht statisch gelinkt – die DLL muss neben die EXE
 const loader = path.join(path.dirname(built), 'WebView2Loader.dll')
 if (!fs.existsSync(loader)) {
@@ -65,5 +65,5 @@ fs.rmSync(path.join(app, 'package-lock.json'))
 
 const size = (p: string): number => fs.statSync(p).isDirectory() ? fs.readdirSync(p).reduce((s, f) => s + size(path.join(p, f)), 0) : fs.statSync(p).size
 const mb = (p: string) => `${(size(p) / 1024 / 1024).toFixed(0)} MB`
-console.log(`[strata] Programm: ${path.join(out, 'Strata.exe')}`)
-console.log(`[strata] Größe: gesamt ${mb(out)} (Strata.exe ${mb(path.join(out, 'Strata.exe'))}, Node ${mb(path.join(out, 'node'))}, App ${mb(app)}) in ${((Date.now() - started) / 1000).toFixed(0)} s`)
+console.log(`[hashmark] Programm: ${path.join(out, 'Hashmark.exe')}`)
+console.log(`[hashmark] Größe: gesamt ${mb(out)} (Hashmark.exe ${mb(path.join(out, 'Hashmark.exe'))}, Node ${mb(path.join(out, 'node'))}, App ${mb(app)}) in ${((Date.now() - started) / 1000).toFixed(0)} s`)

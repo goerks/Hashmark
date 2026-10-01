@@ -46,5 +46,5 @@ if (process.argv[1] && path.basename(process.argv[1]) === 'bundle-sidecar.ts') {
   const file = await bundleSidecar()
   const files = fs.readdirSync(outDir).filter((f) => /^(sidecar\.bundle|bundle-.*)\.mjs$/.test(f))
   const kb = files.reduce((s, f) => s + fs.statSync(path.join(outDir, f)).size, 0) / 1024
-  console.log(`[strata] Sidecar gebündelt: ${path.relative(root, file)} + ${files.length - 1} Teile, ${kb.toFixed(0)} KB, ${((Date.now() - started) / 1000).toFixed(1)} s`)
+  console.log(`[hashmark] Sidecar gebündelt: ${path.relative(root, file)} + ${files.length - 1} Teile, ${kb.toFixed(0)} KB, ${((Date.now() - started) / 1000).toFixed(1)} s`)
 }

@@ -1,4 +1,4 @@
-title: Strata – Präsentieren in die Tiefe
+title: Hashmark – Präsentieren in die Tiefe
 theme: dark-tech        # minimal | dark-tech | ./pfad/zu/eigenem.css
 maxDepth: 3           # tiefere Überschriften werden Abschnitte innerhalb der Folie
 duration: 20m         # Zeitplan für die Presenter-View (Taste S)

@@ -6,7 +6,7 @@
   import KeyHelp from './KeyHelp.svelte'
   import { Navigator, formatHash, parseHash, stepsOf, type Direction, type Move, type Position } from '../core/navigator.ts'
   import type { Deck, DeckNode } from '../core/types.ts'
-  import initial from 'virtual:strata/deck'
+  import initial from 'virtual:hashmark/deck'
   import Slide from './Slide.svelte'
   import NavOverview from './NavOverview.svelte'
   import Search from './Search.svelte'
@@ -126,11 +126,11 @@
   // spätestens beim Drucken. Nicht in der Editor-Vorschau.
   let printMounted = $state(false)
   $effect(() => {
-    if (embedded && pos) window.parent.postMessage({ type: 'strata:position', pos }, location.origin)
+    if (embedded && pos) window.parent.postMessage({ type: 'hashmark:position', pos }, location.origin)
   })
 
   $effect(() => {
-    document.title = node && deck ? `${node.title} · ${deck.title}` : (deck?.title ?? 'Strata')
+    document.title = node && deck ? `${node.title} · ${deck.title}` : (deck?.title ?? 'Hashmark')
   })
 
   function openPrintView() {
@@ -145,7 +145,7 @@
       void desktopAction({ action: 'presenter', hash: location.hash })
       return
     }
-    const win = window.open(location.pathname + '?presenter' + location.hash, 'strata-presenter', 'popup,width=1280,height=800')
+    const win = window.open(location.pathname + '?presenter' + location.hash, 'hashmark-presenter', 'popup,width=1280,height=800')
     if (win) {
       presenter = win
       win.focus()
@@ -157,7 +157,7 @@
 
   // Stand an die Presenter-View melden
   $effect(() => {
-    if (pos) link?.send({ type: 'strata:presenter-state', pos, black, session })
+    if (pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session })
   })
 
   // Desktop-App: aktuelle Folie melden (für „Präsentieren ab aktueller Folie“)
@@ -251,12 +251,12 @@
   function onPresenterMessage(msg: PresenterMessage, source: Window | null) {
     if (source) presenter = source // file://: Fenster merken, auch nach Neuladen der Präsentation
     // Tasten und Sprünge nur, wenn sie an diese Präsentation gerichtet sind
-    if ((msg.type === 'strata:presenter-key' || msg.type === 'strata:presenter-goto') && msg.target && msg.target !== session) return
-    if (msg.type === 'strata:presenter-hello' && pos) link?.send({ type: 'strata:presenter-state', pos, black, session })
-    else if (msg.type === 'strata:presenter-key') {
+    if ((msg.type === 'hashmark:presenter-key' || msg.type === 'hashmark:presenter-goto') && msg.target && msg.target !== session) return
+    if (msg.type === 'hashmark:presenter-hello' && pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session })
+    else if (msg.type === 'hashmark:presenter-key') {
       wake()
       navKey(msg.key, msg.shiftKey)
-    } else if (msg.type === 'strata:presenter-goto') {
+    } else if (msg.type === 'hashmark:presenter-goto') {
       black = false
       jump(msg.id, msg.slide)
     }
@@ -288,7 +288,7 @@
 
     // Editor → Vorschau: zur Folie unter dem Cursor springen (step 'all' = vollständig aufgedeckt)
     const onMessage = (e: MessageEvent) => {
-      if (e.origin !== location.origin || e.data?.type !== 'strata:goto') return
+      if (e.origin !== location.origin || e.data?.type !== 'hashmark:goto') return
       const target = nav.node(e.data.id)
       if (!target) return
       const slide = Math.max(0, Math.min(Number(e.data.slide) || 0, target.slides.length - 1))

@@ -40,7 +40,7 @@ Aus 1..n Dateien entsteht ein Baum. Diese Folie hat Kinder aus einer eigenen Dat
 :::
 
 ::: col
-![Architektur von Strata](bilder/strata-architektur.drawio.svg){steps=layers}
+![Architektur von Hashmark](bilder/hashmark-architektur.drawio.svg){steps=layers}
 :::
 :::
 

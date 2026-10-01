@@ -1,4 +1,4 @@
-// Erzeugt das Programm-Icon (drei gestapelte Schichten wie im Strata-Logo) als PNG und ICO,
+// Erzeugt das Programm-Icon (drei gestapelte Schichten wie im Hashmark-Logo) als PNG und ICO,
 // ohne Grafikbibliothek: Pixel mit 4-fach-Supersampling berechnen, PNG per zlib, ICO mit PNG-Einträgen.
 // Aufruf: node scripts/make-icon.ts  →  src-tauri/icons/icon.png, src-tauri/icons/icon.ico
 

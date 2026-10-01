@@ -16,7 +16,7 @@ export function indexPage(examples: Example[]): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Strata – Beispiele</title>
+<title>Hashmark – Beispiele</title>
 <style>
   :root { --bg: #ffffff; --fg: #1f2328; --muted: #667085; --accent: #2563eb; --surface: #f3f5f8; --border: #d5dbe3; }
   @media (prefers-color-scheme: dark) { :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --accent: #22d3ee; --surface: #161b22; --border: #30363d; } }
@@ -32,7 +32,7 @@ export function indexPage(examples: Example[]): string {
 </head>
 <body>
   <main>
-    <h1>Strata</h1>
+    <h1>Hashmark</h1>
     <p>Beispiele – ein Deck wählen:</p>
     <ul>
 ${cards}
@@ -50,9 +50,9 @@ if (import.meta.main) {
   fs.rmSync(out, { recursive: true, force: true })
   fs.mkdirSync(out, { recursive: true })
   for (const e of examples) {
-    console.log(`[strata] baue ${e.name} …`)
+    console.log(`[hashmark] baue ${e.name} …`)
     await build(config(e.dir, { build: { outDir: path.join(out, e.name), emptyOutDir: true, chunkSizeWarningLimit: 4000 } }))
   }
   fs.writeFileSync(path.join(out, 'index.html'), indexPage(examples))
-  console.log(`[strata] ${examples.length} Beispiele → ${out} (Auswahl: index.html)`)
+  console.log(`[hashmark] ${examples.length} Beispiele → ${out} (Auswahl: index.html)`)
 }

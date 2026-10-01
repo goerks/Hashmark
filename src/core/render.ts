@@ -73,7 +73,7 @@ const escape = (s: string) =>
 
 // ---------- Shiki ----------
 
-const cssVarTheme = createCssVariablesTheme({ name: 'strata', variablePrefix: '--shiki-', fontStyle: true })
+const cssVarTheme = createCssVariablesTheme({ name: 'hashmark', variablePrefix: '--shiki-', fontStyle: true })
 let highlighter: Promise<Highlighter> | undefined
 
 async function getHighlighter(lang: string) {
@@ -129,7 +129,7 @@ export const shikiPlugin: CodeBlockPlugin = {
     const highlights = attrs.lines ? parseLineHighlights(attrs.lines) : undefined
     let html = h.codeToHtml(node.value, {
       lang,
-      theme: 'strata',
+      theme: 'hashmark',
       transformers: [{
         line(el, line) {
           const step = lineSteps?.get(line)

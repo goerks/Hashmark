@@ -13,13 +13,13 @@ import type { Position } from '../core/navigator.ts'
 
 export type PresenterMessage =
   /** Presenter → Präsentation, regelmäßig: „ich bin da“ */
-  | { type: 'strata:presenter-hello' }
+  | { type: 'hashmark:presenter-hello' }
   /** Presenter → Präsentation: Taste wie in der Präsentation gedrückt */
-  | { type: 'strata:presenter-key'; key: string; shiftKey: boolean; target?: string }
+  | { type: 'hashmark:presenter-key'; key: string; shiftKey: boolean; target?: string }
   /** Presenter → Präsentation: zu einer Folie springen (Baum, Suche) */
-  | { type: 'strata:presenter-goto'; id: string; slide: number; target?: string }
+  | { type: 'hashmark:presenter-goto'; id: string; slide: number; target?: string }
   /** Präsentation → Presenter: aktueller Stand */
-  | { type: 'strata:presenter-state'; pos: Position; black: boolean; session: string }
+  | { type: 'hashmark:presenter-state'; pos: Position; black: boolean; session: string }
 
 /** Unter file:// ist der Origin undurchsichtig („null“), dort bleibt nur `*`; der Empfänger prüft die Quelle. */
 export const targetOrigin = () => (/^https?:$/.test(location.protocol) ? location.origin : '*')
@@ -33,7 +33,7 @@ export function send(target: Window | null | undefined, msg: PresenterMessage) {
 }
 
 const isPresenterMessage = (data: unknown): data is PresenterMessage =>
-  typeof (data as { type?: unknown })?.type === 'string' && (data as { type: string }).type.startsWith('strata:presenter-')
+  typeof (data as { type?: unknown })?.type === 'string' && (data as { type: string }).type.startsWith('hashmark:presenter-')
 
 /** Nachricht aus einem vertrauenswürdigen Fenster? Gleicher Origin oder das bekannte Partnerfenster. */
 export function isTrusted(e: MessageEvent, partner: Window | null | undefined): boolean {
@@ -58,7 +58,7 @@ export interface PresenterLink {
 export function openLink(partner: () => Window | null | undefined, onMessage: (msg: PresenterMessage, source: Window | null) => void): PresenterLink {
   if (usesChannel()) {
     // pro Deck-Pfad ein Kanal, damit sich zwei Decks auf demselben Server nicht stören
-    const channel = new BroadcastChannel(`strata-presenter:${location.pathname}`)
+    const channel = new BroadcastChannel(`hashmark-presenter:${location.pathname}`)
     channel.onmessage = (e) => { if (isPresenterMessage(e.data)) onMessage(e.data, null) }
     return { send: (msg) => channel.postMessage(msg), close: () => channel.close(), channel: true }
   }

@@ -6,7 +6,7 @@ export const NO_API = 'Keine Datei-API: Der Editor braucht den Server von `make 
 
 async function call(method: string, route: string, params: Record<string, string> = {}, body?: BodyInit): Promise<Response> {
   const query = new URLSearchParams(params).toString()
-  const res = await fetch(`/__strata${route}${query ? `?${query}` : ''}`, { method, body, headers: { 'X-Strata-Editor': '1' } })
+  const res = await fetch(`/__hashmark${route}${query ? `?${query}` : ''}`, { method, body, headers: { 'X-Hashmark-Editor': '1' } })
   if (!res.ok) {
     let msg = res.statusText
     try { msg = (await res.json()).error ?? msg } catch { /* kein JSON */ }

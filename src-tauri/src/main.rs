@@ -1,4 +1,4 @@
-// Strata Desktop (Tauri): Fenster, Menü, Dialoge, Bildschirmwahl.
+// Hashmark Desktop (Tauri): Fenster, Menü, Dialoge, Bildschirmwahl.
 // Die eigentliche Arbeit (Markdown lesen, Editor-Server, PDF/HTML-Export, zuletzt geöffnet) erledigt der
 // Node-Sidecar src/desktop/sidecar.ts – über stdin/stdout, eine Zeile JSON je Nachricht.
 // Die Seiten vom lokalen Server (http://127.0.0.1) haben keinen Zugriff auf Tauri; sie melden Aktionen
@@ -22,11 +22,11 @@ use tauri::{AppHandle, Manager, RunEvent, Url, WebviewUrl, WebviewWindow, Webvie
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind, MessageDialogResult};
 use tauri_plugin_opener::OpenerExt;
 
-const PREFIX: &str = "@@strata ";
+const PREFIX: &str = "@@hashmark ";
 
-/// Tests ohne sichtbare Fenster: `STRATA_HEADLESS=1` – alle Fenster bleiben unsichtbar, die Seiten laufen trotzdem
+/// Tests ohne sichtbare Fenster: `HASHMARK_HEADLESS=1` – alle Fenster bleiben unsichtbar, die Seiten laufen trotzdem
 fn headless() -> bool {
-    std::env::var("STRATA_HEADLESS").is_ok_and(|v| v == "1")
+    std::env::var("HASHMARK_HEADLESS").is_ok_and(|v| v == "1")
 }
 
 // ---------- Sidecar ----------
@@ -77,7 +77,7 @@ struct AppState {
     start_url: Mutex<Option<Url>>,
 }
 
-/// Echter, langer Pfad ohne 8.3-Kurznamen (`C:\Users\MICHAE~1\…`). Wird Strata über einen Kurznamen gestartet,
+/// Echter, langer Pfad ohne 8.3-Kurznamen (`C:\Users\MICHAE~1\…`). Wird Hashmark über einen Kurznamen gestartet,
 /// sähe Vite sonst zwei verschiedene Pfade für dieselben Dateien und verweigerte sie (z. B. `/@vite/client` → 404).
 fn long_path(p: PathBuf) -> PathBuf {
     let Ok(c) = std::fs::canonicalize(&p) else { return p };
@@ -103,7 +103,7 @@ fn locate() -> (PathBuf, PathBuf) {
 /// Gepackt liegt ein Bündel (wenige Dateien, startet auch auf frisch kopierten Dateien schnell), in der Entwicklung die Quelle.
 fn sidecar_script(root: &Path) -> PathBuf {
     let bundle = root.join("src/desktop/sidecar.bundle.mjs");
-    if bundle.exists() && std::env::var("STRATA_SIDECAR_SOURCE").is_err() {
+    if bundle.exists() && std::env::var("HASHMARK_SIDECAR_SOURCE").is_err() {
         bundle
     } else {
         root.join("src/desktop/sidecar.ts")
@@ -236,7 +236,7 @@ fn open_deck_at(app: &AppHandle, dir: Option<String>) -> Result<(), String> {
     if let Some(w) = main_window(app) {
         let url = Url::parse(&format!("{}editor.html", deck.url)).map_err(|e| e.to_string())?;
         w.navigate(url).map_err(|e| e.to_string())?;
-        let _ = w.set_title(&format!("Strata – {}", deck.name));
+        let _ = w.set_title(&format!("Hashmark – {}", deck.name));
     }
     refresh_menu(app);
     Ok(())
@@ -257,7 +257,7 @@ fn close_deck(app: &AppHandle) {
     let start = app.state::<AppState>().start_url.lock().unwrap().clone();
     if let (Some(w), Some(url)) = (main_window(app), start) {
         let _ = w.navigate(url);
-        let _ = w.set_title("Strata");
+        let _ = w.set_title("Hashmark");
     }
     refresh_menu(app);
 }
@@ -289,7 +289,7 @@ fn present(app: &AppHandle, hash: Option<String>) -> Result<(), String> {
 
     let url = Url::parse(&format!("{}{}", deck.url, hash)).map_err(|e| e.to_string())?;
     let win = WebviewWindowBuilder::new(app, "presentation", WebviewUrl::External(url))
-        .title("Strata – Präsentation")
+        .title("Hashmark – Präsentation")
         .visible(false)
         .on_new_window(deny_new_window(app.clone()))
         .build()
@@ -325,7 +325,7 @@ fn open_presenter(app: &AppHandle, hash: &str) -> Result<(), String> {
     }
     let url = Url::parse(&format!("{}?presenter{}", deck.url, hash)).map_err(|e| e.to_string())?;
     let win = WebviewWindowBuilder::new(app, "presenter", WebviewUrl::External(url))
-        .title("Strata – Presenter")
+        .title("Hashmark – Presenter")
         .inner_size(1400.0, 900.0)
         .visible(false)
         .on_new_window(deny_new_window(app.clone()))
@@ -371,7 +371,7 @@ fn export_html(app: &AppHandle) -> Result<(), String> {
 /// Während langer Aufgaben den Fenstertitel ergänzen
 fn with_busy<T>(app: &AppHandle, label: &str, task: impl FnOnce() -> Result<T, String>) -> Result<T, String> {
     let main = main_window(app);
-    let title = main.as_ref().and_then(|w| w.title().ok()).unwrap_or_else(|| "Strata".into());
+    let title = main.as_ref().and_then(|w| w.title().ok()).unwrap_or_else(|| "Hashmark".into());
     if let Some(w) = &main {
         let _ = w.set_title(&format!("{title} – {label} …"));
     }
@@ -387,7 +387,7 @@ fn done(app: &AppHandle, message: &str, file: &str) {
     let r = app
         .dialog()
         .message(format!("{message}\n\n{file}"))
-        .title("Strata")
+        .title("Hashmark")
         .buttons(MessageDialogButtons::OkCancelCustom(OPEN.into(), "OK".into()))
         .blocking_show_with_result();
     if clicked(&r, OPEN) {
@@ -413,7 +413,7 @@ fn on_action(app: &AppHandle, msg: &Value) {
         }
         _ => Ok(()),
     };
-    report(app, "Strata", r);
+    report(app, "Hashmark", r);
 }
 
 // ---------- Menü ----------
@@ -475,7 +475,7 @@ fn build_menu(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         .item(&item("readme", "Anleitung (README)", None, true)?)
         .item(&item("data-dir", "Datenordner öffnen (Einstellungen, Logs)", None, true)?)
         .separator()
-        .item(&item("about", &format!("Strata {} · Tauri {}", app.package_info().version, tauri::VERSION), None, false)?)
+        .item(&item("about", &format!("Hashmark {} · Tauri {}", app.package_info().version, tauri::VERSION), None, false)?)
         .build()?;
     MenuBuilder::new(app).items(&[&file, &view, &show, &help]).build()
 }
@@ -549,7 +549,7 @@ fn on_menu(app: &AppHandle, id: &str) {
             .and_then(|d| app.opener().open_path(d.display().to_string(), None::<&str>).map_err(|e| e.to_string())),
         _ => Ok(()),
     };
-    report(app, "Strata", r);
+    report(app, "Hashmark", r);
 }
 
 // ---------- Befehle für die Startseite ----------
@@ -591,7 +591,7 @@ fn forget(app: AppHandle, dir: String) -> Result<(), String> {
 
 fn main() {
     let (node, root) = locate();
-    // Deck-Ordner aus der Kommandozeile: `strata.exe <ordner>`
+    // Deck-Ordner aus der Kommandozeile: `hashmark.exe <ordner>`
     let deck_arg = std::env::args().skip(1).find(|a| !a.starts_with("--") && Path::new(a).is_dir());
 
     let app = tauri::Builder::default()
@@ -614,7 +614,7 @@ fn main() {
             let menu = build_menu(&handle)?;
             // Drag & Drop bleibt beim WebView, damit Bilder im Editor per Drag & Drop eingefügt werden können
             let main = WebviewWindowBuilder::new(app, "main", WebviewUrl::App("index.html".into()))
-                .title("Strata")
+                .title("Hashmark")
                 .inner_size(1440.0, 900.0)
                 .visible(!headless())
                 .menu(menu)
@@ -636,7 +636,7 @@ fn main() {
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("Strata konnte nicht starten");
+        .expect("Hashmark konnte nicht starten");
 
     app.run(|app, event| {
         if let RunEvent::Exit = event {

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte'
-  import initial from 'virtual:strata/deck'
+  import initial from 'virtual:hashmark/deck'
   import { Navigator, stepsOf, type Position } from '../core/navigator.ts'
   import type { Deck, DeckNode } from '../core/types.ts'
   import { formatClock, pace } from '../core/timing.ts'
@@ -49,8 +49,8 @@
 
   // ---------- Timer ----------
 
-  const TIMER_KEY = 'strata:presenter-timer'
-  const FONT_KEY = 'strata:presenter-font'
+  const TIMER_KEY = 'hashmark:presenter-timer'
+  const FONT_KEY = 'hashmark:presenter-font'
   interface TimerState { accumulated: number; startedAt: number; running: boolean }
 
   function loadTimer(): TimerState {
@@ -123,7 +123,7 @@
   /** Verbindung möglich? file:// braucht das öffnende Fenster, http(s) den BroadcastChannel */
   const linkable = usesChannel() || !!audience
 
-  function onState(msg: Extract<PresenterMessage, { type: 'strata:presenter-state' }>) {
+  function onState(msg: Extract<PresenterMessage, { type: 'hashmark:presenter-state' }>) {
     // an die erste Präsentation koppeln; ist sie länger weg, an die nächste, die sich meldet
     if (!target || Date.now() - lastSeen > 3500) target = msg.session
     if (msg.session !== target) return
@@ -137,7 +137,7 @@
   }
 
   function goto(id: string, slide = 0) {
-    link?.send({ type: 'strata:presenter-goto', id, slide, target: target ?? undefined })
+    link?.send({ type: 'hashmark:presenter-goto', id, slide, target: target ?? undefined })
   }
 
   function onkeydown(e: KeyboardEvent) {
@@ -155,14 +155,14 @@
     if (e.key === 't' || e.key === 'T') { e.preventDefault(); if (timer.running) pauseTimer(); else startTimer(); return }
     if (FORWARDED_KEYS.has(e.key)) {
       e.preventDefault()
-      link?.send({ type: 'strata:presenter-key', key: e.key, shiftKey: e.shiftKey, target: target ?? undefined })
+      link?.send({ type: 'hashmark:presenter-key', key: e.key, shiftKey: e.shiftKey, target: target ?? undefined })
     }
   }
 
   onMount(() => {
-    document.title = `Presenter · ${deck?.title ?? 'Strata'}`
-    link = openLink(() => audience, (msg) => { if (msg.type === 'strata:presenter-state') onState(msg) })
-    const hello = () => link?.send({ type: 'strata:presenter-hello' })
+    document.title = `Presenter · ${deck?.title ?? 'Hashmark'}`
+    link = openLink(() => audience, (msg) => { if (msg.type === 'hashmark:presenter-state') onState(msg) })
+    const hello = () => link?.send({ type: 'hashmark:presenter-hello' })
     hello()
     const heartbeat = setInterval(hello, 1000)
     const tick = setInterval(() => (now = Date.now()), 250)
@@ -207,7 +207,7 @@
 
 <div class="presenter">
   <header class="pv-bar">
-    <strong class="pv-deck">{deck?.title ?? 'Strata'}</strong>
+    <strong class="pv-deck">{deck?.title ?? 'Hashmark'}</strong>
     <span class="pv-conn" class:ok={connected} title={connected ? 'mit der Präsentation verbunden' : 'keine Verbindung'}>
       {connected ? 'verbunden' : linkable ? 'verbinde …' : 'ohne Präsentation – mit S aus der Präsentation öffnen'}
     </span>

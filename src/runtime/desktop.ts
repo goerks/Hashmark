@@ -1,15 +1,15 @@
-// Brücke zur Desktop-App (Tauri). Der Server der App liefert die Seiten mit `window.__STRATA_DESKTOP__`
+// Brücke zur Desktop-App (Tauri). Der Server der App liefert die Seiten mit `window.__HASHMARK_DESKTOP__`
 // aus (Vite-Plugin, Option `desktop`). Aktionen gehen per HTTP an den Server (nur localhost, mit Header),
 // der sie an die App weiterreicht – die Seiten selbst haben keinen Zugriff auf Tauri.
 
 declare global {
-  interface Window { __STRATA_DESKTOP__?: boolean }
+  interface Window { __HASHMARK_DESKTOP__?: boolean }
 }
 
 export function isDesktop(): boolean {
-  if (window.__STRATA_DESKTOP__) return true
+  if (window.__HASHMARK_DESKTOP__) return true
   try {
-    return !!window.top?.__STRATA_DESKTOP__ // Vorschau-Iframe im Editor
+    return !!window.top?.__HASHMARK_DESKTOP__ // Vorschau-Iframe im Editor
   } catch {
     return false
   }
@@ -24,9 +24,9 @@ export type DesktopAction =
   | { action: 'close' }
 
 export function desktopAction(a: DesktopAction): Promise<boolean> {
-  return fetch('/__strata/app', {
+  return fetch('/__hashmark/app', {
     method: 'POST',
-    headers: { 'X-Strata-Editor': '1', 'Content-Type': 'application/json' },
+    headers: { 'X-Hashmark-Editor': '1', 'Content-Type': 'application/json' },
     body: JSON.stringify(a),
   }).then((r) => r.ok, () => false)
 }

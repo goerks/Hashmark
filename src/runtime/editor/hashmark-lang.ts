@@ -1,4 +1,4 @@
-// Farbe für die Strata-Syntax im Markdown-Editor: Container `:::`, Attribute `{layout=…}`, Hinweiskästen.
+// Farbe für die Hashmark-Syntax im Markdown-Editor: Container `:::`, Attribute `{layout=…}`, Hinweiskästen.
 // Dazu die Klassen für das Markdown-Highlighting (Farben stehen in editor.css als --ed-t-*).
 
 import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate } from '@codemirror/view'
@@ -96,4 +96,4 @@ const highlight = syntaxHighlighting(HighlightStyle.define([
   { tag: [t.punctuation, t.bracket, t.operator, t.meta], class: 'tok-punct' },
 ]))
 
-export const strataSyntax = [plugin, highlight]
+export const hashmarkSyntax = [plugin, highlight]

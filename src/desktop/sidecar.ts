@@ -3,9 +3,9 @@
 //
 // Protokoll (je eine Zeile JSON):
 //   App → Sidecar (stdin):   {"id": 1, "cmd": "open", "dir": "C:\\decks\\x"}
-//   Sidecar → App (stdout):  @@strata {"id": 1, "ok": true, "result": {…}}   bzw. {"id": 1, "ok": false, "error": "…"}
-//                            @@strata {"event": "action", "action": "present", "hash": "#…"}   (aus den Seiten)
-// Alles ohne Präfix `@@strata ` auf stdout ist Log und wird von der App ignoriert; Logs gehen nach stderr.
+//   Sidecar → App (stdout):  @@hashmark {"id": 1, "ok": true, "result": {…}}   bzw. {"id": 1, "ok": false, "error": "…"}
+//                            @@hashmark {"event": "action", "action": "present", "hash": "#…"}   (aus den Seiten)
+// Alles ohne Präfix `@@hashmark ` auf stdout ist Log und wird von der App ignoriert; Logs gehen nach stderr.
 
 import path from 'node:path'
 import readline from 'node:readline'
@@ -19,8 +19,8 @@ import type { LiveServer } from './live-server.ts'
 import { ensureRuntime } from './runtime-build.ts'
 import { addRecent, existingRecent, isDeckDir, readSettings, removeRecent, writeSettings } from './settings.ts'
 
-export const PREFIX = '@@strata '
-export const EXAMPLE_DECK = path.join(PROJECT_ROOT, 'examples/strata-demo')
+export const PREFIX = '@@hashmark '
+export const EXAMPLE_DECK = path.join(PROJECT_ROOT, 'examples/hashmark-demo')
 
 export interface Request { id: number; cmd: string; [key: string]: unknown }
 export type Emit = (msg: Record<string, unknown>) => void
@@ -59,14 +59,14 @@ export function createSidecar({ dataDir, emit, log = () => {} }: SidecarOptions)
     const t0 = performance.now()
     const [{ loadDeck }, { warmHighlighter }] = await Promise.all([import('../core/deck.ts'), import('../core/render.ts'), import('./live-server.ts')])
     await warmHighlighter(['ts', 'js', 'sh', 'yaml', 'json', 'md'])
-    log(`[strata] Kern aufgewärmt in ${ms(t0)}`)
+    log(`[hashmark] Kern aufgewärmt in ${ms(t0)}`)
     const last = existingRecent(settings.recent)[0]
     if (last && isDeckDir(last) && !preloaded.has(last)) {
       const t1 = performance.now()
       const at = Date.now()
       const result = loadDeck(last)
       preloaded.set(last, { result, at })
-      result.then(() => log(`[strata] zuletzt geöffnetes Deck vorab gelesen in ${ms(t1)}: ${last}`), () => preloaded.delete(last))
+      result.then(() => log(`[hashmark] zuletzt geöffnetes Deck vorab gelesen in ${ms(t1)}: ${last}`), () => preloaded.delete(last))
     }
   }
 
@@ -124,7 +124,7 @@ export function createSidecar({ dataDir, emit, log = () => {} }: SidecarOptions)
         if (result && !isStale(dir, result, pre.at)) initial = result
       }
       const s = await startLiveServer({ deckDir: dir, runtimeDir, onAppAction, initial, log })
-      log(`[strata] Deck geöffnet in ${ms(t0)}${initial ? ' (vorab gelesen)' : ''}: ${dir}`)
+      log(`[hashmark] Deck geöffnet in ${ms(t0)}${initial ? ' (vorab gelesen)' : ''}: ${dir}`)
       server = s
       deckDir = dir
       baseUrl = s.url
@@ -141,7 +141,7 @@ export function createSidecar({ dataDir, emit, log = () => {} }: SidecarOptions)
       const t0 = performance.now()
       const { printUrlToPdf } = await import('../cli/pdf.ts')
       const res = await printUrlToPdf(baseUrl + query, str(r.out, 'out'))
-      log(`[strata] PDF in ${ms(t0)}: ${res.pages} Seiten`)
+      log(`[hashmark] PDF in ${ms(t0)}: ${res.pages} Seiten`)
       return { pages: res.pages, bytes: res.bytes }
     },
     async html(r) {
@@ -171,7 +171,7 @@ export function createSidecar({ dataDir, emit, log = () => {} }: SidecarOptions)
 // sidecar.ts direkt oder als Bündel (sidecar.bundle.mjs, siehe scripts/bundle-sidecar.ts)
 if (process.argv[1] && /^sidecar(.bundle)?.(ts|mjs)$/.test(path.basename(process.argv[1]))) {
   const dataArg = process.argv.find((a) => a.startsWith('--data='))?.slice('--data='.length)
-  const dataDir = path.resolve(dataArg ?? path.join(PROJECT_ROOT, 'node_modules/.strata-app'))
+  const dataDir = path.resolve(dataArg ?? path.join(PROJECT_ROOT, 'node_modules/.hashmark-app'))
   // stdout gehört dem Protokoll: Logs (auch von Vite und den Exporten) nach stderr
   const write = process.stdout.write.bind(process.stdout)
   console.log = console.info = (...args: unknown[]) => console.error(...args)
@@ -193,7 +193,7 @@ if (process.argv[1] && /^sidecar(.bundle)?.(ts|mjs)$/.test(path.basename(process
   // App beendet → stdin schließt → aufräumen
   rl.on('close', () => { void sidecar.stop().finally(() => process.exit(0)) })
   emit({ event: 'ready', node: process.versions.node })
-  console.error(`[strata] Sidecar bereit nach ${Math.round(performance.now())} ms`)
+  console.error(`[hashmark] Sidecar bereit nach ${Math.round(performance.now())} ms`)
   // im Hintergrund: Kern laden, Shiki starten, letztes Deck vorab lesen – während die Startseite angezeigt wird
-  setTimeout(() => void sidecar.warmUp().catch((e) => console.error('[strata] Aufwärmen fehlgeschlagen:', e)), 0)
+  setTimeout(() => void sidecar.warmUp().catch((e) => console.error('[hashmark] Aufwärmen fehlgeschlagen:', e)), 0)
 }

@@ -1,4 +1,4 @@
-title: Strata – Eigenes Theme (Beispiel „Acme“)
+title: Hashmark – Eigenes Theme (Beispiel „Acme“)
 # Theme v2: Basis + Tokens + eigene Layouts + Zusatz-CSS, alles in einem Block
 theme:
   extends: minimal            # minimal | dark-tech | ./pfad/zu/theme.css | ./pfad/zum/theme-ordner

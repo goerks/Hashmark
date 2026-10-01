@@ -1,5 +1,5 @@
-// Datei-API für den Editor (nur `strata edit`): Deck-Dateien lesen, schreiben, anlegen, Bilder hochladen.
-// Schutz: nur localhost, nur mit Header X-Strata-Editor (erzwingt CORS-Preflight → keine fremden Seiten),
+// Datei-API für den Editor (nur `hashmark edit`): Deck-Dateien lesen, schreiben, anlegen, Bilder hochladen.
+// Schutz: nur localhost, nur mit Header X-Hashmark-Editor (erzwingt CORS-Preflight → keine fremden Seiten),
 // nur Pfade innerhalb des Deck-Ordners und nur erlaubte Dateitypen.
 
 import fs from 'node:fs/promises'
@@ -9,7 +9,7 @@ import type { Connect } from 'vite'
 import YAML from 'yaml'
 import { IMAGE_MIME } from '../core/render.ts'
 
-export const API_PREFIX = '/__strata'
+export const API_PREFIX = '/__hashmark'
 const TEXT_EXT = /\.(md|ya?ml)$/i
 const MAX_BODY = 25 * 1024 * 1024
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i
@@ -75,7 +75,7 @@ async function addToManifest(deckDir: string, rel: string) {
 const APP_ACTIONS = new Set(['present', 'presenter', 'pdf', 'position', 'close'])
 
 /**
- * Desktop-App: `POST /__strata/app` mit `{ action, … }` → an die App weiterreichen.
+ * Desktop-App: `POST /__hashmark/app` mit `{ action, … }` → an die App weiterreichen.
  * Gleicher Schutz wie die Datei-API: nur localhost, nur mit Header (erzwingt CORS-Preflight).
  */
 export function appApi(onAction: (action: Record<string, unknown>) => void): Connect.NextHandleFunction {
@@ -86,7 +86,7 @@ export function appApi(onAction: (action: Record<string, unknown>) => void): Con
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify(error ? { error } : { ok: true }))
     }
-    if (!LOCAL_HOST.test(req.headers.host ?? '') || req.headers['x-strata-editor'] !== '1') return reply(403, 'nicht erlaubt')
+    if (!LOCAL_HOST.test(req.headers.host ?? '') || req.headers['x-hashmark-editor'] !== '1') return reply(403, 'nicht erlaubt')
     if (req.method !== 'POST') return reply(405, 'nur POST')
     try {
       const data = JSON.parse((await body(req)).toString('utf8'))
@@ -113,7 +113,7 @@ export function editorApi(deckDir: string): Connect.NextHandleFunction {
     }
     try {
       if (!LOCAL_HOST.test(req.headers.host ?? '')) throw new HttpError(403, 'Editor nur über localhost')
-      if (req.headers['x-strata-editor'] !== '1') throw new HttpError(403, 'Header fehlt')
+      if (req.headers['x-hashmark-editor'] !== '1') throw new HttpError(403, 'Header fehlt')
 
       const url = new URL(req.url, 'http://localhost')
       const route = url.pathname.slice(API_PREFIX.length)

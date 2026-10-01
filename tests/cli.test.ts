@@ -9,7 +9,7 @@ import { loadDeck } from '../src/core/deck.ts'
 
 describe('Neues Deck', () => {
   it('legt ein ladbares Gerüst an und verweigert nicht leere Ordner', async () => {
-    const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'strata-cli-')), 'Mein Vortrag')
+    const dir = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'hashmark-cli-')), 'Mein Vortrag')
     expect(scaffoldDeck(dir)).toEqual(['deck.yaml', '01-start.md', '02-hauptteil.md'])
     const { deck } = await loadDeck(dir)
     expect(deck.title).toBe('Mein Vortrag')

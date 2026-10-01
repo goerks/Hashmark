@@ -1,19 +1,19 @@
 {
-  "name": "strata",
+  "name": "hashmark",
   "version": "0.1.0",
   "private": true,
-  "description": "Markdown-Präsentationen als navigierbarer Baum",
+  "description": "Mächtige Präsentationen aus reinem Markdown",
   "type": "module",
   "bin": {
-    "strata": "./src/cli/index.ts"
+    "hashmark": "./src/cli/index.ts"
   },
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "dev": "node src/cli/index.ts dev examples/strata-demo",
-    "build": "node src/cli/index.ts build examples/strata-demo",
-    "preview": "node src/cli/index.ts preview examples/strata-demo",
+    "dev": "node src/cli/index.ts dev examples/hashmark-demo",
+    "build": "node src/cli/index.ts build examples/hashmark-demo",
+    "preview": "node src/cli/index.ts preview examples/hashmark-demo",
     "test": "vitest run"
   },
   "dependencies": {

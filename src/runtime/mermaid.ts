@@ -57,7 +57,7 @@ export async function renderMermaid(root: HTMLElement) {
       let svg = cache.get(src)
       if (svg === undefined) {
         try {
-          svg = (await mermaid.render(`strata-mermaid-${counter++}`, src)).svg
+          svg = (await mermaid.render(`hashmark-mermaid-${counter++}`, src)).svg
         } catch (e) {
           // leere Anfangsversion (nur Diagramm-Typ) ist bei Schritten erlaubt
           svg = stepped ? '' : `<pre class="mermaid-error">Mermaid-Fehler:\n${escape((e as Error).message)}</pre>`

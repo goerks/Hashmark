@@ -1,6 +1,6 @@
 ﻿# Werkzeuge für die Desktop-App (Tauri) – ohne Admin-Rechte, nichts davon kommt ins Repo:
 #   - Rust über rustup (Benutzerprofil, %USERPROFILE%\.cargo und .rustup), Toolchain stable-x86_64-pc-windows-gnullvm
-#   - llvm-mingw (Clang, Linker, windres) nach %LOCALAPPDATA%\strata-toolchain, SHA256 geprüft
+#   - llvm-mingw (Clang, Linker, windres) nach %LOCALAPPDATA%\hashmark-toolchain, SHA256 geprüft
 # Visual Studio bzw. die MSVC Build Tools werden nicht gebraucht.
 param(
   [string]$LlvmMingw = "20260922",
@@ -21,7 +21,7 @@ Write-Host "Rust-Toolchain stable-x86_64-pc-windows-gnullvm ..."
 if ($LASTEXITCODE -ne 0) { throw "rustup toolchain install fehlgeschlagen" }
 
 $name = "llvm-mingw-$LlvmMingw-ucrt-x86_64"
-$root = Join-Path $env:LOCALAPPDATA "strata-toolchain"
+$root = Join-Path $env:LOCALAPPDATA "hashmark-toolchain"
 $bin = Join-Path $root "$name\bin"
 if (Test-Path (Join-Path $bin "x86_64-w64-mingw32-clang.exe")) {
   Write-Host "llvm-mingw $LlvmMingw ist bereits installiert."

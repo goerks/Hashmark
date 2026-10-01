@@ -1,4 +1,4 @@
-// CodeMirror 6: Markdown/YAML, Highlighting der Strata-Syntax, Vorschläge, Linter, Formatleiste,
+// CodeMirror 6: Markdown/YAML, Highlighting der Hashmark-Syntax, Vorschläge, Linter, Formatleiste,
 // Speichern mit Ctrl+S, Bilder per Drag & Drop oder Einfügen.
 
 import { EditorState, type Extension } from '@codemirror/state'
@@ -16,7 +16,7 @@ import { html } from '@codemirror/lang-html'
 import { yaml } from '@codemirror/lang-yaml'
 import { expand } from '../../core/snippets.ts'
 import { completion, formatBubble, formatKeymap, lint, link, relint, toggleHeading, wrap, type Problem } from './assist.ts'
-import { strataSyntax } from './strata-lang.ts'
+import { hashmarkSyntax } from './hashmark-lang.ts'
 
 export interface EditorHooks {
   onChange: (text: string) => void
@@ -73,7 +73,7 @@ export function createEditor(parent: HTMLElement, hooks: EditorHooks) {
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({ autocorrect: 'off', 'aria-label': 'Quelltext' }),
     EditorState.languageData.of(() => [{ closeBrackets: { brackets: ['(', '[', '{', '`', '"'] } }]),
-    lang === 'yaml' ? yaml() : [markdown({ base: markdownLanguage, codeLanguages }), strataSyntax, completion(hooks.layouts), lint(hooks.layouts, hooks.onProblems), formatBubble, formatKeymap],
+    lang === 'yaml' ? yaml() : [markdown({ base: markdownLanguage, codeLanguages }), hashmarkSyntax, completion(hooks.layouts), lint(hooks.layouts, hooks.onProblems), formatBubble, formatKeymap],
     keymap.of([
       indentWithTab,
       { key: 'Mod-s', preventDefault: true, run: () => { hooks.onSave(); return true } },
