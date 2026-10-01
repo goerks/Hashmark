@@ -2,6 +2,9 @@
 //
 //   node scripts/release-notes.ts [tag]      Standard: neuester Tag
 //
+// Vorrang hat die gemeinsam geprüfte Datei release-notes/<tag>.md (Vorschlag von Claude, Freigabe durch den Nutzer);
+// nur ohne sie entsteht der automatische Entwurf aus den Commit-Betreffzeilen:
+//
 // Einteilung nach der Betreffzeile:
 //   - Behobene Fehler: beginnt mit „Fix“/„Bugfix“/„Hotfix“ oder enthält „behoben“, „behebt“, „Fehler“, „Bug“
 //   - Neue Funktionen: alles andere
@@ -9,6 +12,8 @@
 // Ein Präfix wie „feat:“ bzw. „Fix:“ wird aus der Anzeige entfernt.
 
 import { execFileSync } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
 
 export interface Notes { features: string[]; fixes: string[] }
 
@@ -41,6 +46,11 @@ const git = (...a: string[]) => execFileSync('git', a, { encoding: 'utf8' }).tri
 
 if (import.meta.main) {
   const tag = process.argv[2] ?? git('describe', '--tags', '--abbrev=0')
+  const curated = path.join(import.meta.dirname, '..', 'release-notes', `${tag}.md`)
+  if (fs.existsSync(curated)) {
+    process.stdout.write(fs.readFileSync(curated, 'utf8'))
+    process.exit(0)
+  }
   let previous: string | null = null
   try { previous = git('describe', '--tags', '--abbrev=0', `${tag}^`) } catch { /* erster Tag: gesamte Historie */ }
   const range = previous ? `${previous}..${tag}` : tag
