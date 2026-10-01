@@ -94,24 +94,32 @@ func runChild(url, title, mode string) {
 	v.SetSize(1400, 900, webview.HintNone)
 	hwnd := uintptr(v.Window())
 	setIcon(hwnd, writeIcon(dataDir()))
-	var primary, target monitor
-	for _, m := range monitors() {
-		if m.Primary {
-			primary = m
-		} else if target.W == 0 {
-			target = m
+	// Fenstergeometrie: unter Windows sofort, sonst erst in der laufenden Ereignisschleife (macOS/GTK)
+	geometry := func() {
+		var primary, target monitor
+		for _, m := range monitors() {
+			if m.Primary {
+				primary = m
+			} else if target.W == 0 {
+				target = m
+			}
+		}
+		if target.W == 0 {
+			target = primary
+		}
+		switch {
+		case headless():
+			hideWindow(hwnd)
+		case mode == "presentation" && target.W > 0:
+			setFullscreen(hwnd, target)
+		case mode == "presenter" && primary.W > 0:
+			maximizeOn(hwnd, primary)
 		}
 	}
-	if target.W == 0 {
-		target = primary
-	}
-	switch {
-	case headless():
-		hideWindow(hwnd)
-	case mode == "presentation" && target.W > 0:
-		setFullscreen(hwnd, target)
-	case mode == "presenter" && primary.W > 0:
-		maximizeOn(hwnd, primary)
+	if runtime.GOOS == "windows" {
+		geometry()
+	} else {
+		v.Dispatch(geometry)
 	}
 	_ = v.Bind("hmOpen", openExternal)
 	v.Init(externalLinksJS)

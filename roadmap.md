@@ -112,7 +112,7 @@ Suche Ctrl+K, Includes (`!include`, Code aus dem Repo mit Zeilenbereich), `hidde
 | **3 · Inhalte** | Graphviz (WASM), D2 (WASM), KaTeX, PlantUML nur als JS-Version, Includes, Vega-Lite, Markmap, Handout n pro Seite |
 | **4 · Animation** | Schritt-Effekte, Zoom aus Kachel, View Transitions, Magic Move, Mermaid-Morph |
 | **5 · Editor-Outliner** | Drag & Drop, Ebene höher/tiefer, dateiübergreifend verschieben |
-| **6 · Desktop & Verteilung** | Desktop-App ✅ (Go-Hülle, Node als Sidecar; Linux/macOS offen), später ohne Node, PPTX-Export, Publikum folgt live |
+| **6 · Desktop & Verteilung** | Desktop-App ✅ (Go-Hülle, Node als Sidecar; Linux/macOS ungetestet), später ohne Node, PPTX-Export, Publikum folgt live |
 
 Begründung: Stufe 1 macht Hashmark für echte Vorträge fertig und nutzt, was der Parser schon liefert. Stufe 2 vor Diagrammen, Themes und App, weil sonst jede neue Sprache und später die Desktop-App die heutigen Kopplungen (Vite-Middleware, feste Renderer) umbauen müsste.
 
@@ -127,7 +127,7 @@ Begründung: Stufe 1 macht Hashmark für echte Vorträge fertig und nutzt, was d
 
 - **Wechsel auf Go (01.10.2026):** Die Hülle ist jetzt Go ohne CGO (`desktop-go/`, `go-webview` per purego, `zenity` für Dialoge) statt Rust/Tauri. Gründe: Es soll nie einen Installer geben, die EXE ist mit ~7 MB klein, `go build` braucht keine Toolchain außer Go und baut für Windows, Linux und macOS ohne C-Compiler (`make app-cross`). `src-tauri/` und die Rust-Toolchain (rustup, llvm-mingw) sind entfernt.
   - Windows ist umgesetzt und getestet: Startseite, Win32-Menü, Vollbild/Monitorwahl, Dialoge, Präsentation und Presenter als eigene Prozesse.
-  - Offen: Linux und macOS laufen nie wirklich (nur gebaut). Dort fehlen Menü, Vollbild und Monitorwahl (`desktop-go/native_other.go` sind Platzhalter). Für macOS bräuchte es Objective-C-Aufrufe per purego oder ein HTML-Menü.
+  - Offen: Linux (GTK 3) und macOS (Objective-C per purego) haben Menü, Vollbild und Monitorwahl (`native_linux.go`, `native_darwin.go`), sind aber nur kompiliert und nie gelaufen. Annahmen: `Window()` liefert GtkWindow bzw. NSWindow, die Webview sitzt direkt im GTK-Fenster, Struktur-Rückgaben per purego (macOS Intel über `objc_msgSend_stret`). Unter Linux nutzen die Dialoge `zenity`/`kdialog`.
   - Offen: Das Paket (`make app-package`) gibt es nur für Windows. Für Linux/macOS braucht es je System ein eigenes Node und die nativen npm-Pakete (der Vendor-Cache enthält nur Windows-Binärdateien).
   - Bekannte Lücken: ein Fenster je Prozess, `go-webview` ist ein junges Projekt (März 2025). Externe Links fängt ein Skript in den Seiten ab (`externalLinksJS`, app.go).
 

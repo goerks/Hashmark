@@ -149,11 +149,6 @@ func setMenu(hwnd uintptr, items []menuItem, onCommand func(id string)) {
 
 // ---------- Monitore, Vollbild ----------
 
-type monitor struct {
-	X, Y, W, H int
-	Primary    bool
-}
-
 type monitorInfo struct {
 	Size    uint32
 	Monitor [4]int32
@@ -166,7 +161,7 @@ func monitors() []monitor {
 	cb := syscall.NewCallback(func(h, hdc, rc, lp uintptr) uintptr {
 		mi := monitorInfo{Size: uint32(unsafe.Sizeof(monitorInfo{}))}
 		if r, _, _ := pGetMonitorInfoW.Call(h, uintptr(unsafe.Pointer(&mi))); r != 0 {
-			out = append(out, monitor{X: int(mi.Monitor[0]), Y: int(mi.Monitor[1]), W: int(mi.Monitor[2] - mi.Monitor[0]), H: int(mi.Monitor[3] - mi.Monitor[1]), Primary: mi.Flags&1 != 0})
+			out = append(out, monitor{X: int(mi.Monitor[0]), Y: int(mi.Monitor[1]), W: int(mi.Monitor[2] - mi.Monitor[0]), H: int(mi.Monitor[3] - mi.Monitor[1]), Index: len(out), Primary: mi.Flags&1 != 0})
 		}
 		return 1
 	})

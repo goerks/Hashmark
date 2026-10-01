@@ -48,7 +48,7 @@ make app-cross                    # Hülle für Windows, Linux und macOS (amd64,
 
 Die App ist eine schlanke Go-Hülle (ohne CGO, ca. 7 MB) um die Webview des Systems (WebView2 unter Windows). Die eigentliche Arbeit macht Hashmark wie bisher in Node. Die App startet dafür das Node aus `vendor/node` als **Sidecar**. Es gibt keinen Installer, das Programm ist immer ein Ordner bzw. eine Datei zum Kopieren.
 
-- **Plattformen:** Windows ist umgesetzt und getestet. Linux und macOS bauen (`make app-cross`), sind aber noch nicht gestartet worden und haben bis jetzt weder Menü noch Vollbild/Monitorwahl.
+- **Plattformen:** Windows ist umgesetzt und getestet. Linux (GTK 3) und macOS (Objective-C-Laufzeit) haben Menü, Vollbild und Monitorwahl über `purego`, kompilieren (`make app-cross`), sind aber **nie gestartet worden**. Unter Linux brauchen die Dialoge `zenity` oder `kdialog`.
 - **Voraussetzung:** Windows WebView2 (in Windows 10/11 enthalten), Linux WebKitGTK, macOS nichts. Zum Bauen genügt Go (ab 1.26) im `PATH`, keine weitere Toolchain.
 
 - **Schnell:** Ein Deck ist in wenigen Sekunden offen, das PDF ist in etwa 5 s fertig. Im Hintergrund wärmt die App schon beim Start auf: Sie lädt den Kern, startet die Code-Hervorhebung und liest das zuletzt geöffnete Deck vorab. Ein Klick darauf öffnet es dann in Millisekunden. Das gepackte Programm bündelt den Node-Teil zu wenigen Dateien, damit auch der allererste Start auf frisch kopierten Dateien (USB-Stick, Virenscanner) schnell ist.

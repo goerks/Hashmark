@@ -72,7 +72,7 @@ src/desktop/  Node-Sidecar der Desktop-App: sidecar.ts (stdin JSON-Zeilen → st
 src/runtime/deck-source.ts  onDeckUpdate(): Vite-HMR ('hashmark:deck') bzw. EventSource in der App (window.__HASHMARK_LIVE__)
 desktop-go/   Desktop-Hülle in Go ohne CGO (go-webview per purego, zenity für Dialoge): main.go (Ablauf, `locate`, Kindprozess `--window`), app.go (Decks, Export,
               Menü, Präsentation/Presenter als eigene Prozesse, Tastenkürzel-JS), api.go (Server der Startseite, `api/<befehl>` mit Header X-Hashmark-App),
-              sidecar.go (JSON-Zeilen), native_windows.go (Win32-Menü, Vollbild/Monitore, Symbol), native_other.go (Linux/macOS: Platzhalter);
+              sidecar.go (JSON-Zeilen), native_windows.go (Win32-Menü, Vollbild/Monitore, Symbol), native_linux.go (GTK 3 per purego), native_darwin.go (Objective-C-Laufzeit per purego), native_unix.go; Linux/macOS sind ungetestet und schalten sich bei fehlenden Symbolen ab;
               gepackt `node/` + `app/` neben der EXE, sonst das Repository (`locate`)
 src/vite/     plugin.ts: virtual:hashmark/deck (JSON), virtual:hashmark/theme.css, File-Watcher → HMR-Event
               'hashmark:deck', Bild-Middleware, Asset-Emit; editor-api.ts: Datei-API nur für `hashmark edit`
@@ -181,7 +181,7 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
     - Code-Zeilen hervorheben, Hinweiskästen
     - Layouts `statement`, `quote`, `image-*`, `agenda`, `three-col`, dazu `cols=`, `bg=` und Layouts je Ebene
     - Titel-Bug auf Ebene ≥ 2 behoben (`:where` bei den Größen je Ebene)
-  - **Desktop-App in Go** (Node als Sidecar, Windows getestet; Linux/macOS bauen, laufen aber ungetestet und ohne Menü/Vollbild). Davor Tauri/Rust (am 01.10.2026 entfernt, siehe `roadmap.md`) und davor Electron: Eine Electron-Version wurde gebaut und auf Wunsch komplett zurückgenommen, auch aus der Git-Historie, sie war zu groß.
+  - **Desktop-App in Go** (Node als Sidecar, Windows getestet; Linux/macOS haben Menü/Vollbild, kompilieren, sind aber nie gelaufen). Davor Tauri/Rust (am 01.10.2026 entfernt, siehe `roadmap.md`) und davor Electron: Eine Electron-Version wurde gebaut und auf Wunsch komplett zurückgenommen, auch aus der Git-Historie, sie war zu groß.
 - **Offen:** Stufen 2–6 in `roadmap.md`, u. a. Plugin-API, Theme v2, FS-Abstraktion, Editor-Inspector, Auto-Fit, weitere Diagrammsprachen, Animationen, Outliner.
 - **Regel:** keine großen Binärdateien ins Repo (über das bestehende `vendor/` hinaus), auch keine Build-Ergebnisse (`dist-go/`, `export/` sind ignoriert). Es werden **nie Installer** erzeugt, die App ist immer standalone. Go liegt im Benutzerprofil.
 - **Git:** Es gibt noch **kein Remote**, pushen ist erst mit URL möglich. Grösse ca. 125 MB wegen `vendor/`, `node.exe` hat 93 MB (Limit bei GitHub: 100 MB pro Datei).
