@@ -95,15 +95,24 @@ make edit DECK=decks/mein-vortrag  # eigenes Deck
 
 Der Browser öffnet `http://localhost:3030/editor.html`:
 
-- **Links** stehen Dateien und Gliederung des Decks, in der Mitte der Markdown-Editor (CodeMirror, mit Hervorhebung, Suchen/Ersetzen Ctrl+F und Undo).
-- **Rechts** ist die Live-Vorschau. Jede Änderung wird nach 0,4 s automatisch gespeichert und sofort angezeigt. Ctrl+S speichert direkt.
+- **Seitenleiste** (Symbol oben links): Dateien und Gliederung des Decks. Die Gliederung zeigt den Baum mit → für den Hauptpfad und ↓ für Details, ein Klick öffnet die Datei an der Überschrift und zeigt die Folie. Die Brotkrumen oben zeigen, wo du im Baum stehst.
+- **Ansicht:** *Schreiben*, *Geteilt* oder *Vorschau*. Den Trenner zwischen Text und Vorschau kannst du ziehen.
+- **Text** (CodeMirror): Markdown und die Strata-Syntax (`:::`, `{layout=…}`, Hinweiskästen, Code in Blöcken) sind farbig. Suchen/Ersetzen mit Ctrl+F, Undo, Listen setzen sich mit Enter fort, Tab rückt ein.
+- **Vorschau** rechts: Jede Änderung wird nach 0,4 s automatisch gespeichert und sofort angezeigt. Ctrl+S speichert direkt.
 - **Synchron** (Schalter oben): Die Vorschau zeigt die Folie unter dem Cursor, inklusive Sub-Slide, vollständig aufgedeckt. Umgekehrt scrollt der Editor mit, wenn du in der Vorschau mit den Pfeiltasten oder der Übersicht navigierst.
-- **Gliederung:** Ein Klick öffnet die Datei an der Überschrift und zeigt die Folie.
-- **Werkzeugleiste:** Bausteine für Kapitel, Detail, Sub-Slide, Zwei Spalten, Schritte, Code, Mermaid, Notizen, Kacheln, Hinweis, Statement, Bild rechts, Agenda und Drei Spalten.
-- **Bilder:** *Bild* kopiert die Datei nach `bilder/` und fügt den Link ein. Das geht auch per **Drag & Drop** oder **Einfügen (Ctrl+V)** eines Screenshots. *Bild (Base64)* bettet das Bild direkt in die Markdown-Datei ein, als Referenz am Dateiende.
+- **Vorschläge** erscheinen beim Tippen, **Tab** oder **Enter** übernimmt, **Esc** schließt, **Strg+Leertaste** erzwingt sie:
+  - `/` am Zeilenanfang: Bausteine (Kapitel, Detail, Neue Folie, Spalten, Schritte, Code, Mermaid, Notizen, Kacheln, Hinweis, Statement, Bild rechts, Agenda). Der Platzhalter ist markiert und wird beim Tippen ersetzt.
+  - `:::` und Leertaste: Container (`col`, `columns`, `grid`, `steps`, `notes`, `children`).
+  - `{` an einer Überschrift: Attribute, nach `layout=` die Layouts (auch die des Themes), nach `transition=` die Übergänge.
+  - `> [!`: Hinweiskästen, dreimal Backtick plus Buchstabe: Code-Sprachen.
+- **Hinweise im Text:** Unbekannte Layouts, Attribute, Übergänge und Container sowie nicht geschlossene `:::`/Codeblöcke sind wellig unterstrichen. Die Zeile unten zeigt die Anzahl, ein Klick listet sie, *Korrigieren* übernimmt den Vorschlag („Meinst du two-col?“).
+- **Formatleiste:** Markierter Text zeigt Fett, Kursiv, Code, Link und Überschrift (auch Strg+B, Strg+I, Strg+E).
+- **Strg+K:** Palette für Folien, Bausteine, Dateien und Aktionen (Präsentieren, PDF, Ansicht, Bild, neue Datei).
+- **Bilder:** *Bild einfügen* (Palette) kopiert die Datei nach `bilder/` und fügt den Link ein. Das geht auch per **Drag & Drop** oder **Einfügen (Ctrl+V)** eines Screenshots. *Bild einbetten* bettet das Bild direkt in die Markdown-Datei ein, als Referenz am Dateiende.
 - **+ Datei** legt eine neue Markdown-Datei an und trägt sie in `deck.yaml` ein. Kommentare dort bleiben erhalten.
-- **Präsentieren ↗** öffnet die Präsentation an der aktuellen Folie in einem neuen Tab.
+- **Präsentieren** öffnet die Präsentation an der aktuellen Folie.
 - **Externe Änderungen** (z. B. in VS Code) übernimmt der Editor automatisch, solange er selbst nichts Ungespeichertes hat.
+- **Tablet:** Unter 900 px Breite liegt die Seitenleiste als Schublade über dem Text, Text und Vorschau stehen untereinander. Bei Touch-Bedienung sind die Bedienelemente größer, und über der Bildschirmtastatur erscheint eine Leiste mit `⇥ # ::: { } ` - [ ] B I` und *+ Baustein*.
 
 Sicherheit: Die Datei-API existiert nur mit `make edit`. Sie ist nur über localhost erreichbar, schreibt nur innerhalb des Deck-Ordners und nur `.md`/`.yaml` bzw. Bilder. `make dev-lan` hat bewusst keinen Editor.
 

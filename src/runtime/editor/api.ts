@@ -2,6 +2,8 @@
 
 export interface FileEntry { path: string; kind: 'markdown' | 'yaml' | 'image' }
 
+export const NO_API = 'Keine Datei-API: Der Editor braucht den Server von `make edit` (nicht `make dev`).'
+
 async function call(method: string, route: string, params: Record<string, string> = {}, body?: BodyInit): Promise<Response> {
   const query = new URLSearchParams(params).toString()
   const res = await fetch(`/__strata${route}${query ? `?${query}` : ''}`, { method, body, headers: { 'X-Strata-Editor': '1' } })
@@ -10,6 +12,8 @@ async function call(method: string, route: string, params: Record<string, string
     try { msg = (await res.json()).error ?? msg } catch { /* kein JSON */ }
     throw new Error(msg)
   }
+  // ohne Datei-API (z. B. `make dev`) antwortet der Server mit der Startseite statt mit JSON/Text
+  if ((res.headers.get('content-type') ?? '').includes('text/html')) throw new Error(NO_API)
   return res
 }
 

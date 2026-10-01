@@ -3,24 +3,33 @@
   import initial from 'virtual:strata/deck'
   import type { Deck, DeckNode } from '../../core/types.ts'
   import { formatHash, type Position } from '../../core/navigator.ts'
-  import { lineOfSlide, nodeAtLine } from '../../core/sourcemap.ts'
+  import { lineOfSlide, nodeAtLine, pathToNode } from '../../core/sourcemap.ts'
   import { printQuery } from '../../core/print.ts'
+  import { SNIPPETS } from '../../core/snippets.ts'
   import { api, relativeTo, type FileEntry } from './api.ts'
   import { createEditor, type Editor } from './codemirror.ts'
-  import { SNIPPETS, expand } from './snippets.ts'
+  import type { Problem } from './assist.ts'
+  import Palette, { type PaletteItem } from './Palette.svelte'
+  import KeyBar from './KeyBar.svelte'
   import { desktopAction, isDesktop } from '../desktop.ts'
   import { onDeckUpdate } from '../deck-source.ts'
 
   type Payload = { deck: Deck } | { error: string }
   type Status = 'saved' | 'dirty' | 'saving' | 'error'
+  type Mode = 'write' | 'split' | 'preview'
+  type Found = Problem & { found: string }
 
   const STORAGE_KEY = 'strata-editor'
   const remember = (data: Record<string, unknown>) => {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)) } catch { /* privat/blockiert */ }
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...recall(), ...data })) } catch { /* privat/blockiert */ }
   }
-  const recall = (): { file?: string; line?: number; split?: number } => {
+  const recall = (): { file?: string; line?: number; split?: number; mode?: Mode; side?: boolean } => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') } catch { return {} }
   }
+
+  const NARROW = '(max-width: 900px)'
+  const narrow = () => matchMedia(NARROW).matches
+  const coarse = matchMedia('(pointer: coarse)').matches
 
   let deckName = $state('')
   let files = $state<FileEntry[]>([])
@@ -31,8 +40,15 @@
   let message = $state('')
   let follow = $state(true)
   let split = $state(recall().split ?? 50)
+  let mode = $state<Mode>(recall().mode ?? 'split')
+  let side = $state(recall().side ?? !narrow())
   let previewPos = $state.raw<Position | null>(null)
   let dragging = $state(false)
+  let problems = $state.raw<Found[]>([])
+  let problemsOpen = $state(false)
+  let palette = $state<{ only: string } | null>(null)
+  let focused = $state(false)
+  let startupError = $state<string | null>(null)
 
   let editorEl: HTMLElement
   let frame: HTMLIFrameElement
@@ -43,17 +59,38 @@
   let saveTimer: ReturnType<typeof setTimeout> | undefined
   let syncTimer: ReturnType<typeof setTimeout> | undefined
   let imageMode: 'file' | 'base64' = 'file'
+  /** Layouts, die das Theme des Decks mitbringt (`.layout-<name>` im CSS der Vorschau) */
+  let themeLayouts: string[] = []
   /** zuletzt an die Vorschau geschickte Position – deren Echo nicht zurück in den Editor spiegeln */
   let requested = ''
 
   const kindOf = (path: string) => (/\.ya?ml$/i.test(path) ? 'yaml' : 'markdown')
   const keyOf = (id: string, slide: number) => `${id}:${slide}`
   const textFiles = $derived(files.filter((f) => f.kind !== 'image'))
+  const crumbs = $derived(deck && previewPos ? pathToNode(deck.nodes, previewPos.id) : [])
+  const columns = $derived(
+    `${side ? '240px' : '0px'} ${mode === 'write' ? 'minmax(0, 1fr) 0 0' : mode === 'preview' ? '0 0 minmax(0, 1fr)' : `minmax(0, ${split}fr) 6px minmax(0, ${100 - split}fr)`}`,
+  )
 
   function flash(text: string) {
     message = text
     setTimeout(() => { if (message === text) message = '' }, 4000)
   }
+
+  function setMode(m: Mode) {
+    mode = m
+    remember({ mode })
+    if (m !== 'preview') requestAnimationFrame(() => ed?.view.requestMeasure())
+    if (m !== 'write') setTimeout(syncPreview, 60)
+  }
+
+  function toggleSide() {
+    side = !side
+    remember({ side })
+  }
+
+  /** auf schmalen Geräten legt sich die Seitenleiste über den Text und schließt nach der Wahl */
+  const closeDrawer = () => { if (narrow() && side) side = false }
 
   // ---------- Dateien ----------
 
@@ -71,6 +108,7 @@
       savedText = text
       current = path
       status = 'saved'
+      if (kindOf(path) === 'yaml') problems = []
     }
     if (opts.line) opts.select === false ? ed.scrollToLine(opts.line) : ed.gotoLine(opts.line)
     remember({ file: path, line: opts.line ?? cursorLine, split })
@@ -128,7 +166,12 @@
     if (!follow || !deck || keyOf(pos.id, pos.slide) === requested) return
     const target = lineOfSlide(deck.nodes, pos.id, pos.slide)
     if (!target) return
-    if (target.file !== current) await openFile(target.file)
+    try {
+      if (target.file !== current) await openFile(target.file)
+    } catch (e) {
+      startupError = (e as Error).message
+      return
+    }
     const exact = lineOfSlide(deck.nodes, pos.id, pos.slide, ed.text())
     if (exact) ed.scrollToLine(exact.line)
   }
@@ -136,28 +179,43 @@
   async function jumpToNode(node: DeckNode) {
     await openFile(node.source.file, { line: node.source.line })
     goto(node.id, 0)
+    closeDrawer()
+  }
+
+  /** Theme-Layouts aus dem CSS der Vorschau lesen; der Linter soll sie nicht als unbekannt melden */
+  function readThemeLayouts() {
+    const names = new Set<string>()
+    const walk = (rules: CSSRuleList) => {
+      for (const r of rules) {
+        if ('selectorText' in r) for (const m of String(r.selectorText).matchAll(/\.layout-([\w-]+)/g)) names.add(m[1])
+        if ('cssRules' in r) walk((r as CSSGroupingRule).cssRules)
+      }
+    }
+    try {
+      for (const sheet of frame.contentDocument?.styleSheets ?? []) walk(sheet.cssRules)
+    } catch { /* anderes Origin */ }
+    const next = [...names].sort()
+    if (next.join() !== themeLayouts.join()) {
+      themeLayouts = next
+      ed?.relint()
+    }
   }
 
   // ---------- Einfügen ----------
 
-  function insertSnippet(i: number) {
-    const { text, cursor } = expand(SNIPPETS[i])
-    ed.insert(text, undefined, cursor)
-  }
-
-  function pickImage(mode: 'file' | 'base64') {
-    imageMode = mode
+  function pickImage(kind: 'file' | 'base64') {
+    imageMode = kind
     imageInput.value = ''
     imageInput.click()
   }
 
   const altOf = (file: File) => (file.name || 'Bild').replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')
 
-  async function insertImages(list: File[], pos?: number, mode: 'file' | 'base64' = 'file') {
+  async function insertImages(list: File[], pos?: number, kind: 'file' | 'base64' = 'file') {
     if (!current) return
     for (const file of list) {
       try {
-        if (mode === 'base64') {
+        if (kind === 'base64') {
           const data = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader()
             reader.onload = () => resolve(String(reader.result))
@@ -186,9 +244,9 @@
     dragging = true
     const main = (e.currentTarget as HTMLElement).parentElement!
     const rect = main.getBoundingClientRect()
-    const side = (main.querySelector('.ed-side') as HTMLElement).offsetWidth
+    const sideWidth = side ? 240 : 0
     const move = (ev: PointerEvent) => {
-      split = Math.max(20, Math.min(80, ((ev.clientX - rect.left - side) / (rect.width - side)) * 100))
+      split = Math.max(20, Math.min(80, ((ev.clientX - rect.left - sideWidth) / (rect.width - sideWidth)) * 100))
     }
     const up = () => {
       dragging = false
@@ -214,6 +272,47 @@
     else window.open('./' + hash, '_blank')
   }
 
+  // ---------- Palette und Probleme ----------
+
+  const flatten = (nodes: DeckNode[]): DeckNode[] => nodes.flatMap((n) => [n, ...flatten(n.children)])
+
+  function paletteItems(): PaletteItem[] {
+    const items: PaletteItem[] = []
+    for (const n of flatten(deck?.nodes ?? [])) {
+      items.push({ group: 'Folien', title: `${n.depth === 1 ? '→' : '↓'} ${n.title}`, detail: `${n.source.file}:${n.source.line}`, run: () => jumpToNode(n) })
+    }
+    items.push(
+      { group: 'Aktionen', title: 'Präsentieren', detail: 'Ab der aktuellen Folie', run: present },
+      { group: 'Aktionen', title: 'PDF / Druckansicht', run: exportPdf },
+      { group: 'Aktionen', title: 'Ansicht: Schreiben', run: () => setMode('write') },
+      { group: 'Aktionen', title: 'Ansicht: Geteilt', run: () => setMode('split') },
+      { group: 'Aktionen', title: 'Ansicht: Vorschau', run: () => setMode('preview') },
+      { group: 'Aktionen', title: side ? 'Seitenleiste ausblenden' : 'Seitenleiste einblenden', run: toggleSide },
+      { group: 'Aktionen', title: follow ? 'Synchron ausschalten' : 'Synchron einschalten', detail: 'Vorschau folgt dem Cursor', run: () => { follow = !follow } },
+      { group: 'Aktionen', title: 'Neue Datei …', run: newFile },
+    )
+    for (const s of SNIPPETS) items.push({ group: 'Bausteine', title: s.label, detail: s.title, run: () => ed.insertSnippet(s.text) })
+    items.push(
+      { group: 'Bausteine', title: 'Bild einfügen', detail: 'in bilder/ kopieren und verlinken', run: () => pickImage('file') },
+      { group: 'Bausteine', title: 'Bild einbetten', detail: 'als Base64 in die Datei', run: () => pickImage('base64') },
+    )
+    for (const f of textFiles) items.push({ group: 'Dateien', title: f.path, run: () => openFile(f.path, { line: 1 }) })
+    return items
+  }
+
+  const openPalette = (only = '') => { palette = { only } }
+  const closePalette = () => { palette = null; ed?.focus() }
+
+  function onProblems(list: Problem[]) {
+    const text = ed?.text() ?? ''
+    problems = list.map((p) => ({ ...p, found: text.slice(p.from, p.to) }))
+    if (!problems.length) problemsOpen = false
+  }
+
+  function fixProblem(p: Found) {
+    if (!ed.fix(p, p.found)) flash('Die Stelle hat sich geändert, bitte erneut prüfen.')
+  }
+
   const statusText: Record<Status, string> = {
     saved: 'Gespeichert', dirty: 'Ungespeichert', saving: 'Speichert …', error: 'Fehler beim Speichern',
   }
@@ -233,6 +332,9 @@
       },
       onSave: save,
       onImages: (list, pos) => insertImages(list, pos),
+      onProblems,
+      layouts: () => themeLayouts,
+      onFocus: (f) => { focused = f },
     })
     // für Browser-Tests und Debugging
     ;(window as unknown as { __strataEditor: Editor }).__strataEditor = ed
@@ -241,6 +343,14 @@
       if (e.origin === location.origin && e.data?.type === 'strata:position') followPreview(e.data.pos)
     }
     window.addEventListener('message', onMessage)
+
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        palette ? closePalette() : openPalette()
+      }
+    }
+    window.addEventListener('keydown', onKey)
 
     // Deck neu geladen (eigenes Speichern oder externe Änderung)
     // Vite-HMR bzw. Server-Sent Events in der Desktop-App
@@ -251,6 +361,7 @@
       }
       deckError = null
       deck = payload.deck
+      setTimeout(readThemeLayouts, 400)
       if (current && status === 'saved') {
         const text = await api.read(current).catch(() => null)
         if (text !== null && text !== savedText && text !== ed.text()) {
@@ -268,14 +379,19 @@
     window.addEventListener('beforeunload', beforeUnload)
 
     ;(async () => {
-      await refreshFiles()
-      const last = recall()
-      const first = textFiles.find((f) => f.path === last.file) ?? textFiles.find((f) => f.kind === 'markdown') ?? textFiles[0]
-      if (first) await openFile(first.path, { line: first.path === last.file ? last.line : 1 })
+      try {
+        await refreshFiles()
+        const last = recall()
+        const first = textFiles.find((f) => f.path === last.file) ?? textFiles.find((f) => f.kind === 'markdown') ?? textFiles[0]
+        if (first) await openFile(first.path, { line: first.path === last.file ? last.line : 1 })
+      } catch (e) {
+        startupError = (e as Error).message
+      }
     })()
 
     return () => {
       window.removeEventListener('message', onMessage)
+      window.removeEventListener('keydown', onKey)
       window.removeEventListener('beforeunload', beforeUnload)
     }
   })
@@ -292,35 +408,46 @@
           data-depth={node.depth}
           title="{node.source.file}:{node.source.line}"
           onclick={() => jumpToNode(node)}
-        >{node.title}{#if node.slides.length > 1}<span class="ol-meta">{node.slides.length}</span>{/if}</button>
+        ><span class="ol-glyph" aria-hidden="true">{node.depth === 1 ? '→' : '↓'}</span><span class="ol-title">{node.title}</span>{#if node.slides.length > 1}<span class="ol-meta">{node.slides.length}</span>{/if}</button>
         {#if node.children.length}{@render outline(node.children)}{/if}
       </li>
     {/each}
   </ul>
 {/snippet}
 
-<div class="ed-app" class:dragging>
+<div class="ed-app" class:dragging data-mode={mode} data-side={side ? 'open' : 'closed'}>
   <header class="ed-bar">
-    <strong class="ed-brand">Strata Editor</strong>
-    <span class="ed-deck">{deck?.title ?? deckName}</span>
-    <div class="ed-tools" role="toolbar" aria-label="Einfügen">
-      {#each SNIPPETS as s, i (s.label)}
-        <button onclick={() => insertSnippet(i)} title={s.title}>{s.label}</button>
-      {/each}
-      <span class="sep"></span>
-      <button onclick={() => pickImage('file')} title="Bild in den Ordner bilder/ kopieren und verlinken (auch per Drag & Drop oder Einfügen)">Bild</button>
-      <button onclick={() => pickImage('base64')} title="Bild als Base64 direkt in die Markdown-Datei einbetten">Bild (Base64)</button>
+    <button class="ed-icon" onclick={toggleSide} aria-label="Seitenleiste ein- oder ausblenden" aria-pressed={side} title="Gliederung und Dateien">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+    </button>
+    <nav class="ed-crumbs" aria-label="Position im Baum" title={deck?.title ?? deckName}>
+      {#if crumbs.length}
+        <i aria-hidden="true">→</i>
+        {#each crumbs as n, k (n.id)}{#if k > 0}<i aria-hidden="true">↓</i>{/if}<span>{n.title}</span>{/each}
+      {:else}
+        <span class="ed-deck">{deck?.title ?? deckName}</span>
+      {/if}
+    </nav>
+    <div class="ed-seg" role="group" aria-label="Ansicht">
+      <button aria-pressed={mode === 'write'} onclick={() => setMode('write')}>Schreiben</button>
+      <button aria-pressed={mode === 'split'} onclick={() => setMode('split')}>Geteilt</button>
+      <button aria-pressed={mode === 'preview'} onclick={() => setMode('preview')}>Vorschau</button>
     </div>
     <label class="ed-follow" title="Vorschau folgt dem Cursor, Editor folgt der Vorschau">
       <input type="checkbox" bind:checked={follow} /> Synchron
     </label>
-    <span class="ed-status" data-status={status}>{statusText[status]}</span>
+    <span class="ed-status" data-status={status}><i aria-hidden="true"></i>{statusText[status]}</span>
+    <button class="ed-find" onclick={() => openPalette()} title="Folien, Bausteine und Aktionen (Strg+K)">
+      <span>Suchen</span><kbd>Strg K</kbd>
+    </button>
     <button class="ed-pdf" onclick={exportPdf} title="Druckansicht öffnen: drucken oder als PDF speichern">PDF</button>
-    <button class="ed-present" onclick={present} title="Präsentation in neuem Tab öffnen">Präsentieren ↗</button>
+    <button class="ed-present" onclick={present} title="Präsentation öffnen">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z" fill="currentColor" stroke="none" /></svg>Präsentieren
+    </button>
   </header>
 
-  <div class="ed-main" style="grid-template-columns: 240px {split}fr 6px {100 - split}fr">
-    <aside class="ed-side">
+  <div class="ed-main" style="grid-template-columns: {columns}">
+    <aside class="ed-side" aria-label="Dateien und Gliederung">
       <section>
         <div class="ed-side-head">
           <span>Dateien</span>
@@ -329,7 +456,7 @@
         <ul class="ed-files">
           {#each textFiles as f (f.path)}
             <li>
-              <button class:active={f.path === current} data-kind={f.kind} onclick={() => openFile(f.path, { line: 1 })}>{f.path}</button>
+              <button class:active={f.path === current} data-kind={f.kind} onclick={() => { openFile(f.path, { line: 1 }); closeDrawer() }}>{f.path}</button>
             </li>
           {/each}
         </ul>
@@ -339,17 +466,51 @@
         {#if deck}{@render outline(deck.nodes)}{/if}
       </section>
     </aside>
+    <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+    <div class="ed-scrim" onclick={toggleSide}></div>
 
-    <section class="ed-editor" bind:this={editorEl} aria-label="Quelltext"></section>
+    <section class="ed-writing">
+      {#if startupError}<div class="ed-error ed-nofiles" role="alert"><strong>Editor nicht bereit</strong><pre>{startupError}</pre></div>{/if}
+      <div class="ed-editor" bind:this={editorEl} hidden={!!startupError}></div>
+      {#if problemsOpen && problems.length}
+        <ul class="ed-problems" aria-label="Probleme im Text">
+          {#each problems as p (p.from + p.message)}
+            <li data-severity={p.severity}>
+              <button class="ed-problem" onclick={() => ed.goto(p.from)}>
+                <i aria-hidden="true"></i><span>{p.message}</span><small>Zeile {p.line}</small>
+              </button>
+              {#if p.fix}<button class="ed-fix" onclick={() => fixProblem(p)}>Korrigieren</button>{/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+      <footer class="ed-foot">
+        <span class="ed-hints">
+          <span><kbd>/</kbd> Bausteine</span>
+          <span><kbd>:::</kbd> Container</span>
+          <span><kbd>{'{'}</kbd> Attribute</span>
+          <span><kbd>Strg Leertaste</kbd> Vorschläge</span>
+        </span>
+        <button
+          class="ed-count"
+          class:has={problems.length > 0}
+          onclick={() => { if (problems.length) problemsOpen = !problemsOpen }}
+          aria-expanded={problemsOpen}
+          title="Probleme im Text anzeigen"
+        >{problems.length ? `⚠ ${problems.length} Hinweis${problems.length > 1 ? 'e' : ''}` : '✓ Keine Hinweise'}</button>
+      </footer>
+    </section>
 
     <div class="ed-divider" role="separator" aria-orientation="vertical" onpointerdown={startDrag}></div>
 
     <section class="ed-preview" aria-label="Vorschau">
-      <iframe bind:this={frame} src="./index.html" title="Vorschau" onload={() => follow && syncPreview()}></iframe>
+      <iframe bind:this={frame} src="./index.html" title="Vorschau" onload={() => { readThemeLayouts(); if (follow) syncPreview() }}></iframe>
       {#if deckError}<div class="ed-error"><strong>Deck-Fehler</strong><pre>{deckError}</pre></div>{/if}
     </section>
   </div>
 
+  {#if coarse && focused && palette === null}<KeyBar {ed} onblocks={() => openPalette('Bausteine')} />{/if}
+  {#if palette}<Palette items={paletteItems()} only={palette.only} onclose={closePalette} />{/if}
   {#if message}<div class="ed-toast" role="status">{message}</div>{/if}
   <input
     bind:this={imageInput}

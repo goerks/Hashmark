@@ -444,3 +444,86 @@ describe('strata check (statisch)', () => {
     expect(staticChecks(await loadDeck(dir))).toEqual([])
   })
 })
+
+describe('Editor: Vorschläge', () => {
+  const at = async (text: string, opts = {}) => {
+    const { completionAt } = await import('../src/core/complete.ts')
+    return completionAt(text, text.length, opts)
+  }
+  it('Slash am Zeilenanfang bietet Bausteine, gefiltert', async () => {
+    const all = await at('Text\n/')
+    expect(all?.title).toBe('Bausteine')
+    expect(all?.from).toBe(5)
+    const hit = await at('/hin')
+    expect(hit?.options[0].label).toBe('Hinweis')
+    expect(await at('a /hin')).toBeNull()
+  })
+  it('::: erst mit Leertaste (oder explizit), sonst schließt es nur', async () => {
+    expect(await at('::: col\nx\n:::')).toBeNull()
+    expect((await at('::: st'))?.options[0].label).toBe('steps')
+    expect((await at(':::', { explicit: true }))?.options.length).toBe(6)
+  })
+  it('Attribute, Layout-Werte und Theme-Layouts in {…}', async () => {
+    expect((await at('## T {'))?.title).toBe('Attribute')
+    expect((await at('## T {la'))?.options[0].label).toBe('layout=')
+    const layouts = await at('## T {layout=two')
+    expect(layouts?.options.map((o) => o.label)).toEqual(['two-col'])
+    expect(layouts?.from).toBe('## T {layout='.length)
+    expect((await at('## T {layout=', { layouts: ['kpi'] }))?.options.map((o) => o.label)).toContain('kpi')
+    expect(await at('## T {layout=two-col} ')).toBeNull()
+    expect((await at('## T {transition=f'))?.options[0].label).toBe('fade')
+  })
+  it('Hinweiskasten und Codesprachen, aber nie in Codeblöcken', async () => {
+    expect((await at('> [!WA'))?.options[0].label).toBe('WARNING')
+    expect((await at('```mer'))?.options[0].label).toBe('mermaid')
+    expect(await at('```\n/hin')).toBeNull()
+    expect(await at('```ts\nx\n```\n/hin')).not.toBeNull()
+  })
+})
+
+describe('Editor: Linter', () => {
+  it('meldet unbekanntes Layout mit Korrektur und exakter Stelle', async () => {
+    const { lintText } = await import('../src/core/lint.ts')
+    const text = '# A\n\n## B {layout=two-cols id=x}\n'
+    const [p] = lintText(text)
+    expect(p).toMatchObject({ line: 3, severity: 'error', fix: 'two-col' })
+    expect(text.slice(p.from, p.to)).toBe('two-cols')
+    expect(lintText('## B {layout=kpi}', { layouts: ['kpi'] })).toEqual([])
+  })
+  it('meldet Attribute, Übergänge, Container und ungeschlossene Blöcke', async () => {
+    const { lintText } = await import('../src/core/lint.ts')
+    const msgs = lintText('## A {foo=1 transition=wirbel}\n::: colums\nx\n:::\n:::\n::: col\nx\n```ts\nx').map((p) => p.message)
+    expect(msgs.some((m) => m.includes('Attribut „foo“'))).toBe(true)
+    expect(msgs.some((m) => m.includes('Übergang „wirbel“'))).toBe(true)
+    expect(msgs.some((m) => m.includes('Container „colums“') && m.includes('columns'))).toBe(true)
+    expect(msgs.some((m) => m.includes('Schließendes'))).toBe(true)
+    expect(msgs.some((m) => m.includes('wird nicht geschlossen (fehlendes'))).toBe(true)
+    expect(msgs.some((m) => m.includes('Codeblock'))).toBe(true)
+  })
+  it('ist bei sauberem Text und in Codeblöcken still', async () => {
+    const { lintText } = await import('../src/core/lint.ts')
+    const ok = '# A {layout=title}\n## B {steps fit .x #y duration=5m}\n::: columns cols=2\n::: col\nx\n:::\n:::\n```md\n::: foo\n## C {layout=nix}\n```\n## Mengen {a, b}\n'
+    expect(lintText(ok)).toEqual([])
+    expect(lintText('## Liste {stpes}')[0].fix).toBe('steps')
+  })
+})
+
+describe('Editor: Brotkrumen', () => {
+  it('liefert den Pfad vom Kapitel bis zum Detail', async () => {
+    const { pathToNode } = await import('../src/core/sourcemap.ts')
+    const dir = await tempDeck({ 'a.md': '# A\n## A1\n### A1a\n# B' })
+    const deck = (await loadDeck(dir)).deck
+    const a1a = deck.nodes[0].children[0].children[0]
+    expect(pathToNode(deck.nodes, a1a.id).map((n) => n.title)).toEqual(['A', 'A1', 'A1a'])
+    expect(pathToNode(deck.nodes, 'gibtsnicht')).toEqual([])
+  })
+})
+
+describe('Editor: Bausteine', () => {
+  it('expand markiert das Platzhalterwort hinter dem Cursor-Marker', async () => {
+    const { expand } = await import('../src/core/snippets.ts')
+    expect(expand('## §Titel {layout=two-col}')).toEqual({ text: '## Titel {layout=two-col}', cursor: 3, select: 5 })
+    expect(expand('::: notes\n§\n:::')).toMatchObject({ cursor: 10, select: 0 })
+    expect(expand('ohne')).toEqual({ text: 'ohne', cursor: 4, select: 0 })
+  })
+})

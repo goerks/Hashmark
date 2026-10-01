@@ -52,3 +52,13 @@ export function lineOfSlide(nodes: DeckNode[], id: string, slide: number, text?:
   const b = breaks[slide - 1]
   return { file, line: b ? Math.min(b + 1, lines.length) : line }
 }
+
+/** Pfad vom Wurzelknoten bis zum Knoten mit der Id (für Brotkrumen); leer, wenn unbekannt */
+export function pathToNode(nodes: DeckNode[], id: string): DeckNode[] {
+  for (const n of nodes) {
+    if (n.id === id) return [n]
+    const below = pathToNode(n.children, id)
+    if (below.length) return [n, ...below]
+  }
+  return []
+}

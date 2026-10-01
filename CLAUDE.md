@@ -9,7 +9,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | Befehl | Zweck |
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
-| `make test` | Vitest (`tests/*.test.ts`, 66 Tests, Kern-Logik ohne DOM) |
+| `make test` | Vitest (`tests/*.test.ts`, 81 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-build` / `make app-package` | Tauri-App: Debug bauen + starten (`DECK=…` optional) / Release bauen / portables `dist-app/Strata/` |
 | `make toolchain` | einmalig Rust (`stable-x86_64-pc-windows-gnullvm`) + llvm-mingw nach `%LOCALAPPDATA%\strata-toolchain` (ohne Admin) |
 | `make sidecar-smoke` | Node-Sidecar wie aus der App ansprechen: Deck, Datei-API, Aktionen, PDF, Handout, HTML (`SIDECAR_BUNDLE=1`: das Bündel) |
@@ -54,7 +54,11 @@ src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
   navigator.ts  reine State-Machine: next/prev/down/up (Pfeile), forward/backward (Space = Tiefensuche),
                 Schritte, relocate (Hot Reload), progress, Deep-Link-Hash (#id:2)
   print.ts      Seitenlogik für Druck/PDF (Tiefe, Schritte, Handout, Fußzeile) + URL-Optionen
-  sourcemap.ts  Editor-Sync: Zeile ↔ Knoten/Sub-Slide über DeckNode.source
+  sourcemap.ts  Editor-Sync: Zeile ↔ Knoten/Sub-Slide über DeckNode.source, pathToNode (Brotkrumen)
+  snippets.ts   Bausteine (`§` = Cursor, `expand` markiert das Platzhalterwort dahinter)
+  vocab.ts      Wortschatz für Editor: Layouts/Container/Attribute mit Beschreibung (Quelle: check.ts), fold, nearest („Meinst du …?“)
+  complete.ts   `completionAt(text, pos)`: Vorschläge je Kontext (`/`, `::: `, ```` ```x ````, `> [!`, `{…}`, `layout=`); rein, getestet
+  lint.ts       `lintText(text)`: unbekannte Layouts/Attribute/Container, offene `:::`/Codeblöcke, mit Offsets und Korrektur; rein, getestet
   excalidraw.ts Excalidraw-SVG: Szene aus `<metadata>` (zlib/bstring) → Gruppen per Reihenfolge den Top-Level-`<g>` zuordnen → `data-step`; drawio.ts analog mit Ebenen
 src/desktop/  Node-Sidecar der Tauri-App: sidecar.ts (stdin JSON-Zeilen → stdout `@@strata {…}`; open/isDeck/scaffold/examples/
               recent/forget/pdf/html/position/close; Ereignis `action` aus den Seiten), settings.ts, ui/ (Startseite, Tauri-invoke)
@@ -79,7 +83,8 @@ src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print
                     nur für die Vorschau (peek). Dazu ScaledSlide.svelte, Notes.svelte, Search.svelte, presenter.css
   NavControls/NavOverview/KeyHelp/PrintView/PrintPages, transitions.ts, mermaid.ts
   base.css, print.css, themes/*.css (nur Design-Tokens: --color-*, --font-*, --shiki-*, …)
-  editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*)
+  editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*): codemirror.ts (Setup, API), strata-lang.ts (Decorations für ::: und {…}, Highlight-Klassen .tok-*/.st-*),
+                    assist.ts (Autocomplete, Linter, Formatleiste), Palette.svelte (Strg+K), KeyBar.svelte (Tablet), Editor.svelte; Layout A „Fokus“, unter 900 px Schublade + gestapelt
 ```
 
 Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fertigem HTML je Slide → Client. Mermaid rendert erst im Client, mit den Farben aus den Theme-Tokens.
@@ -143,6 +148,13 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Shell:** Markdown mit Backticks nie in `node -e "…"` bzw. doppelten Anführungszeichen bearbeiten, Bash führt sie als Befehle aus. Dafür das Edit-Werkzeug nehmen.
 - **Editor-API:** nur localhost, Header `X-Strata-Editor: 1`, nur Pfade im Deck, nur `.md`/`.yaml`/Bilder. `strata edit` hat bewusst kein `--host`.
 - Die Datei-API-Pfade und `deck-assets/` sind **relativ**, damit Builds auch in Unterverzeichnissen laufen (`base: './'`).
+
+- **Editor (CodeMirror 6):**
+  - Die Farben der Strata-Syntax (`.st-*`) stehen als Decorations innerhalb der Markdown-Überschrift (`.tok-h`) und brauchen `!important`, sonst gewinnt die Überschriftenfarbe.
+  - Bei `showTooltip` ist das gelieferte `dom` selbst das `.cm-tooltip`-Element. Eigene Farben brauchen deshalb `.cm-editor .cm-tooltip.st-bubble` (mehr Spezifität als das Basis-Theme).
+  - Vorschläge starten nur bei Eingabe (`userEvent input.type`), nicht bei programmatischen Änderungen. Tests per CDP tippen mit `Input.dispatchKeyEvent` (`char`).
+  - Headless: `Emulation.setTouchEmulationEnabled` macht `pointer: coarse` wahr (Tastaturleiste), `setFocusEmulationEnabled` liefert `view.hasFocus`.
+  - Beim Laden wechselt der Editor einmal die Datei, sobald die Vorschau ihre Position meldet (`followPreview`). Tests erst danach bedienen.
 
 ## Stand und offene Punkte
 
