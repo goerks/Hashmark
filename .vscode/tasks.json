@@ -1,0 +1,146 @@
+{
+  // Aufruf: Strg+Umschalt+P → „Tasks: Run Task“ (oder Strg+Umschalt+B für den Standard-Task „Editor“).
+  // Alles läuft über make, wie im Terminal. Server-Tasks bleiben in einem eigenen Terminal offen,
+  // dort mit Strg+C oder über das Papierkorb-Symbol beenden (Tasks: Terminate Task).
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "deck",
+      "type": "promptString",
+      "description": "Deck-Ordner oder deck.yaml",
+      "default": "examples/strata-demo"
+    },
+    {
+      "id": "port",
+      "type": "promptString",
+      "description": "Port",
+      "default": "3030"
+    },
+    {
+      "id": "pdfOptionen",
+      "type": "pickString",
+      "description": "PDF-Variante",
+      "options": [
+        { "label": "Alle Folien", "value": "" },
+        { "label": "Nur Hauptpfad (DEPTH=1)", "value": "DEPTH=1" },
+        { "label": "Jeder Schritt eine Seite (STEPS=1)", "value": "STEPS=1" },
+        { "label": "Handout mit Notizen (NOTES=1)", "value": "NOTES=1" }
+      ],
+      "default": ""
+    }
+  ],
+  "tasks": [
+    {
+      "label": "Strata: Editor",
+      "detail": "Editor mit Live-Vorschau im Browser (make edit)",
+      "type": "shell",
+      "command": "make edit DECK=\"${input:deck}\" PORT=${input:port}",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always", "clear": true },
+      "group": { "kind": "build", "isDefault": true }
+    },
+    {
+      "label": "Strata: Viewer (Dev-Server)",
+      "detail": "Präsentation mit Hot Reload, öffnet den Browser (make dev-open)",
+      "type": "shell",
+      "command": "make dev-open DECK=\"${input:deck}\" PORT=${input:port}",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always", "clear": true }
+    },
+    {
+      "label": "Strata: Viewer mit Beispiel-Auswahl",
+      "detail": "Dev-Server mit Umschalter für alle Beispiel-Decks (make dev)",
+      "type": "shell",
+      "command": "make dev",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always", "clear": true }
+    },
+    {
+      "label": "Strata: Viewer im Netzwerk (LAN)",
+      "detail": "Dev-Server für Tablet oder Handy im selben Netz (make dev-lan, ohne Editor)",
+      "type": "shell",
+      "command": "make dev-lan DECK=\"${input:deck}\" PORT=${input:port}",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always", "clear": true }
+    },
+    {
+      "label": "Strata: Desktop-App",
+      "detail": "Tauri-App bauen und starten (make app)",
+      "type": "shell",
+      "command": "make app",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always", "clear": true }
+    },
+    {
+      "label": "Strata: Tests",
+      "detail": "Vitest (make test)",
+      "type": "shell",
+      "command": "make test",
+      "problemMatcher": [],
+      "presentation": { "panel": "shared", "reveal": "always", "clear": true },
+      "group": { "kind": "test", "isDefault": true }
+    },
+    {
+      "label": "Strata: Deck prüfen",
+      "detail": "Layouts, Bilder, Theme, Überlauf (make check)",
+      "type": "shell",
+      "command": "make check DECK=\"${input:deck}\"",
+      "problemMatcher": [],
+      "presentation": { "panel": "shared", "reveal": "always", "clear": true }
+    },
+    {
+      "label": "Strata: Statisch bauen",
+      "detail": "HTML nach dist/ (make build)",
+      "type": "shell",
+      "command": "make build DECK=\"${input:deck}\"",
+      "problemMatcher": [],
+      "presentation": { "panel": "shared", "reveal": "always", "clear": true }
+    },
+    {
+      "label": "Strata: Gebautes Deck ansehen",
+      "detail": "dist/ lokal ausliefern (make preview)",
+      "type": "shell",
+      "command": "make preview",
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": { "panel": "dedicated", "reveal": "always", "clear": true }
+    },
+    {
+      "label": "Strata: Export (eine HTML-Datei)",
+      "detail": "Läuft offline per Doppelklick, nach export/ (make export)",
+      "type": "shell",
+      "command": "make export DECK=\"${input:deck}\"",
+      "problemMatcher": [],
+      "presentation": { "panel": "shared", "reveal": "always", "clear": true }
+    },
+    {
+      "label": "Strata: PDF",
+      "detail": "PDF nach export/ (make pdf)",
+      "type": "shell",
+      "command": "make pdf DECK=\"${input:deck}\" ${input:pdfOptionen}",
+      "problemMatcher": [],
+      "presentation": { "panel": "shared", "reveal": "always", "clear": true }
+    },
+    {
+      "label": "Strata: Beispiele bauen",
+      "detail": "Alle examples/* als statische Seiten mit Auswahlseite (make build-examples)",
+      "type": "shell",
+      "command": "make build-examples",
+      "problemMatcher": [],
+      "presentation": { "panel": "shared", "reveal": "always", "clear": true }
+    },
+    {
+      "label": "Strata: Einrichten (npm ci offline)",
+      "detail": "Node und Pakete aus vendor/ installieren (make setup)",
+      "type": "shell",
+      "command": "make setup",
+      "problemMatcher": [],
+      "presentation": { "panel": "shared", "reveal": "always", "clear": true }
+    }
+  ]
+}
