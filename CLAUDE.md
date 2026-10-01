@@ -9,6 +9,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | Befehl | Zweck |
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
+| `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen (mit Datei: Logo zuschneiden und ersetzen) |
 | `make test` | Vitest (`tests/*.test.ts`, 81 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-build` / `make app-package` | Tauri-App: Debug bauen + starten (`DECK=…` optional) / Release bauen / portables `dist-app/Hashmark/` |
 | `make toolchain` | einmalig Rust (`stable-x86_64-pc-windows-gnullvm`) + llvm-mingw nach `%LOCALAPPDATA%\hashmark-toolchain` (ohne Admin) |
