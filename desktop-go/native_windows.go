@@ -12,27 +12,27 @@ import (
 )
 
 var (
-	user32                = windows.NewLazySystemDLL("user32.dll")
-	pCreateMenu           = user32.NewProc("CreateMenu")
-	pCreatePopupMenu      = user32.NewProc("CreatePopupMenu")
-	pAppendMenuW          = user32.NewProc("AppendMenuW")
-	pSetMenu              = user32.NewProc("SetMenu")
-	pGetMenu              = user32.NewProc("GetMenu")
-	pDestroyMenu          = user32.NewProc("DestroyMenu")
-	pDrawMenuBar          = user32.NewProc("DrawMenuBar")
-	pSetWindowLongPtrW    = user32.NewProc("SetWindowLongPtrW")
-	pGetWindowLongPtrW    = user32.NewProc("GetWindowLongPtrW")
-	pCallWindowProcW      = user32.NewProc("CallWindowProcW")
-	pEnumDisplayMonitors  = user32.NewProc("EnumDisplayMonitors")
-	pGetMonitorInfoW      = user32.NewProc("GetMonitorInfoW")
-	pSetWindowPos         = user32.NewProc("SetWindowPos")
-	pGetWindowRect        = user32.NewProc("GetWindowRect")
-	pShowWindow           = user32.NewProc("ShowWindow")
-	pFindWindowW          = user32.NewProc("FindWindowW")
-	pSetForegroundWindow  = user32.NewProc("SetForegroundWindow")
-	pSendMessageW         = user32.NewProc("SendMessageW")
-	pLoadImageW           = user32.NewProc("LoadImageW")
-	pSetDpiAwarenessCtx   = user32.NewProc("SetProcessDpiAwarenessContext")
+	user32               = windows.NewLazySystemDLL("user32.dll")
+	pCreateMenu          = user32.NewProc("CreateMenu")
+	pCreatePopupMenu     = user32.NewProc("CreatePopupMenu")
+	pAppendMenuW         = user32.NewProc("AppendMenuW")
+	pSetMenu             = user32.NewProc("SetMenu")
+	pGetMenu             = user32.NewProc("GetMenu")
+	pDestroyMenu         = user32.NewProc("DestroyMenu")
+	pDrawMenuBar         = user32.NewProc("DrawMenuBar")
+	pSetWindowLongPtrW   = user32.NewProc("SetWindowLongPtrW")
+	pGetWindowLongPtrW   = user32.NewProc("GetWindowLongPtrW")
+	pCallWindowProcW     = user32.NewProc("CallWindowProcW")
+	pEnumDisplayMonitors = user32.NewProc("EnumDisplayMonitors")
+	pGetMonitorInfoW     = user32.NewProc("GetMonitorInfoW")
+	pSetWindowPos        = user32.NewProc("SetWindowPos")
+	pGetWindowRect       = user32.NewProc("GetWindowRect")
+	pShowWindow          = user32.NewProc("ShowWindow")
+	pFindWindowW         = user32.NewProc("FindWindowW")
+	pSetForegroundWindow = user32.NewProc("SetForegroundWindow")
+	pSendMessageW        = user32.NewProc("SendMessageW")
+	pLoadImageW          = user32.NewProc("LoadImageW")
+	pSetDpiAwarenessCtx  = user32.NewProc("SetProcessDpiAwarenessContext")
 )
 
 const (
@@ -44,7 +44,7 @@ const (
 	wmCommand = 0x0111
 	wmSetIcon = 0x0080
 
-	gwlpWndProc = ^uintptr(3) // -4
+	gwlpWndProc = ^uintptr(3)  // -4
 	gwlStyle    = ^uintptr(15) // -16
 
 	wsCaption    = 0x00C00000

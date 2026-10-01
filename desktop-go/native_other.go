@@ -18,13 +18,13 @@ type monitor struct {
 	Primary    bool
 }
 
-func monitors() []monitor                          { return nil }
-func setFullscreen(hwnd uintptr, m monitor)        {}
-func toggleFullscreen(hwnd uintptr)                {}
-func maximizeOn(hwnd uintptr, m monitor)           {}
-func hideWindow(hwnd uintptr)                      {}
-func focusWindow(title string) bool                { return false }
-func setIcon(hwnd uintptr, icoPath string)         {}
+func monitors() []monitor                                               { return nil }
+func setFullscreen(hwnd uintptr, m monitor)                             {}
+func toggleFullscreen(hwnd uintptr)                                     {}
+func maximizeOn(hwnd uintptr, m monitor)                                {}
+func hideWindow(hwnd uintptr)                                           {}
+func focusWindow(title string) bool                                     { return false }
+func setIcon(hwnd uintptr, icoPath string)                              {}
 func setMenu(hwnd uintptr, items []menuItem, onCommand func(id string)) {}
 
 func documentsDir() string {

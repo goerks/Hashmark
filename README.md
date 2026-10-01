@@ -67,7 +67,7 @@ Die App ist eine schlanke Go-Hülle (ohne CGO, ca. 7 MB) um die Webview des Syst
   - Die internen Server lauschen nur auf 127.0.0.1 mit zufälligem Port.
   - Die Startseite hat einen eigenen Server mit App-Befehlen. Sie verlangen den Header `X-Hashmark-App`, den fremde Seiten wegen CORS nicht senden können. Die Seiten des Deck-Servers (Editor, Folien) erreichen sie nicht.
   - Aktionen wie „Präsentieren“ melden die Seiten per HTTP mit Schutz-Header an den Sidecar.
-  - Bekannte Lücke: Externe Links (`target=_blank`) öffnen nicht im Standardbrowser, die Webview-Bibliothek hat dafür keinen Hook.
+  - Externe Links (http, https, mailto) und `window.open` dorthin öffnen im Standardbrowser: Die Webview hat keinen Hook für neue Fenster, deshalb fängt ein Skript sie in den Seiten ab und die Hülle öffnet nur diese Schemata.
 - **Fenster:** Präsentation und Presenter-View laufen als eigene Prozesse derselben EXE, weil die Webview-Bibliothek nur ein Fenster je Prozess kennt.
 - **Daten:** zuletzt geöffnete Decks und `sidecar.log` in `%APPDATA%\app.hashmark.desktop\` (Menü Hilfe → Datenordner).
 

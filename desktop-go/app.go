@@ -6,6 +6,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -353,7 +354,9 @@ func (a *app) menu() []menuItem {
 	a.mu.Lock()
 	recent := append([]string(nil), a.recent...)
 	a.mu.Unlock()
-	it := func(id, label, accel string, enabled bool) menuItem { return menuItem{ID: id, Label: label, Accel: accel, Enabled: enabled} }
+	it := func(id, label, accel string, enabled bool) menuItem {
+		return menuItem{ID: id, Label: label, Accel: accel, Enabled: enabled}
+	}
 	sep := menuItem{Sep: true}
 
 	rec := []menuItem{}
@@ -513,3 +516,33 @@ const shortcutsJS = `(() => {
   }, true)
 })()`
 
+// Externe Links: Die Webview hat keinen Hook für neue Fenster. Klicks auf fremde http(s)/mailto-Links und
+// window.open dorthin gehen deshalb an die Hülle, die sie im Standardbrowser öffnet (in allen Frames, auch in Kindfenstern).
+const externalLinksJS = `(() => {
+  const external = (href) => {
+    try {
+      const u = new URL(href, location.href)
+      return /^(https?|mailto):$/.test(u.protocol) && u.hostname !== '127.0.0.1' && u.hostname !== 'localhost' ? u.href : null
+    } catch { return null }
+  }
+  document.addEventListener('click', (e) => {
+    const a = e.target && e.target.closest && e.target.closest('a[href]')
+    const url = a && external(a.href)
+    if (url) { e.preventDefault(); window.hmOpen(url) }
+  }, true)
+  const open = window.open
+  window.open = function (url, ...rest) {
+    const ext = url && external(String(url))
+    if (ext) { window.hmOpen(ext); return null }
+    return open.call(this, url, ...rest)
+  }
+})()`
+
+// openExternal öffnet nur http(s) und mailto – nie Dateien oder Programme, auch wenn eine Seite es verlangt
+func openExternal(raw string) {
+	u, err := url.Parse(raw)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https" && u.Scheme != "mailto") {
+		return
+	}
+	_ = openPath(u.String())
+}

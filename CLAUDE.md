@@ -140,6 +140,7 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
   - Die Webview-Bibliothek kennt **ein Fenster je Prozess** und keinen Hook für neue Fenster. Präsentation und Presenter sind deshalb Kindprozesse derselben EXE (`--window URL --mode presentation|presenter`). Schließt die Präsentation, beendet der Hauptprozess auch den Presenter.
   - Das Menü ist ein Win32-Menü über eine Fensterprozedur (`SetWindowLongPtr`). Tastenkürzel greifen darüber nicht, weil WebView2 Tasten selbst verarbeitet: `shortcutsJS` (app.go) fängt sie in jeder Seite des Hauptfensters (nicht in iframes) ab und ruft `window.hmMenu(id)` (Bind).
   - Die Startseite hat einen eigenen Server (api.go). Ihre Befehle verlangen den Header `X-Hashmark-App`, das löst bei fremden Origins einen Preflight aus, den der Server nicht beantwortet. Die Prüfung auf `127.0.0.1` im Host schützt vor DNS-Rebinding.
+  - Externe Links (http/https/mailto) und `window.open` fängt `externalLinksJS` (app.go) in allen Frames ab und ruft `hmOpen` (Bind), das nur diese Schemata im Standardbrowser öffnet.
   - Die eingebettete Webview-Bibliothek entpackt sich nach `%TEMP%\webview-<Version>`.
   - Go-Builds **immer mit `CGO_ENABLED=0`** (`make app-cross` setzt es), sonst hängt purego-fremder Code am C-Compiler. Windows: `-ldflags="-H windowsgui"`, sonst erscheint ein Konsolenfenster.
   - Backslashes in Pfaden: Beim Bearbeiten von Makefile/Skripten per Shell gehen sie leicht verloren (aus `\d` wird ein Steuerzeichen). Das Edit-Werkzeug nehmen.

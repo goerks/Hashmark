@@ -113,6 +113,8 @@ func runChild(url, title, mode string) {
 	case mode == "presenter" && primary.W > 0:
 		maximizeOn(hwnd, primary)
 	}
+	_ = v.Bind("hmOpen", openExternal)
+	v.Init(externalLinksJS)
 	v.Navigate(url)
 	v.Run()
 }
@@ -179,6 +181,8 @@ func main() {
 	setIcon(a.hwnd, writeIcon(data))
 	_ = v.Bind("hmMenu", func(id string) { go a.onMenu(id) })
 	v.Init(shortcutsJS)
+	_ = v.Bind("hmOpen", openExternal)
+	v.Init(externalLinksJS)
 	if headless() {
 		hideWindow(a.hwnd)
 	}

@@ -129,7 +129,7 @@ Begründung: Stufe 1 macht Hashmark für echte Vorträge fertig und nutzt, was d
   - Windows ist umgesetzt und getestet: Startseite, Win32-Menü, Vollbild/Monitorwahl, Dialoge, Präsentation und Presenter als eigene Prozesse.
   - Offen: Linux und macOS laufen nie wirklich (nur gebaut). Dort fehlen Menü, Vollbild und Monitorwahl (`desktop-go/native_other.go` sind Platzhalter). Für macOS bräuchte es Objective-C-Aufrufe per purego oder ein HTML-Menü.
   - Offen: Das Paket (`make app-package`) gibt es nur für Windows. Für Linux/macOS braucht es je System ein eigenes Node und die nativen npm-Pakete (der Vendor-Cache enthält nur Windows-Binärdateien).
-  - Bekannte Lücken: externe Links öffnen nicht im Standardbrowser, ein Fenster je Prozess, `go-webview` ist ein junges Projekt (März 2025).
+  - Bekannte Lücken: ein Fenster je Prozess, `go-webview` ist ein junges Projekt (März 2025). Externe Links fängt ein Skript in den Seiten ab (`externalLinksJS`, app.go).
 
 ## Backlog: mögliche Refactorings
 
