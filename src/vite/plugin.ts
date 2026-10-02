@@ -6,8 +6,9 @@ import type { Plugin, ViteDevServer } from 'vite'
 import { listExamples } from '../cli/examples.ts'
 import { realPath } from '../cli/paths.ts'
 import { loadDeck, type LoadResult } from '../core/deck.ts'
+import { PLAN_PATH } from '../core/plan.ts'
 import { ASSET_PREFIX, IMAGE_MIME, toDataUri } from '../core/render.ts'
-import { editorApi } from './editor-api.ts'
+import { editorApi, planApi } from './editor-api.ts'
 
 export const DECK_ID = 'virtual:hashmark/deck'
 export const THEME_ID = 'virtual:hashmark/theme.css'
@@ -90,6 +91,8 @@ export function hashmark(options: HashmarkOptions): Plugin {
     configureServer(server) {
       server.watcher.add(deckDir)
       current.then((r) => server.watcher.add(r.themeFiles), () => {})
+      // Fahrpläne gibt es auch ohne Editor (make dev): sie gehören zur Präsentation
+      server.middlewares.use(planApi(() => deckDir))
       if (options.editor) server.middlewares.use(editorApi(deckDir))
       if (options.examples) {
         const root = options.examples
@@ -140,6 +143,9 @@ export function hashmark(options: HashmarkOptions): Plugin {
 
     async generateBundle() {
       if (options.inlineAssets) return
+      // gespeicherte Fahrpläne mitliefern: statische Seiten laden sie von ./__hashmark/plan
+      const planFile = path.join(deckDir, PLAN_PATH)
+      if (fs.existsSync(planFile)) this.emitFile({ type: 'asset', fileName: '__hashmark/plan', source: fs.readFileSync(planFile) })
       for (const asset of (await current).assets) {
         if (!fs.existsSync(asset)) {
           this.warn(`Bild nicht gefunden: ${path.relative(deckDir, asset)}`)

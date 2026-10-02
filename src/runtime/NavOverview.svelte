@@ -1,14 +1,17 @@
 <script lang="ts">
-  import type { DeckNode } from '../core/types.ts'
+  import type { DeckNode, PlanState } from '../core/types.ts'
+  import { PLAN_LABEL } from '../core/plan.ts'
   import type { Position } from '../core/navigator.ts'
   import Slide from './Slide.svelte'
 
-  let { nodes, current, trail, layoutOf, onjump, onclose }: {
+  let { nodes, current, trail, layoutOf, roleOf = () => 'path', onjump, onclose }: {
     nodes: DeckNode[]
     current: Position
     /** IDs der Vorfahren des aktuellen Knotens */
     trail: string[]
     layoutOf: (node: DeckNode) => string
+    /** Rolle im Vortragsplan (Pfad, Optional, Anhang) */
+    roleOf?: (node: DeckNode) => PlanState
     onjump: (pos: Position) => void
     onclose: () => void
   } = $props()
@@ -88,9 +91,11 @@
 <svelte:window {onkeydown} />
 
 {#snippet card(node: DeckNode)}
-  <div class="nv-node" data-depth={node.depth}>
+  {@const role = roleOf(node)}
+  <div class="nv-node" data-depth={node.depth} data-role={role}>
     <div class="nv-head" class:trail={trail.includes(node.id)}>
       <button class="nv-title" onclick={() => onjump({ id: node.id, slide: 0 })}>{node.title}</button>
+      {#if role !== 'path'}<span class="nv-role {role}">{PLAN_LABEL[role]}</span>{/if}
       {#if node.slides.length > 1}<span class="nv-meta">{node.slides.length} Folien</span>{/if}
     </div>
     <div class="nv-thumbs">

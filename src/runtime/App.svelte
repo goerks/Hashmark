@@ -4,8 +4,10 @@
   import PrintPages from './PrintPages.svelte'
   import NavControls, { type Control, type ControlKey } from './NavControls.svelte'
   import KeyHelp from './KeyHelp.svelte'
-  import { Navigator, formatHash, parseHash, stepsOf, type Direction, type Move, type Position } from '../core/navigator.ts'
+  import { Navigator, formatHash, parseHash, stepsOf, type Direction, type Excursion, type Move, type Position } from '../core/navigator.ts'
+  import { PLAN_LABEL, activeStates, type PlanFile } from '../core/plan.ts'
   import type { Deck, DeckNode } from '../core/types.ts'
+  import { loadPlanFile } from './plan-store.ts'
   import initial from 'virtual:hashmark/deck'
   import Slide from './Slide.svelte'
   import NavOverview from './NavOverview.svelte'
@@ -26,11 +28,15 @@
   let nav = $state.raw(initialNav)
   let pos = $state.raw<Position | null>(fromHash(initialNav) ?? initialNav.first)
   let dir = $state<Direction>('jump')
+  /** laufende Ausflüge (↓ in Optionales, Sprung in den Anhang); Space führt am Ende zurück */
+  let trip = $state.raw<readonly Excursion[]>([])
   let overview = $state(false)
   let scale = $state(1)
 
   const node = $derived(pos ? nav.node(pos.id) : undefined)
   const trail = $derived(pos ? nav.path(pos.id) : [])
+  const planState = $derived(node ? nav.state(node.id) : 'path')
+  const tripBack = $derived(trip.length ? nav.node(trip[trip.length - 1].back.id) : undefined)
   const layout = $derived(node ? (node.layout ?? node.attrs.layout ?? deck?.layout ?? 'default') : 'default')
   const stepCount = $derived(pos ? stepsOf(node, pos.slide) : 0)
   let controlsHidden = $state(false)
@@ -63,7 +69,7 @@
     if (!pos) return null
     const mk = (move: Move | null, key: ControlKey) => ({ move, label: describe(move, key) })
     return {
-      up: mk(nav.up(pos), 'up'),
+      up: mk(nav.leave(pos), 'up'),
       down: mk(nav.down(pos, true), 'down'),
       left: mk(nav.prev(pos), 'left'),
       right: mk(nav.next(pos), 'right'),
@@ -90,6 +96,15 @@
     if (!move) return
     dir = move.dir
     pos = move.pos
+    // Ausflüge beenden, in denen die neue Position nicht mehr liegt
+    nav.sync(move.pos)
+    trip = nav.trip
+  }
+
+  /** Plan des Vortragenden übernehmen (beim Laden und aus der Presenter-View) */
+  function applyPlan(file: PlanFile) {
+    nav = nav.with({ states: activeStates(file) })
+    trip = nav.trip
   }
 
   function jump(id: string, slide = 0) {
@@ -103,7 +118,8 @@
       : nav.parent(target.id)?.id === pos.id ? 'down'
       : target.id === nav.parent(pos.id)?.id ? 'up'
       : 'jump'
-    go({ pos: { id: target.id, slide }, dir: d })
+    // abseits des Pfads wird der Sprung zum Ausflug: Space führt danach zurück
+    go({ pos: nav.jumpTo({ id: target.id, slide }, pos).pos, dir: d })
   }
 
   const layoutOf = (n: DeckNode) => n.layout ?? n.attrs.layout ?? deck?.layout ?? 'default'
@@ -157,7 +173,7 @@
 
   // Stand an die Presenter-View melden
   $effect(() => {
-    if (pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session })
+    if (pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all })
   })
 
   // Desktop-App: aktuelle Folie melden (für „Präsentieren ab aktueller Folie“)
@@ -178,17 +194,23 @@
   function navKey(key: string, shiftKey: boolean): boolean {
     if (!pos) return false
     if (key === 'b' || key === 'B' || key === '.') { black = !black; return true }
+    // T: Plan ausschalten (Space läuft durch alles) bzw. wieder einschalten
+    if (key === 't' || key === 'T') {
+      nav = nav.with({ all: !nav.all })
+      trip = nav.trip
+      return true
+    }
     const handlers: Record<string, () => Move | null> = {
       ArrowRight: () => nav.next(pos!),
-      // Space und Presenter (PageDown/PageUp): der Linie nach in die Tiefe
+      // Space und Presenter (PageDown/PageUp): dem Vortragsplan nach
       ' ': () => (shiftKey ? nav.backward(pos!) : nav.forward(pos!)),
       PageDown: () => nav.forward(pos!),
       PageUp: () => nav.backward(pos!),
       ArrowLeft: () => nav.prev(pos!),
       ArrowDown: () => nav.down(pos!),
       Enter: () => nav.down(pos!),
-      ArrowUp: () => nav.up(pos!),
-      Escape: () => nav.up(pos!),
+      ArrowUp: () => nav.leave(pos!),
+      Escape: () => nav.leave(pos!),
       Home: () => (nav.first ? { pos: nav.first, dir: 'jump' } : null),
     }
     const handler = handlers[key]
@@ -252,7 +274,8 @@
     if (source) presenter = source // file://: Fenster merken, auch nach Neuladen der Präsentation
     // Tasten und Sprünge nur, wenn sie an diese Präsentation gerichtet sind
     if ((msg.type === 'hashmark:presenter-key' || msg.type === 'hashmark:presenter-goto') && msg.target && msg.target !== session) return
-    if (msg.type === 'hashmark:presenter-hello' && pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session })
+    if (msg.type === 'hashmark:presenter-hello' && pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all })
+    else if (msg.type === 'hashmark:presenter-plan') applyPlan(msg.plan)
     else if (msg.type === 'hashmark:presenter-key') {
       wake()
       navKey(msg.key, msg.shiftKey)
@@ -276,6 +299,7 @@
 
   onMount(() => {
     fit()
+    void loadPlanFile().then(applyPlan)
     const onHash = () => {
       const p = parseHash(location.hash)
       if (p && pos && (p.id !== pos.id || p.slide !== pos.slide)) jump(p.id, p.slide)
@@ -307,12 +331,13 @@
         return
       }
       error = null
-      const next = new Navigator(payload.deck.nodes)
+      const next = new Navigator(payload.deck.nodes, { states: nav.states, all: nav.all })
       const relocated = pos ? next.relocate(pos, nav) : next.first
       dir = 'jump'
       deck = payload.deck
       nav = next
       pos = relocated
+      trip = []
     })
     return () => {
       window.removeEventListener('hashchange', onHash)
@@ -340,6 +365,11 @@
           {#if i > 0}<span class="sep">›</span>{/if}
           <button class:active={crumb.id === node.id} onclick={() => jump(crumb.id)}>{crumb.title}</button>
         {/each}
+        {#if nav.all}
+          <span class="plan-tag" title="Plan ausgeschaltet: Space läuft durch alles (T)">Plan aus</span>
+        {:else if planState !== 'path'}
+          <span class="plan-tag {planState}" title="Space überspringt diese Folie; sie ist nur über ↓, Suche oder Übersicht erreichbar">{PLAN_LABEL[planState]}</span>
+        {/if}
         <span class="subslide">
           {#if stepCount}
             <span class="step-dots" title="Schritt {pos.step ?? 0} von {stepCount}">
@@ -353,11 +383,18 @@
       <footer class="status">
         {#if node.children.length}
           <button class="children-hint" onclick={() => go(nav.down(pos!))} title="↓ abtauchen">
-            <span class="dots">{#each node.children as c (c.id)}<i></i>{/each}</span>
+            <span class="dots">{#each node.children as c (c.id)}<i class:off={!nav.onPath(c.id)}></i>{/each}</span>
             ↓ {node.children.length} {node.children.length === 1 ? 'Detail' : 'Details'}
           </button>
         {/if}
       </footer>
+
+      {#if tripBack}
+        <div class="trip-bar" role="status">
+          <span>↩ Ausflug · zurück zu „{tripBack.title}“</span>
+          <span class="trip-hint">Space führt von selbst zurück · Esc bricht ab</span>
+        </div>
+      {/if}
 
       <!-- in der Bühne, im freien Randstreifen unten rechts: überdeckt nie Inhalt, skaliert mit -->
       {#if controls && !controlsHidden}
@@ -381,6 +418,7 @@
       current={pos}
       trail={trail.map((t) => t.id)}
       {layoutOf}
+      roleOf={(n) => nav.state(n.id)}
       onjump={(p) => jump(p.id, p.slide)}
       onclose={() => (overview = false)}
     />

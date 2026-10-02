@@ -10,7 +10,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
 | `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen (mit Datei: Logo zuschneiden und ersetzen) |
-| `make test` | Vitest (`tests/*.test.ts`, 84 Tests, Kern-Logik ohne DOM) |
+| `make test` | Vitest (`tests/*.test.ts`, 121 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-cross` / `make app-package` | Desktop-App (Go): bauen + starten (`DECK=…` optional) / Hülle für Windows, Linux, macOS (amd64, arm64) nach `dist-go/` / portables `dist-app/Hashmark/` (windows-amd64). Andere Ziele samt Archiv: `node scripts/package-app.ts <ziel> --version=… --archive` (online, lädt Node und die Pakete des Ziels) |
 | `hashmark --version` | Version `<letzter Tag ohne v>.<Kurz-Hash>`, per `-ldflags "-X main.version=…"` eingebettet (`make` über `git describe`, in der Pipeline der Job `version`); `VERSION=…` überschreibt |
 | Go | liegt **nicht** im Repo (ab 1.26, im `PATH`). Mehr braucht die Desktop-Hülle nicht: kein CGO, kein C-Compiler, kein Rust |
@@ -19,7 +19,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | `make app-test` | E2E der Desktop-App **headless** (`HASHMARK_HEADLESS=1`, Fenster unsichtbar) über WebView2-CDP, nutzt `dist-app/Hashmark` bzw. `export/hashmark.exe` (`make app`); `VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json` mit Zeiten |
 | `make serve` / `make image` / `make image-run` | Webdienst lokal (`hashmark serve`, `EDITOR_PASSWORD`, Standard „geheim“) / Docker-Image des Webdienstes (`Dockerfile` im Root) bauen / starten |
 | `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/hashmark-demo`, 3030). `make dev` ohne ausdrückliches `DECK=` startet mit `--examples`: Plugin-Option `examples` (plugin.ts, `/__hashmark/examples` GET/POST wechselt das Deck) + `src/runtime/example-switcher.ts` (nur `import.meta.env.DEV`) |
-| `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless |
+| `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless (`PLAN=path` oder `PLAN=grouped`: Reihenfolge nach Vortragsplan) |
 | `make check` | `hashmark check`: `src/core/check.ts` (statisch: Layouts, Attribute, Übergänge, Hinweise des Ladens), `src/cli/check.ts` (Überlauf: Build + Druckansicht per Edge/Chrome, liest `data-overflow` der `.print-page[data-node][data-sub]`); Exit 1 bei Fehlern; `pdf.ts`: `withPrintView`/`serveBuild` geteilt mit dem PDF-Export |
 | `make deps-update` | neue Pakete online holen, landen im Cache `vendor/npm-cache` |
 
@@ -54,9 +54,12 @@ src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
                 löst das Layout auf (Attribut > layouts[Ebene] > layout), bg=, duration=, erzeugt Agenda-HTML
   timing.ts     parseDuration (5m, 1h30m, 1:30), formatClock, pace – Zeitplan der Presenter-View
   search.ts     Suchindex (Titel, Pfad, Text je Sub-Slide), Wort-Suche + unscharfe Titel-Suche, Umlaute gefaltet
-  navigator.ts  reine State-Machine: next/prev/down/up (Pfeile), forward/backward (Space = Tiefensuche),
-                Schritte, relocate (Hot Reload), progress, Deep-Link-Hash (#id:2)
-  print.ts      Seitenlogik für Druck/PDF (Tiefe, Schritte, Handout, Fußzeile) + URL-Optionen
+  navigator.ts  reine State-Machine: next/prev/down/up (Pfeile, frei im Baum), forward/backward (Space = dem Vortragsplan nach),
+                Schritte, relocate (Hot Reload), progress, Deep-Link-Hash (#id:2); Plan-Zustand je Knoten (state/onPath),
+                Ausflug-Stapel (trip, begin/jumpTo/sync), with() für Kopien mit neuem Plan
+  plan.ts       Vortragsplan: PlanState (path|optional|appendix), authorPlan (Flags), PlanFile (.hashmark/plan.json, tolerant gelesen),
+                Vorlagen (presetAll/Depth/Budget), setSubtree/resetSubtree, summarize (Zeitschätzung), planGroups (Reihenfolge fürs PDF)
+  print.ts      Seitenlogik für Druck/PDF (Tiefe, Schritte, Handout, Fußzeile, Reihenfolge nach Plan: tree|path|grouped) + URL-Optionen
   sourcemap.ts  Editor-Sync: Zeile ↔ Knoten/Sub-Slide über DeckNode.source, pathToNode (Brotkrumen)
   snippets.ts   Bausteine (`§` = Cursor, `expand` markiert das Platzhalterwort dahinter)
   vocab.ts      Wortschatz für Editor: Layouts/Container/Attribute mit Beschreibung (Quelle: check.ts), fold, nearest („Meinst du …?“)
@@ -76,7 +79,8 @@ desktop-go/   Desktop-Hülle in Go ohne CGO (go-webview per purego, zenity für 
               sidecar.go (JSON-Zeilen), native_windows.go (Win32-Menü, Vollbild/Monitore, Symbol), native_linux.go (GTK 3 per purego), native_darwin.go (Objective-C-Laufzeit per purego), native_unix.go; Linux/macOS sind ungetestet und schalten sich bei fehlenden Symbolen ab;
               gepackt `node/` + `app/` neben der EXE, sonst das Repository (`locate`)
 src/vite/     plugin.ts: virtual:hashmark/deck (JSON), virtual:hashmark/theme.css, File-Watcher → HMR-Event
-              'hashmark:deck', Bild-Middleware, Asset-Emit; editor-api.ts: Datei-API nur für `hashmark edit`
+              'hashmark:deck', Bild-Middleware, Asset-Emit (auch `.hashmark/plan.json` als `__hashmark/plan`);
+              editor-api.ts: Datei-API nur für `hashmark edit`, `planApi` (GET/PUT /__hashmark/plan → .hashmark/plan.json) immer
 src/cli/      index.ts (cac: dev | edit | serve | build | preview | export | pdf | check), serve.ts (Webdienst: Seed, Runtime, Live-Server mit `web`-Option), config.ts (gemeinsame Vite-Konfiguration),
               export.ts (Single-File), pdf.ts (CDP), scaffold.ts (Deck-Gerüst für make new)
 src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print)
@@ -84,7 +88,10 @@ src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print
                     Notiz-Overlay (N), unsichtbare Druckseiten
   Slide.svelte      eine Folie: Layout, Schritte (data-step/data-until → .step-hidden), Zeilen-Hervorhebung (.hl), bg, Mermaid
   PresenterView.svelte  ?presenter: zweites Fenster, per postMessage gekoppelt (presenter-link.ts); eigener Navigator
-                    nur für die Vorschau (peek). Dazu ScaledSlide.svelte, Notes.svelte, Search.svelte, presenter.css
+                    nur für die Vorschau (peek), bekommt Ausflüge und T-Zustand aus der Präsentation. Dazu ScaledSlide.svelte,
+                    Notes.svelte, Search.svelte, presenter.css
+  PlanPanel.svelte  Vortragsplan bearbeiten (Presenter-View, Taste P): Rolle je Knoten, Vorlagen, Fahrpläne, Zeitsumme;
+                    plan-store.ts lädt/speichert (Server-Datei, sonst localStorage)
   NavControls/NavOverview/KeyHelp/PrintView/PrintPages, transitions.ts, mermaid.ts
   base.css, print.css, themes/*.css (nur Design-Tokens: --color-*, --font-*, --shiki-*, …)
   editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*): codemirror.ts (Setup, API), hashmark-lang.ts (Decorations für ::: und {…}, Highlight-Klassen .tok-*/.st-*),
@@ -105,6 +112,11 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Layouts:** `title`, `section` (Kacheln der Kinder), `default`, `two-col`, `three-col`, `statement`, `quote`, `image-left`, `image-right`, `agenda`, `comparison`, `code-focus`. Je Ebene über `layouts: { 1: section }`.
 - **Themes:** `minimal`, `dark-tech`. Die Tokens enthalten auch `--color-success`, `--color-warning` und `--color-important` für Hinweiskästen. **Theme v2:** `theme:` darf ein Objekt sein (`extends`, `tokens`, `layouts`, `css`), Beispiel und Doku auf Folien in `examples/theme-demo`. Eigene Layouts = `.layout-<name>` in einer CSS-Datei. Das Theme-CSS ist kein Dateipfad mehr, sondern ein virtuelles Modul (`\0hashmark-theme.css`) bzw. `/__hashmark/theme.css` aus `themeCss`.
 - **Auto-Fit/Überlauf:** `{fit}` (bares Flag, wie `{steps}`). `src/runtime/fit.ts` misst `scrollHeight/Width` der Folie, `.content` und `pre` (Layout-Maße ohne Skalierung) und setzt bei `fit` `zoom` am `.content` (Schritt 0,05, Minimum 0,7). `Slide.svelte` misst nach dem Rendern, nach Mermaid und `document.fonts.ready`, setzt `data-overflow`/`data-fit` und zeigt das Badge nur bei `import.meta.env.DEV` oder in einem Iframe (Editor-Vorschau).
+- **Vortragsplan:** `{optional}` / `{appendix}` (bare Flags, wie `{steps}`) und `{plan=path|optional|appendix}` setzen den Standard des Autors; die Rolle erbt der Unterbaum.
+  - Space (`forward`) läuft nur über Pfad-Knoten; Optionales/Anhang werden übersprungen. Ohne Flags und Plan verhält es sich wie die frühere Tiefensuche.
+  - Wirksamer Zustand (`Navigator.state`): nächste Überschreibung des Vortragenden auf dem Weg nach oben, sonst nächster Autor-Standard, sonst `path`. `all` (Taste T) ignoriert den Plan.
+  - ↓ (`down`) geht ins erste Kind abseits des Pfads und beginnt dann einen Ausflug (Rückkehrmarke); gibt es keins, ist es wie früher das erste Kind. Space führt am Ende des Ausflugs zur Abzweigung zurück. Ein Sprung (`jumpTo`: Suche, Übersicht, Presenter-Baum) auf einen Knoten abseits des Pfads ist ein Ausflug mit einer Folie.
+  - Arrow-Tasten (`next/prev/up`) ignorieren den Plan; `sync(pos)` beendet Ausflüge, in denen die Position nicht mehr liegt.
 - **Knoten-Attribute:** `layout`, `id`, `transition`, `.klasse`, `duration=5m`, `bg=…` (Farbe/Verlauf bleibt CSS, sonst Bild → `url(…)`), `bgdim=0.5`.
 - **Code:** `lines="2-3|5|all"`: Abschnitt k gilt ab Schritt k (Abschnitt 0 sofort), `all` bzw. leer = nichts abdunkeln.
 - **Hinweiskästen:** `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION] [eigener Titel]`.
@@ -136,6 +148,13 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
   - Unter file:// (Export) läuft er über postMessage an das Partnerfenster. Vertraut wird über `e.source` bzw. denselben Origin.
   - Jede Präsentation hat eine `session`. Die Presenter-View koppelt sich an eine und adressiert Tasten per `target`. Die Editor-Vorschau (`embedded`) nimmt nicht teil.
   - Hello jede Sekunde, so übersteht die Verbindung ein Neuladen. Quelle der Wahrheit bleibt die Präsentation.
+- **Vortragsplan (Fahrpläne):**
+  - Gespeichert wird nur die Überschreibung je Knoten-ID in `.hashmark/plan.json` (`{ active, plans: { Name: { states, budget? } } }`, tolerant gelesen in `parsePlanFile`). Der Datei-Watcher überspringt Punkt-Ordner, ein Speichern löst also keinen Reload aus.
+  - Die Presenter-View ist der einzige Ort zum Bearbeiten. Sie schickt den Plan als `hashmark:presenter-plan` **an alle** Präsentationen (kein `target`: der Plan gehört zum Deck, nicht zur Sitzung); die Präsentation meldet Ausflüge und `all` im `presenter-state` zurück, damit die Vorschau „Als Nächstes“ stimmt.
+  - `plan-store.ts`: Server (`./__hashmark/plan`, relativ, mit Header `X-Hashmark-Editor`), sonst `localStorage`. Schlägt das PUT fehl (Webdienst ohne Anmeldung, statischer Export), gilt der Browser-Speicher als neuer (Flag `…:local`).
+  - Im Webdienst liegt `/__hashmark/plan` hinter dem Passwort wie die Datei-API (nicht in `PUBLIC_API`).
+  - Zeitschätzung: `{duration}` nur an Blättern, sonst 1 min je Sub-Slide (`ownSeconds`). `duration` an Kapiteln gilt für das ganze Kapitel samt Details.
+  - Vorlage „Zeitbudget“ schreibt nur die rausgeworfenen Knoten (`optional`). Ein ausdrückliches `path` an einem Elternknoten würde den Autor-Standard (`appendix`) der Kinder überstimmen.
 - **Desktop-Modus der Seiten:** Das Vite-Plugin mit `onAppAction` setzt `window.__HASHMARK_DESKTOP__` (transformIndexHtml). Dann gehen P/S/PDF/Präsentieren/Ctrl+W per `POST /__hashmark/app` (Header `X-Hashmark-Editor`) an den Sidecar statt per `window.open`.
 - **Go-Hülle (`desktop-go/`):**
   - Die Webview-Bibliothek kennt **ein Fenster je Prozess** und keinen Hook für neue Fenster. Präsentation und Presenter sind deshalb Kindprozesse derselben EXE (`--window URL --mode presentation|presenter`). Schließt die Präsentation, beendet der Hauptprozess auch den Presenter.

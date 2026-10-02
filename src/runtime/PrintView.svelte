@@ -2,14 +2,20 @@
   import { onMount } from 'svelte'
   import initial from 'virtual:hashmark/deck'
   import { Navigator } from '../core/navigator.ts'
-  import { printPages, printQuery, type PrintOptions } from '../core/print.ts'
+  import { activeStates, type PlanStates } from '../core/plan.ts'
+  import { printPages, printQuery, type PrintOptions, type PrintPlan } from '../core/print.ts'
   import PrintPages from './PrintPages.svelte'
+  import { loadPlanFile } from './plan-store.ts'
 
   let { options, autoprint }: { options: PrintOptions; autoprint: boolean } = $props()
 
   const deck = 'deck' in initial ? initial.deck : null
   const error = 'error' in initial ? initial.error : null
-  const count = $derived(deck ? printPages(deck.nodes, options).length : 0)
+  // Fahrplan des Vortragenden: nur nötig, wenn die Seiten ihm folgen sollen (erst dann rendern, sonst wäre die Seite zu früh „bereit“)
+  let states = $state<PlanStates>({})
+  let planReady = $state(false)
+  const nav = $derived(deck ? new Navigator(deck.nodes, { states }) : null)
+  const count = $derived(deck && nav ? printPages(deck.nodes, options, nav).length : 0)
   const maxDepth = $derived(deck ? Math.max(1, ...[...new Navigator(deck.nodes).walk()].map((n) => n.depth)) : 1)
 
   let ready = $state(false)
@@ -28,6 +34,8 @@
   }
 
   onMount(() => {
+    if (options.plan === 'tree') planReady = true
+    else void loadPlanFile().then((file) => { states = activeStates(file); planReady = true })
     const measure = () => (fit = Math.min(1, (window.innerWidth - 48) / (options.notes ? 794 : 1280)))
     measure()
     window.addEventListener('resize', measure)
@@ -54,6 +62,14 @@
         {/each}
       </select>
     </label>
+    <label>
+      Reihenfolge
+      <select value={options.plan} onchange={(e) => update({ plan: e.currentTarget.value as PrintPlan })}>
+        <option value="tree">Baum (alle Folien)</option>
+        <option value="path">nur Pfad des Plans</option>
+        <option value="grouped">Pfad, Optionales, Anhang</option>
+      </select>
+    </label>
     <label><input type="checkbox" checked={options.steps} onchange={(e) => update({ steps: e.currentTarget.checked })} /> jeder Schritt eine Seite</label>
     <label><input type="checkbox" checked={options.notes} onchange={(e) => update({ notes: e.currentTarget.checked })} /> Handout mit Notizen</label>
     <label><input type="checkbox" checked={options.footer} onchange={(e) => update({ footer: e.currentTarget.checked })} /> Fußzeile</label>
@@ -64,5 +80,5 @@
   {#if error}
     <p class="print-error">Deck-Fehler: {error}</p>
   {/if}
-  {#if deck}<PrintPages {deck} {options} {onready} />{/if}
+  {#if deck && planReady}<PrintPages {deck} {options} {states} {onready} />{/if}
 </div>

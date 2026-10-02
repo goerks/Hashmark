@@ -233,6 +233,21 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .children-hint { display: flex; align-items: center; gap: 10px; color: var(--color-accent); }
 .children-hint .dots { display: flex; gap: 5px; }
 .children-hint .dots i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+/* Details, die Space überspringt (optional, Anhang): als Ring statt Punkt */
+.children-hint .dots i.off { background: none; border: 1.5px solid currentColor; }
+
+/* Rolle im Vortragsplan: Hinweis in der Brotkrumenzeile, Rückkehrleiste im Ausflug */
+.plan-tag {
+  flex: none; padding: 1px 9px; border-radius: 10px; font-size: 13px; font-weight: 700;
+  border: 1.5px solid var(--color-muted); color: var(--color-muted);
+}
+.plan-tag.optional { border-color: var(--color-warning, var(--color-accent)); color: var(--color-warning, var(--color-accent)); }
+.trip-bar {
+  position: absolute; left: 50%; bottom: 14px; z-index: 5; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; padding: 6px 22px; border-radius: 14px;
+  background: var(--color-warning, var(--color-accent)); color: var(--color-bg); font-size: 18px; font-weight: 700; white-space: nowrap;
+}
+.trip-bar .trip-hint { font-weight: 400; font-size: 13px; opacity: 0.9; }
 
 /* ---------- Navigations-Übersicht (Ctrl+Shift+O / O) ---------- */
 
@@ -274,6 +289,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .nv-title:hover { color: var(--color-accent); }
 .nv-head.trail .nv-title { color: var(--color-accent); }
 .nv-meta { font-size: 11px; color: var(--color-muted); white-space: nowrap; }
+.nv-role { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; padding: 0 6px; border-radius: 8px; border: 1px solid var(--color-muted); color: var(--color-muted); white-space: nowrap; }
+.nv-role.optional { border-color: var(--color-warning, var(--color-accent)); color: var(--color-warning, var(--color-accent)); }
+.nv-node[data-role="optional"] > .nv-thumbs, .nv-node[data-role="appendix"] > .nv-thumbs { opacity: 0.7; }
 
 .nv-thumbs { display: flex; gap: 8px; }
 .nv-thumb {

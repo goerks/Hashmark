@@ -13,6 +13,12 @@ export interface Step {
   state: Record<string, string>
 }
 
+/**
+ * Rolle eines Knotens im Vortrag: `path` läuft Space ab, `optional` erreicht man per ↓ (bei Zeit oder Fragen),
+ * `appendix` nur über Suche oder Übersicht (kommt im Handout als eigener Teil).
+ */
+export type PlanState = 'path' | 'optional' | 'appendix'
+
 export interface DeckNode {
   /** Slug-Pfad, z. B. "architektur/backend" */
   id: string
@@ -29,6 +35,8 @@ export interface DeckNode {
   layout?: string
   /** geplante Redezeit in Sekunden (`{duration=5m}`) */
   duration?: number
+  /** Standard des Autors (`{optional}`, `{appendix}`, `{plan=path}`); die Wahl des Vortragenden überschreibt ihn */
+  plan?: PlanState
   children: DeckNode[]
   /** für Editor-Sync */
   source: { file: string; line: number }

@@ -188,12 +188,12 @@ make pdf DECK=decks/x PDF=vortrag.pdf
 **Im Browser:**
 
 - **Ctrl+P** (oder Menü „Drucken“) direkt in der Präsentation druckt **alle Folien**, eine pro Seite. Im Druckdialog lässt sich unter „Seiten“ ein Bereich wählen, z. B. `5-12`. Die Seitenzahlen stehen unten rechts auf jeder Folie.
-- **P** in der Präsentation, der Button **PDF** im Editor oder die URL `?print` öffnen die **Druckansicht mit Optionen** (Tiefe, jeder Schritt eine Seite, Handout, Fußzeile) und danach den Druckdialog.
+- **P** in der Präsentation, der Button **PDF** im Editor oder die URL `?print` öffnen die **Druckansicht mit Optionen** (Tiefe, Reihenfolge nach Vortragsplan, jeder Schritt eine Seite, Handout, Fußzeile) und danach den Druckdialog.
 - Die Folien passen sich jedem Papierformat an (16:9 ist Standard, A4/Letter werden auf die Breite skaliert). Das funktioniert auch im Single-File-Export.
 
 Das PDF hat:
 - **Format:** eine Folie pro Seite im Format 16:9 (13,33 × 7,5 Zoll wie PowerPoint), bzw. A4 hoch beim Handout
-- **Inhalt:** Folien in Lesereihenfolge (Kapitel, dann seine Details), Schritte vollständig aufgedeckt, Diagramme gerendert
+- **Inhalt:** Folien in Lesereihenfolge (Kapitel, dann seine Details), Schritte vollständig aufgedeckt, Diagramme gerendert. Mit der Option **Reihenfolge** folgt das PDF dem [Vortragsplan](#vortragsplan-pfad-optional-anhang): nur der Pfad, oder Pfad, Optionales und Anhang als eigene Teile (`hashmark pdf --plan path|grouped`).
 - **Fußzeile:** Breadcrumb und Seitenzahl, abschaltbar mit `footer=0` bzw. `--no-footer`
 - **Klickbare interne Links:** Querverweise und Kacheln springen zur Zielfolie im PDF
 - **Lesezeichen** nach der Hierarchie des Decks
@@ -218,13 +218,50 @@ Hinweise:
 - **CI unter Linux:** `vendor/` enthält nur Windows-Pakete (Node und die nativen Binaries von Vite/Rolldown). Auf einem Linux-Runner braucht es `npm ci` mit Registry-Zugriff. Alternativ lokal bauen und nur `dist/` veröffentlichen.
 - **Remote-Vortrag** (Teams/Zoom): Nur das Präsentationsfenster teilen, die Presenter-View (S) bleibt privat. Dass das Publikum der Position live im eigenen Browser folgt, ist noch nicht umgesetzt.
 
+## Vortragsplan: Pfad, Optional, Anhang
+
+Nicht jeder Vortrag zeigt alle Folien. Mal läuft alles durch, mal wird gekürzt, und manche Details kommen nur bei Zeit oder Fragen dran. Dafür hat jeder Knoten eine **Rolle**:
+
+| Rolle | Wirkung |
+| --- | --- |
+| **Pfad** | Space und Clicker laufen hindurch |
+| **Optional** | Space überspringt sie. ↓ startet einen **Ausflug**: Space geht die optionalen Details durch und führt am Ende von selbst zur Abzweigung zurück |
+| **Anhang** | Nur über Suche (Ctrl+K), Übersicht (O) oder die Presenter-View erreichbar. Im Handout ein eigener Teil |
+
+Der **Autor** setzt den Standard im Markdown, mit bloßen Flags an der Überschrift. Ohne Flags ist alles Pfad, Space läuft also wie gewohnt durch alles.
+
+```markdown
+## Backend
+
+### Frontend
+### Deployment
+
+### DB-Schema {optional}
+### API {optional}
+### Messwerte {appendix}
+```
+
+Die Rolle gilt für den ganzen Unterbaum. `{plan=path}` an einem Kind überstimmt sie wieder.
+
+Der **Vortragende** bestimmt den Pfad in der Presenter-View (**S**, dann **P**), vor und während des Vortrags:
+
+- Pro Knoten **Pfad / Optional / Anhang** umschalten (gilt samt Unterbaum), ↺ nimmt die Änderung zurück.
+- **Vorlagen:** *Standard* (Autor), *Alles*, *Bis Ebene n* (tiefere Ebenen optional), *Zeitbudget* (wirft die tiefsten und letzten Knoten aus dem Pfad, bis es in die Minuten passt).
+- **Zeitschätzung:** `{duration=…}` an Blättern, sonst 1 Minute je Folie. Unten steht die Summe je Rolle gegen das Budget. Ohne Eingabe gilt `duration` aus `deck.yaml`.
+- **Fahrpläne:** mehrere benannte Pläne je Deck („Kurz“, „Voll“), per „Kopie anlegen“ aus dem aktuellen. Sie liegen in `.hashmark/plan.json` neben dem Deck und lassen sich mit einchecken. Im Webdienst ohne Anmeldung und im Export landen sie im Browser-Speicher. Ein statischer Build (`make build`) enthält die Datei und folgt dem Plan.
+- **Live umplanen:** Änderungen gelten sofort in der Präsentation. Wirfst du die aktuelle Folie aus dem Pfad, bleibt sie stehen, und Space geht zum nächsten Pfad-Knoten.
+- **T** (in der Präsentation, in der Presenter-View als Knopf unten im Plan): Plan ausschalten. Space läuft durch alles, ohne dass der Plan geändert wird.
+
+In der Präsentation zeigt ein Schild neben den Brotkrumen „Optional“ bzw. „Anhang“. Der Chip „↓ 3 Details“ zeigt Details abseits des Pfads als Ring statt Punkt. Im Ausflug erinnert eine Leiste unten („↩ Ausflug · zurück zu …“). Die Pfeile → ← bewegen sich weiter frei im Baum und kümmern sich nicht um den Plan.
+
 ## Presenter-View und Notizen
 
 **S** öffnet die Presenter-View in einem zweiten Fenster, das du auf den eigenen Bildschirm schiebst. Die Präsentation kommt auf den Beamer (F für Vollbild). Beide Fenster bleiben synchron. Das funktioniert mit `make dev`, `make preview` und im Single-File-Export per Doppelklick.
 
 - **Aktuell** (groß) und **Als Nächstes**: das Ziel von Space, also auch der nächste Schritt.
 - **Notizen** der aktuellen Sub-Slide. A− / A+ bzw. − / + ändern die Schriftgröße (wird gemerkt).
-- **Baum** links: Hauptpfad, entlang der aktuellen Position aufgeklappt, `↓3` = Anzahl Details. Klick springt.
+- **Baum** links: Hauptpfad, entlang der aktuellen Position aufgeklappt, `↓3` = Anzahl Details. Klick springt. Optionales und Anhang stehen kursiv mit Rollenschild; ein Sprung dorthin ist ein Ausflug.
+- **Plan** (Knopf oben, Taste **P**): Vortragsplan bearbeiten, siehe [oben](#vortragsplan-pfad-optional-anhang).
 - Unter der Folie: die Details, in die man mit ↓ abtauchen kann (anklickbar), und das Ziel von →.
 - **Timer** startet mit der ersten Bewegung. ❚❚/▶ bzw. **T** pausiert, ↺ setzt zurück. Daneben steht die Uhrzeit.
 - **Zeitplan:** Mit `duration: 30m` in `deck.yaml` zeigt die Leiste „im Plan“, „2:10 hinter Plan“ bzw. „… voraus“ und die Restzeit. `{duration=5m}` an einer Überschrift gibt dem Kapitel ein eigenes Budget („Architektur: 3:12 / 5:00“, rot bei Überzug).
@@ -254,13 +291,14 @@ Unten rechts auf jeder Folie zeigt ein **Steuerkreuz**, welche Richtungen mögli
 | Taste | Wirkung |
 | --- | --- |
 | → / ← | weiter / zurück auf der aktuellen Ebene: Schritte, Sub-Slides, Geschwister, am Ende einer Ebene zum Nachfolger des Elternknotens |
-| ↓ / Enter | in den ersten Kindknoten abtauchen |
-| ↑ / Esc | zum Elternknoten, an die Stelle, von der aus abgetaucht wurde |
-| **Space** / Shift+Space | **der Linie nach**: alles in Lesereihenfolge (Tiefensuche), also Schritte, Sub-Slides, dann die Details, dann das nächste Kapitel; rückwärts derselbe Weg |
+| ↓ / Enter | abtauchen: in die optionalen Details (Ausflug), sonst in den ersten Kindknoten |
+| ↑ / Esc | zum Elternknoten, an die Stelle, von der aus abgetaucht wurde; beendet den Ausflug |
+| **Space** / Shift+Space | **dem Vortragsplan nach**: Schritte, Sub-Slides, dann der nächste Pfad-Knoten in Lesereihenfolge (Tiefensuche, ohne Optionales und Anhang); im Ausflug die Details und am Ende zurück zur Abzweigung. Ohne Flags und Plan läuft es durch alles |
+| T | Plan aus/an: Space läuft durch alles |
 | PageDown / PageUp | wie Space / Shift+Space. Das senden **Presenter-Fernbedienungen** („Pointer“) |
 | F5 / F | Vollbild an/aus (Play-Taste des Presenters) |
 | B / . | Schwarzbild an/aus (Schwarzbild-Taste des Presenters). Jede Bewegung beendet es ebenfalls. |
-| **S** | Presenter-View im zweiten Fenster (siehe oben) |
+| **S** | Presenter-View im zweiten Fenster (siehe oben), dort **P** für den Vortragsplan |
 | **N** | Notizen unten einblenden / ausblenden |
 | **Ctrl+K** oder **/** | Suche: Titel, Pfad und Folientext; ohne Eingabe ein Inhaltsverzeichnis. ↑ ↓ + Enter springt, Esc schließt |
 | H | Steuerkreuz aus-/einblenden |
@@ -324,6 +362,7 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   | `agenda` | Liste der Kapitel des Hauptpfads. Erledigte gedämpft, das nächste (zwischen Kapiteln) bzw. aktuelle (unter einem Kapitel) hervorgehoben. Ab 10 Kapiteln zweispaltig |
 
 - **Auto-Fit und Überlauf:** `## Titel {fit}` verkleinert den Inhalt der Folie in 5-%-Schritten bis auf 70 %, bis er passt (`{fit=off}` schaltet ab). Läuft etwas über (Inhalt höher oder breiter als die Folie, auch breiter Code), zeigt die Folie beim Schreiben ein rotes Badge „Überlauf“, im Dev-Server und in der Editor-Vorschau, auch in den Miniaturen der Übersicht. Im Vortrag, im Export und im PDF gibt es kein Badge. Besser als Verkleinern ist meist Kürzen oder `---`.
+- **Vortragsplan:** `## Titel {optional}` (nur bei Zeit oder Fragen, ↓ taucht ab), `## Titel {appendix}` (nur über Suche und Übersicht), `{plan=path}` (überstimmt die Rolle des Elternknotens). Bare Flags wie `{steps}`; Details im Abschnitt [Vortragsplan](#vortragsplan-pfad-optional-anhang).
 - **Knoten-Attribute:** `layout=…`, `id=…`, `transition=slide|zoom|fade|none`, `.klasse`, `duration=5m` (Budget in der Presenter-View), `bg=…` (Hintergrund: Farbe `#123`, Verlauf `"linear-gradient(…)"` oder Bild `bilder/x.jpg`), `bgdim=0.5` (Bild abdunkeln)
 - **Container:** `::: columns`/`::: col`, `::: columns cols=3` bzw. `cols="2:1"` (feste Spalten, Verhältnis), `::: grid cols="2fr 1fr" gap=2`, `::: children`, `::: notes` (`step=2`). Verschachtelung im Pandoc-Stil mit gleicher Anzahl Doppelpunkte.
 - **Hinweiskästen** wie auf GitHub: `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`. Titel auf Deutsch (Hinweis, Tipp, Wichtig, Warnung, Achtung), eigener Titel mit `> [!TIP] Mein Titel`.

@@ -174,6 +174,31 @@ describe('Webdienst (hashmark serve)', () => {
     }
   })
 
+  it('speichert Fahrpläne als .hashmark/plan.json, normalisiert, und schützt die Route wie die Datei-API', async () => {
+    const { startLiveServer } = await import('../src/desktop/live-server.ts')
+    const deckDir = tmp()
+    fs.writeFileSync(path.join(deckDir, 'a.md'), '# A')
+    const runtimeDir = tmp()
+    fs.writeFileSync(path.join(runtimeDir, 'index.html'), '<title>x</title>')
+    const server = await startLiveServer({ deckDir, runtimeDir, onAppAction: () => {}, log: () => {}, web: { host: '127.0.0.1', port: 0, editorPassword: 'geheim' } })
+    try {
+      const url = server.url + '__hashmark/plan'
+      const auth = { Authorization: basic('editor', 'geheim'), 'X-Hashmark-Editor': '1' }
+      expect((await fetch(url, { headers: { 'X-Hashmark-Editor': '1' } })).status).toBe(401) // ohne Passwort
+      expect((await fetch(url, { headers: { Authorization: auth.Authorization } })).status).toBe(403) // ohne Header
+      expect(await (await fetch(url, { headers: auth })).json()).toEqual({}) // noch keine Datei
+      const body = { active: 'Kurz', plans: { Kurz: { states: { a: 'optional', b: 'quatsch' }, budget: 900 } }, fremd: 1 }
+      expect((await fetch(url, { method: 'PUT', headers: auth, body: JSON.stringify(body) })).status).toBe(200)
+      const written = JSON.parse(fs.readFileSync(path.join(deckDir, '.hashmark', 'plan.json'), 'utf8'))
+      expect(written).toEqual({ active: 'Kurz', plans: { Standard: { states: {} }, Kurz: { states: { a: 'optional' }, budget: 900 } } })
+      expect(await (await fetch(url, { headers: auth })).json()).toEqual(written)
+      expect((await fetch(url, { method: 'PUT', headers: auth, body: 'kein json' })).status).toBe(400)
+      expect((await fetch(url, { method: 'DELETE', headers: auth })).status).toBe(405)
+    } finally {
+      await server.close()
+    }
+  })
+
   it('ohne EDITOR_PASSWORD gibt es keinen Editor', async () => {
     const server = await start(undefined)
     try {

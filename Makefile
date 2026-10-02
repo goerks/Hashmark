@@ -58,7 +58,7 @@ help:
 	@echo   make preview       Gebautes Deck lokal ausliefern
 	@echo   make preview-lan   Gebautes Deck im Netzwerk ausliefern
 	@echo   make export        Eine HTML-Datei, laeuft offline per Doppelklick (export/)
-	@echo   make pdf           PDF nach export/ (DEPTH=1 Hauptpfad, STEPS=1 je Schritt, NOTES=1 Handout)
+	@echo   make pdf           PDF nach export/ (DEPTH=1 Hauptpfad, STEPS=1 je Schritt, NOTES=1 Handout, PLAN=path|grouped nach Vortragsplan)
 	@echo   make check         Deck pruefen: Layouts, Bilder, Theme, Ueberlauf (NOOVERFLOW=1 ohne Browser, STRICT=1)
 	@echo   make docker        Build + Docker-Image mit nginx  (IMAGE=$(IMAGE))
 	@echo   make docker-run    Image starten                (DOCKER_PORT=$(DOCKER_PORT))
@@ -140,9 +140,9 @@ preview-lan: node_modules
 export: node_modules
 	$(HASHMARK) export "$(DECK)"
 
-# Optionen: DEPTH=n, STEPS=1, NOTES=1, PDF=pfad.pdf, BROWSER=pfad-zu-edge-oder-chrome
+# Optionen: DEPTH=n, STEPS=1, NOTES=1, PLAN=path|grouped, PDF=pfad.pdf, BROWSER=pfad-zu-edge-oder-chrome
 pdf: node_modules
-	$(HASHMARK) pdf "$(DECK)" $(if $(DEPTH),--depth $(DEPTH)) $(if $(STEPS),--steps) $(if $(NOTES),--notes) $(if $(PDF),--out "$(PDF)") $(if $(BROWSER),--browser "$(BROWSER)")
+	$(HASHMARK) pdf "$(DECK)" $(if $(DEPTH),--depth $(DEPTH)) $(if $(STEPS),--steps) $(if $(NOTES),--notes) $(if $(PLAN),--plan $(PLAN)) $(if $(PDF),--out "$(PDF)") $(if $(BROWSER),--browser "$(BROWSER)")
 
 # Deck prüfen (Layouts, Attribute, Bilder, Theme, Überlauf); NOOVERFLOW=1 = ohne Browser, STRICT=1 = Hinweise sind Fehler
 check: node_modules

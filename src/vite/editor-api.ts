@@ -7,6 +7,7 @@ import path from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Connect } from 'vite'
 import YAML from 'yaml'
+import { PLAN_PATH, parsePlanFile } from '../core/plan.ts'
 import { IMAGE_MIME } from '../core/render.ts'
 
 export const API_PREFIX = '/__hashmark'
@@ -102,6 +103,19 @@ export function appApi(onAction: (action: Record<string, unknown>) => void): Con
   }
 }
 
+/** Schutz aller schreibenden bzw. privaten Routen: erlaubter Host, Header (erzwingt CORS-Preflight), Ursprung passt zum Host */
+function guard(req: IncomingMessage, allowHost: (host: string) => boolean) {
+  if (!allowHost(req.headers.host ?? '')) throw new HttpError(403, 'Editor nur über localhost')
+  if (req.headers['x-hashmark-editor'] !== '1') throw new HttpError(403, 'Header fehlt')
+  // Browser schicken gespeicherte Zugangsdaten auch von fremden Seiten mit: der Ursprung muss zum Host passen
+  const origin = req.headers.origin
+  if (origin) {
+    let originHost = ''
+    try { originHost = new URL(origin).host } catch { /* ungültig */ }
+    if (originHost !== req.headers.host) throw new HttpError(403, 'Fremder Ursprung')
+  }
+}
+
 export interface EditorApiOptions {
   /**
    * Welche Host-Header zugelassen sind. Standard: nur localhost. `hashmark serve` lässt jeden zu, schützt den
@@ -121,15 +135,7 @@ export function editorApi(deckDir: string, options: EditorApiOptions = {}): Conn
       res.end(type === 'application/json' ? JSON.stringify(data) : (data as string))
     }
     try {
-      if (!allowHost(req.headers.host ?? '')) throw new HttpError(403, 'Editor nur über localhost')
-      if (req.headers['x-hashmark-editor'] !== '1') throw new HttpError(403, 'Header fehlt')
-      // Browser schicken gespeicherte Zugangsdaten auch von fremden Seiten mit: der Ursprung muss zum Host passen
-      const origin = req.headers.origin
-      if (origin) {
-        let originHost = ''
-        try { originHost = new URL(origin).host } catch { /* ungültig */ }
-        if (originHost !== req.headers.host) throw new HttpError(403, 'Fremder Ursprung')
-      }
+      guard(req, allowHost)
 
       const url = new URL(req.url, 'http://localhost')
       const route = url.pathname.slice(API_PREFIX.length)
@@ -180,6 +186,53 @@ export function editorApi(deckDir: string, options: EditorApiOptions = {}): Conn
     } catch (e) {
       const status = e instanceof HttpError ? e.status : 500
       send(status, { error: (e as Error).message })
+    }
+  }
+}
+
+const MAX_PLAN = 1024 * 1024
+
+/**
+ * Fahrpläne des Vortragenden: `GET/PUT /__hashmark/plan` liest bzw. schreibt `.hashmark/plan.json` neben dem Deck.
+ * Gleicher Schutz wie die Datei-API (localhost bzw. Passwort im Webdienst). Geschrieben wird nur diese eine Datei,
+ * in normalisierter Form; beim Beobachten der Deck-Dateien zählt der Ordner `.hashmark` nicht, es gibt also keinen Reload.
+ */
+export function planApi(deckDir: string | (() => string), options: EditorApiOptions = {}): Connect.NextHandleFunction {
+  const allowHost = options.allowHost ?? ((h: string) => LOCAL_HOST.test(h))
+  return async (req, res: ServerResponse, next) => {
+    if (req.url?.split('?')[0] !== API_PREFIX + '/plan') return next()
+    // das Deck kann wechseln (Beispiel-Umschalter in make dev)
+    const file = path.join(typeof deckDir === 'function' ? deckDir() : deckDir, PLAN_PATH)
+    const send = (status: number, data: unknown) => {
+      res.statusCode = status
+      res.setHeader('Content-Type', 'application/json')
+      res.setHeader('Cache-Control', 'no-store')
+      res.end(JSON.stringify(data))
+    }
+    try {
+      guard(req, allowHost)
+      if (req.method === 'GET') {
+        const text = await fs.readFile(file, 'utf8').catch(() => null)
+        let data: unknown = {}
+        try { if (text) data = JSON.parse(text) } catch { /* kaputte Datei: wie leer behandeln */ }
+        return send(200, data)
+      }
+      if (req.method === 'PUT') {
+        const raw = await body(req)
+        if (raw.length > MAX_PLAN) throw new HttpError(413, 'Plan zu groß')
+        let parsed: unknown
+        try { parsed = JSON.parse(raw.toString('utf8')) } catch { throw new HttpError(400, 'Kein gültiges JSON') }
+        const text = JSON.stringify(parsePlanFile(parsed), null, 2) + '\n'
+        const old = await fs.readFile(file, 'utf8').catch(() => null)
+        if (old !== text) {
+          await fs.mkdir(path.dirname(file), { recursive: true })
+          await fs.writeFile(file, text)
+        }
+        return send(200, { ok: true })
+      }
+      throw new HttpError(405, 'Nur GET und PUT')
+    } catch (e) {
+      send(e instanceof HttpError ? e.status : 500, { error: (e as Error).message })
     }
   }
 }

@@ -9,11 +9,25 @@ Nach rechts geht die Story weiter, nach unten geht es ins Detail.
 | → / ← | weiter / zurück auf der Ebene |
 | ↓ / Enter | abtauchen |
 | ↑ / Esc | auftauchen, Position wird gemerkt |
-| Space / Presenter ▶ | der Linie nach – inklusive aller Details |
+| Space / Presenter ▶ | dem Vortragsplan nach: der Pfad, ohne Optionales und Anhang |
+| T | Plan aus/an: Space läuft durch alles |
 | B / F5 | Schwarzbild / Vollbild (Presenter) |
 | ? | alle Tasten |
 | Ctrl+Shift+O / O | Navigations-Übersicht |
 | Home | zum Anfang |
+
+## Vortragsplan
+
+Jede Folie ist **Pfad**, **Optional** oder **Anhang**. Space und Clicker laufen den Pfad.
+
+- `{optional}`: Details für Zeit oder Fragen. ↓ startet einen Ausflug, Space führt von selbst zurück.
+- `{appendix}`: nur über Suche oder Übersicht erreichbar, im Handout ein eigener Teil.
+- Der Vortragende ändert die Rollen in der Presenter-View (S, dann P).
+
+::: notes
+Die Folien „Direktiven“ (optional) und „Hot Reload“ (Anhang) unter Architektur › Parser zeigen es.
+Probe: Space bis „Parser“, ↓ taucht ab, Space geht die Details durch und kehrt zurück.
+:::
 
 ## Deep-Links
 

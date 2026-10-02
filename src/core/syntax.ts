@@ -58,8 +58,8 @@ const HEADING_ATTRS = /\s*\{([^{}]*)\}\s*$/
 /** Trennt `Titel {layout=two-col id=x}` in Titel und Attribut-String. */
 export function splitHeadingAttrs(text: string): { text: string; attrs: string | null } {
   const m = text.match(HEADING_ATTRS)
-  // `{steps}` und `{fit}` sind die einzigen Flags ohne `=`/`.`/`#` (sonst bliebe z. B. `Set {a}` im Titel)
-  if (!m || !/[=.#]|(^|\s)(steps|fit)(\s|$)/.test(m[1])) return { text, attrs: null }
+  // `{steps}`, `{fit}`, `{optional}` und `{appendix}` sind die einzigen Flags ohne `=`/`.`/`#` (sonst bliebe z. B. `Set {a}` im Titel)
+  if (!m || !/[=.#]|(^|\s)(steps|fit|optional|appendix)(\s|$)/.test(m[1])) return { text, attrs: null }
   return { text: text.slice(0, m.index), attrs: m[1] }
 }
 

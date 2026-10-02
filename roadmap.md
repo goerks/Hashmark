@@ -25,6 +25,7 @@ Im Baum entscheidet man live, ob man abtaucht – dafür muss man sehen, welche 
 - Zeitplanung: `## Architektur {duration=5m}` zeigt, ob man im Plan ist.
 - Notizen pro Sub-Slide, optional pro Schritt (`::: notes step=2`).
 - Ein Bildschirm: Taste `N` blendet Notizen unten ein (zum Üben).
+- ✅ Vortragsplan: jeder Knoten ist Pfad, Optional oder Anhang (`{optional}`, `{appendix}`). Space läuft den Pfad, ↓ taucht in Optionales ab und Space führt zurück. Der Vortragende bearbeitet den Plan in der Presenter-View (Taste `P`): Vorlagen, Zeitbudget, benannte Fahrpläne in `.hashmark/plan.json`; PDF und Handout folgen dem Plan (`--plan`). Offen: Priorität je Knoten für das Zeitbudget, Fahrplan-Auswahl beim Start der App.
 - Später: Publikum folgt live (WebSocket), Laserpointer, Zeichnen.
 
 ### Layouts und Styles je Ebene

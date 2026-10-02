@@ -1,16 +1,17 @@
 <script lang="ts">
   import { tick } from 'svelte'
   import { Navigator } from '../core/navigator.ts'
+  import { PLAN_LABEL, type PlanStates } from '../core/plan.ts'
   import { printPages, type PrintOptions } from '../core/print.ts'
   import type { Deck, DeckNode } from '../core/types.ts'
   import Slide from './Slide.svelte'
 
   // Die druckbaren Seiten eines Decks – genutzt von der Druckansicht (?print)
   // und unsichtbar von der Präsentation (damit Ctrl+P alle Folien druckt).
-  let { deck, options, onready }: { deck: Deck; options: PrintOptions; onready?: () => void } = $props()
+  let { deck, options, states = {}, onready }: { deck: Deck; options: PrintOptions; states?: PlanStates; onready?: () => void } = $props()
 
-  const nav = $derived(new Navigator(deck.nodes))
-  const pages = $derived(printPages(deck.nodes, options))
+  const nav = $derived(new Navigator(deck.nodes, { states }))
+  const pages = $derived(printPages(deck.nodes, options, nav))
 
   let root: HTMLElement
 
@@ -57,7 +58,7 @@
         <div class="print-stage">
           <Slide node={page.node} slide={page.slide} step={page.step} layout={layoutOf(page.node)} titleTag={titleTag(page.node, page.first)} />
           {#if options.footer}
-            <div class="print-crumb">{page.trail.map((t) => t.title).join(' › ')}</div>
+            <div class="print-crumb">{#if page.role && page.role !== 'path'}<b>{PLAN_LABEL[page.role]}</b> · {/if}{page.trail.map((t) => t.title).join(' › ')}</div>
             <div class="print-num">{i + 1} / {pages.length}</div>
           {/if}
         </div>

@@ -10,7 +10,7 @@ import path from 'node:path'
 import type { AddressInfo } from 'node:net'
 import { loadDeck, type LoadResult } from '../core/deck.ts'
 import { ASSET_PREFIX, IMAGE_MIME } from '../core/render.ts'
-import { appApi, editorApi } from '../vite/editor-api.ts'
+import { appApi, editorApi, planApi } from '../vite/editor-api.ts'
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
@@ -80,6 +80,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
   const app = appApi(onAppAction)
   const web = opts.web
   const editor = editorApi(deckDir, web ? { allowHost: () => true } : {})
+  const plan = planApi(deckDir, web ? { allowHost: () => true } : {})
 
   // Webdienst: nur Deck, Theme, Ereignisse und Bilder sind öffentlich; Editor-Seite und Datei-API brauchen das Passwort
   const PUBLIC_API = new Set(['/__hashmark/deck.json', '/__hashmark/theme.css', '/__hashmark/events'])
@@ -142,8 +143,8 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
       return
     }
     if (pathname.startsWith('/__hashmark/')) {
-      // App-Aktionen, danach die Datei-API des Editors (beide prüfen localhost + Header)
-      return void app(req, res, () => editor(req, res, notFound))
+      // App-Aktionen, Fahrpläne, danach die Datei-API des Editors (alle prüfen localhost + Header)
+      return void app(req, res, () => plan(req, res, () => editor(req, res, notFound)))
     }
     if (pathname.startsWith('/' + ASSET_PREFIX)) {
       const file = inside(deckDir, pathname.slice(ASSET_PREFIX.length + 1))

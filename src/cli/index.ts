@@ -94,12 +94,13 @@ cli
   .option('--depth <n>', 'nur bis Ebene n (1 = Hauptpfad)')
   .option('--steps', 'jeder Schritt eine eigene Seite')
   .option('--notes', 'Handout: A4 hoch mit Sprechernotizen')
+  .option('--plan <modus>', 'Reihenfolge nach dem Vortragsplan: path (nur Pfad) oder grouped (Pfad, Optionales, Anhang)')
   .option('--no-footer', 'ohne Breadcrumb und Seitenzahl')
   .option('--browser <path>', 'Pfad zu Edge/Chrome (sonst automatisch, oder HASHMARK_BROWSER)')
-  .action(async (deck = '.', opts: { out?: string; depth?: string; steps?: boolean; notes?: boolean; footer: boolean; browser?: string }) => {
+  .action(async (deck = '.', opts: { out?: string; depth?: string; steps?: boolean; notes?: boolean; plan?: string; footer: boolean; browser?: string }) => {
     const name = path.basename(path.resolve(deck)) + (opts.notes ? '-handout' : '')
     const out = path.resolve(opts.out ?? path.join('export', `${name}.pdf`))
-    const query = printQuery({ depth: opts.depth ? Number(opts.depth) : undefined, steps: opts.steps, notes: opts.notes, footer: opts.footer })
+    const query = printQuery({ depth: opts.depth ? Number(opts.depth) : undefined, steps: opts.steps, notes: opts.notes, footer: opts.footer, plan: opts.plan === 'path' || opts.plan === 'grouped' ? opts.plan : undefined })
     await exportPdf(config(deck), { out, query, browser: opts.browser })
   })
 

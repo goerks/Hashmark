@@ -7,6 +7,7 @@ import { slug } from 'github-slugger'
 import { buildNodes, parseMarkdown, type RawNode } from './parse.ts'
 import { renderNodeContent, resolveImage, type RenderContext } from './render.ts'
 import { resolveTheme } from './theme.ts'
+import { authorPlan } from './plan.ts'
 import { parseDuration } from './timing.ts'
 import type { Deck, DeckNode, Manifest, MountEntry } from './types.ts'
 
@@ -101,6 +102,8 @@ async function finalize(raw: RawNode[], parentId: string, ctx: FinalizeContext):
     if (n.attrs.duration && duration === undefined) {
       ctx.warnings?.push(`Ungültige Dauer "${n.attrs.duration}" bei "${n.title}" (z. B. 5m, 90s, 1h30m)`)
     }
+    const plan = authorPlan(n.attrs)
+    if (n.attrs.plan && !plan) ctx.warnings?.push(`Ungültiger Plan "${n.attrs.plan}" bei "${n.title}" (path, optional oder appendix)`)
     out.push({
       id,
       title: n.title,
@@ -110,6 +113,7 @@ async function finalize(raw: RawNode[], parentId: string, ctx: FinalizeContext):
       ...(notes ? { notes } : {}),
       layout,
       ...(duration ? { duration } : {}),
+      ...(plan ? { plan } : {}),
       children: await finalize(n.children, id, ctx),
       source: { file: path.relative(ctx.deckDir, n.source.file).split(path.sep).join('/'), line: n.source.line },
     })

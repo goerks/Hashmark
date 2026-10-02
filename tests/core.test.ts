@@ -313,9 +313,12 @@ describe('Druck', () => {
   })
   it('liest und schreibt die Optionen als URL-Parameter', async () => {
     const { parsePrintOptions, printQuery } = await import('../src/core/print.ts')
-    expect(parsePrintOptions(new URLSearchParams('print&depth=2&steps=1&footer=0'))).toEqual({ depth: 2, steps: true, notes: false, footer: false })
-    expect(parsePrintOptions(new URLSearchParams('print'))).toEqual({ depth: Infinity, steps: false, notes: false, footer: true })
+    expect(parsePrintOptions(new URLSearchParams('print&depth=2&steps=1&footer=0'))).toEqual({ depth: 2, steps: true, notes: false, footer: false, plan: 'tree' })
+    expect(parsePrintOptions(new URLSearchParams('print'))).toEqual({ depth: Infinity, steps: false, notes: false, footer: true, plan: 'tree' })
     expect(printQuery({ depth: 2, notes: true }, { autoprint: '1' })).toBe('?print&autoprint=1&depth=2&notes=1')
+    expect(parsePrintOptions(new URLSearchParams('print&plan=grouped')).plan).toBe('grouped')
+    expect(parsePrintOptions(new URLSearchParams('print&plan=quatsch')).plan).toBe('tree')
+    expect(printQuery({ plan: 'path' })).toBe('?print&plan=path')
   })
 })
 

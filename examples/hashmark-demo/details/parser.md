@@ -8,7 +8,7 @@ mount:
     under: "Architektur > Parser"
 ```
 
-# Direktiven
+# Direktiven {optional}
 
 ::: columns
 ::: col
@@ -25,6 +25,6 @@ mount:
 
 Diese Überschrift liegt unterhalb von `maxDepth: 3` und ist deshalb ein Abschnitt innerhalb der Folie.
 
-# Hot Reload
+# Hot Reload {appendix}
 
 Speichern im Editor – die Folie bleibt stehen, der Inhalt aktualisiert sich.

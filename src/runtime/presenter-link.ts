@@ -9,7 +9,8 @@
 // Mehrere Präsentationen können gleichzeitig offen sein (Hauptfenster + Vollbild). Jede hat eine `session`;
 // die Presenter-View koppelt sich an eine und adressiert Tasten per `target`.
 
-import type { Position } from '../core/navigator.ts'
+import type { Excursion, Position } from '../core/navigator.ts'
+import type { PlanFile } from '../core/plan.ts'
 
 export type PresenterMessage =
   /** Presenter → Präsentation, regelmäßig: „ich bin da“ */
@@ -18,8 +19,10 @@ export type PresenterMessage =
   | { type: 'hashmark:presenter-key'; key: string; shiftKey: boolean; target?: string }
   /** Presenter → Präsentation: zu einer Folie springen (Baum, Suche) */
   | { type: 'hashmark:presenter-goto'; id: string; slide: number; target?: string }
-  /** Präsentation → Presenter: aktueller Stand */
-  | { type: 'hashmark:presenter-state'; pos: Position; black: boolean; session: string }
+  /** Presenter → Präsentation: Fahrplan wurde geändert bzw. beim Koppeln abgleichen */
+  | { type: 'hashmark:presenter-plan'; plan: PlanFile }
+  /** Präsentation → Presenter: aktueller Stand, dazu laufende Ausflüge und ob der Plan ausgeschaltet ist (Taste T) */
+  | { type: 'hashmark:presenter-state'; pos: Position; black: boolean; session: string; trip: Excursion[]; all: boolean }
 
 /** Unter file:// ist der Origin undurchsichtig („null“), dort bleibt nur `*`; der Empfänger prüft die Quelle. */
 export const targetOrigin = () => (/^https?:$/.test(location.protocol) ? location.origin : '*')

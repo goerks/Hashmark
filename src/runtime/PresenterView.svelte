@@ -1,8 +1,11 @@
 <script lang="ts">
   import { onMount, untrack } from 'svelte'
   import initial from 'virtual:hashmark/deck'
-  import { Navigator, stepsOf, type Position } from '../core/navigator.ts'
+  import { Navigator, stepsOf, type Excursion, type Position } from '../core/navigator.ts'
+  import { PLAN_LABEL, activeStates, emptyPlanFile, summarize, type PlanFile } from '../core/plan.ts'
   import type { Deck, DeckNode } from '../core/types.ts'
+  import PlanPanel from './PlanPanel.svelte'
+  import { loadPlanFile, savePlanFile } from './plan-store.ts'
   import { formatClock, pace } from '../core/timing.ts'
   import ScaledSlide from './ScaledSlide.svelte'
   import Notes from './Notes.svelte'
@@ -19,7 +22,16 @@
 
   const initialDeck = 'deck' in initial ? initial.deck : null
   let deck = $state.raw<Deck | null>(initialDeck)
-  let nav = $state.raw(new Navigator(initialDeck?.nodes ?? []))
+  let nodes = $state.raw<DeckNode[]>(initialDeck?.nodes ?? [])
+  /** Fahrpläne; die Presenter-View ist der einzige Ort, an dem sie bearbeitet werden */
+  let planFile = $state.raw<PlanFile>(emptyPlanFile())
+  let planOpen = $state(false)
+  /** aus der Präsentation: Plan ausgeschaltet (T) und laufende Ausflüge */
+  let all = $state(false)
+  let trip = $state.raw<Excursion[]>([])
+  const nav = $derived(new Navigator(nodes, { states: activeStates(planFile), all, trip }))
+  const planSum = $derived(summarize(nav.with({ all: false, trip: [] })))
+  const tripBack = $derived(trip.length ? nav.node(trip[trip.length - 1].back.id) : undefined)
   let pos = $state.raw<Position | null>(null)
   let black = $state(false)
   let searching = $state(false)
@@ -42,7 +54,7 @@
     if (!next || !nextNode || !pos) return 'Ende'
     if (next.pos.id === pos.id && next.pos.slide === pos.slide) return `Schritt ${next.pos.step ?? 0} / ${stepCount}`
     if (next.pos.id === pos.id) return `Folie ${next.pos.slide + 1} / ${nextNode.slides.length}`
-    return `${next.dir === 'down' ? '↓ ' : ''}${nextNode.title}`
+    return `${next.dir === 'down' ? '↓ ' : trip.length && next.dir === 'up' ? '↩ ' : ''}${nextNode.title}`
   })
   const right = $derived(pos ? nav.next(pos) : null)
   const progress = $derived(pos ? nav.progress(pos) : { index: 0, total: 0 })
@@ -125,7 +137,11 @@
 
   function onState(msg: Extract<PresenterMessage, { type: 'hashmark:presenter-state' }>) {
     // an die erste Präsentation koppeln; ist sie länger weg, an die nächste, die sich meldet
-    if (!target || Date.now() - lastSeen > 3500) target = msg.session
+    if (!target || Date.now() - lastSeen > 3500) {
+      target = msg.session
+      // beim Koppeln den Plan der Präsentation angleichen
+      queueMicrotask(sendPlan)
+    }
     if (msg.session !== target) return
     lastSeen = Date.now()
     const key = `${msg.pos.id}:${msg.pos.slide}:${msg.pos.step ?? 0}`
@@ -134,6 +150,25 @@
     else if (key !== firstKey && !timer.running && timer.accumulated === 0) startTimer()
     pos = msg.pos
     black = msg.black
+    all = msg.all
+    trip = msg.trip
+  }
+
+  function sendPlan() {
+    // an alle offenen Präsentationen: der Plan gehört zum Deck, nicht zu einer Sitzung
+    link?.send({ type: 'hashmark:presenter-plan', plan: planFile })
+  }
+
+  /** Fahrplan geändert: speichern und der Präsentation mitteilen */
+  function setPlan(file: PlanFile) {
+    planFile = file
+    savePlanFile(file)
+    sendPlan()
+  }
+
+  /** Taste T der Präsentation: Plan aus- bzw. einschalten */
+  function toggleAll() {
+    link?.send({ type: 'hashmark:presenter-key', key: 't', shiftKey: false, target: target ?? undefined })
   }
 
   function goto(id: string, slide = 0) {
@@ -141,7 +176,9 @@
   }
 
   function onkeydown(e: KeyboardEvent) {
-    if (searching) return
+    if (searching || planOpen) return
+    if ((e.target as HTMLElement | null)?.closest?.('input, select, textarea')) return
+    if ((e.key === 'p' || e.key === 'P') && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); planOpen = true; return }
     if (((e.key === 'k' || e.key === 'K') && (e.ctrlKey || e.metaKey)) || (e.key === '/' && !e.ctrlKey)) {
       e.preventDefault()
       searching = true
@@ -161,6 +198,7 @@
 
   onMount(() => {
     document.title = `Presenter · ${deck?.title ?? 'Hashmark'}`
+    void loadPlanFile().then((file) => { planFile = file; sendPlan() })
     link = openLink(() => audience, (msg) => { if (msg.type === 'hashmark:presenter-state') onState(msg) })
     const hello = () => link?.send({ type: 'hashmark:presenter-hello' })
     hello()
@@ -171,7 +209,7 @@
     onDeckUpdate((payload: Payload) => {
       if ('error' in payload) return
       deck = payload.deck
-      nav = new Navigator(payload.deck.nodes)
+      nodes = payload.deck.nodes
     })
     return () => {
       link?.close()
@@ -194,8 +232,10 @@
       {@const inTrail = trail.includes(n)}
       <li>
         <button class="pv-tree-item" class:current={n.id === pos?.id} class:trail={inTrail && n.id !== pos?.id}
+          class:optional={nav.state(n.id) === 'optional'} class:appendix={nav.state(n.id) === 'appendix'}
           style:padding-left="{8 + (n.depth - 1) * 14}px" onclick={() => goto(n.id)}>
           <span class="pv-tree-title">{n.title}</span>
+          {#if nav.state(n.id) !== 'path'}<span class="pv-tree-role">{PLAN_LABEL[nav.state(n.id)]}</span>{/if}
           {#if n.duration}<span class="pv-tree-time">{formatClock(n.duration)}</span>{/if}
           {#if n.children.length && !inTrail}<span class="pv-tree-count">↓{n.children.length}</span>{/if}
         </button>
@@ -218,6 +258,11 @@
         {paceText} · noch {formatClock(Math.max(0, plan.remaining))}
       </span>
     {/if}
+    {#if tripBack}<span class="pv-trip" title="Space führt von selbst zurück, Esc bricht ab">↩ Ausflug · zurück zu „{tripBack.title}“</span>{/if}
+    {#if all}<span class="pv-trip off">Plan aus (T)</span>{/if}
+    <button class="pv-planbtn" onclick={() => (planOpen = true)} title="Vortragsplan bearbeiten (P)">
+      Plan <b>{formatClock(planSum.path)}</b>{planFile.active !== 'Standard' ? ' · ' + planFile.active : ''}
+    </button>
     <span class="pv-timer" class:running={timer.running}>
       <span class="pv-elapsed">{formatClock(elapsed)}</span>
       <button onclick={() => (timer.running ? pauseTimer() : startTimer())} title="Timer starten/pausieren (T)">{timer.running ? '❚❚' : '▶'}</button>
@@ -245,7 +290,7 @@
     <div class="pv-moves">
       {#if node?.children.length}
         <span class="pv-dive"><kbd>↓</kbd> {node.children.length} {node.children.length === 1 ? 'Detail' : 'Details'}:
-          {#each node.children as c, i (c.id)}{#if i}, {/if}<button onclick={() => goto(c.id)}>{c.title}</button>{/each}
+          {#each node.children as c, i (c.id)}{#if i}, {/if}<button class:off={!nav.onPath(c.id)} onclick={() => goto(c.id)}>{c.title}</button>{/each}
         </span>
       {/if}
       {#if right && right.pos.id !== pos?.id}
@@ -280,6 +325,11 @@
       <Notes html={node && pos ? node.slides[pos.slide]?.notes : undefined} {step} />
     </div>
   </section>
+
+  {#if planOpen}
+    <PlanPanel {nav} file={planFile} duration={deck?.duration} currentId={pos?.id} planOff={all} onchange={setPlan} ontoggleall={toggleAll}
+      onclose={() => (planOpen = false)} />
+  {/if}
 
   {#if searching && deck}
     <Search nodes={deck.nodes} onjump={(p) => { searching = false; goto(p.id, p.slide) }} onclose={() => (searching = false)} />

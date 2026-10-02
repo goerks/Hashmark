@@ -1,6 +1,7 @@
 // Linter für eine Markdown-Quelle im Editor: unbekannte Layouts/Attribute/Container, ungeschlossene Blöcke.
 // Arbeitet nur auf dem Text (Zeilen und Zeichen-Offsets), damit der Editor die Stellen direkt markieren kann.
 
+import { PLAN_STATES } from './plan.ts'
 import { BUILTIN_LAYOUTS, CONTAINERS, KNOWN_ATTRS, TRANSITIONS, nearest } from './vocab.ts'
 
 export interface Problem {
@@ -19,6 +20,8 @@ export interface LintOptions {
   layouts?: string[]
 }
 
+/** bare Flags ohne Wert */
+const FLAGS = ['steps', 'fit', 'optional', 'appendix']
 const meant = (fix?: string) => (fix ? ` Meinst du „${fix}“?` : '')
 
 export function lintText(text: string, opts: LintOptions = {}): Problem[] {
@@ -48,8 +51,8 @@ export function lintText(text: string, opts: LintOptions = {}): Problem[] {
     if (m && m[5]) {
       const braceCol = line.lastIndexOf(m[5])
       const tokens = [...m[6].matchAll(/([\w-]+)=("[^"]*"|[^\s}]+)|\S+/g)]
-      // wie der Parser: nur echte Attribute (key=…, .klasse, #id, steps, fit) zählen, sonst ist es Titeltext
-      const isAttrs = tokens.some((t) => t[1] || /^[.#]/.test(t[0])) || (tokens.length === 1 && ['steps', 'fit'].includes(tokens[0][0]))
+      // wie der Parser: nur echte Attribute (key=…, .klasse, #id, steps, fit, optional, appendix) zählen, sonst ist es Titeltext
+      const isAttrs = tokens.some((t) => t[1] || /^[.#]/.test(t[0])) || (tokens.length === 1 && FLAGS.includes(tokens[0][0]))
       if (isAttrs) {
         for (const t of tokens) {
           if (!t[1]) continue
@@ -63,13 +66,16 @@ export function lintText(text: string, opts: LintOptions = {}): Problem[] {
           } else if (key === 'layout' && !layouts.includes(val)) {
             const fix = nearest(val, layouts)
             problems.push({ ...at(valCol, val.length), severity: 'error', message: `Layout „${val}“ ist unbekannt.${meant(fix)}`, fix })
+          } else if (key === 'plan' && !(PLAN_STATES as readonly string[]).includes(val)) {
+            const fix = nearest(val, PLAN_STATES)
+            problems.push({ ...at(valCol, val.length), severity: 'error', message: `Plan „${val}“ ist unbekannt (${PLAN_STATES.join(', ')}).${meant(fix)}`, fix })
           } else if (key === 'transition' && !TRANSITIONS.includes(val)) {
             const fix = nearest(val, TRANSITIONS)
             problems.push({ ...at(valCol, val.length), severity: 'warning', message: `Übergang „${val}“ ist unbekannt (${TRANSITIONS.join(', ')}).${meant(fix)}`, fix })
           }
         }
       } else if (tokens.length === 1) {
-        const fix = nearest(tokens[0][0], ['steps', 'fit'])
+        const fix = nearest(tokens[0][0], FLAGS)
         if (fix) problems.push({ ...at(braceCol + 1, tokens[0][0].length), severity: 'warning', message: `„{${tokens[0][0]}}“ wird als Titeltext behandelt.${meant(fix)}`, fix })
       }
       return

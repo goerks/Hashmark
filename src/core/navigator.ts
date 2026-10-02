@@ -1,6 +1,12 @@
 // Navigator: reine State-Machine über dem Deck-Baum, ohne DOM.
+//
+// Zwei Arten der Bewegung:
+// - Pfeile (next/prev/down/up) bewegen sich frei im Baum und kümmern sich nicht um den Plan.
+// - Space/Clicker (forward/backward) folgen dem Vortragsplan: nur Knoten mit Zustand `path` (siehe plan.ts).
+//   Optionales erreicht man per ↓ als Ausflug; Space führt am Ende des Ausflugs zur Abzweigung zurück.
 
-import type { DeckNode } from './types.ts'
+import type { PlanStates } from './plan.ts'
+import type { DeckNode, PlanState } from './types.ts'
 
 export interface Position {
   id: string
@@ -31,20 +37,119 @@ interface Entry {
   index: number
 }
 
+/**
+ * Ausflug abseits des Pfads, mit Rückkehrmarke.
+ * `dive`: ↓ an `root` – die Kinder von `root`, die nicht auf dem Pfad liegen. `jump`: Sprung (Suche, Übersicht) zu `root` allein.
+ */
+export interface Excursion {
+  root: string
+  kind: 'dive' | 'jump'
+  /** Position, von der aus der Ausflug begann */
+  back: Position
+}
+
+export interface NavigatorOptions {
+  /** Überschreibungen des Vortragenden je Knoten-ID */
+  states?: PlanStates
+  /** Plan ignorieren: Space läuft wie früher durch alles (Taste T) */
+  all?: boolean
+  /** laufende Ausflüge (Stapel, der letzte ist der innerste) */
+  trip?: readonly Excursion[]
+}
+
+const MAX_TRIP = 8
+
 export class Navigator {
   readonly nodes: DeckNode[]
+  readonly states: PlanStates
+  /** true = Plan wird ignoriert, alles ist Pfad */
+  readonly all: boolean
   private entries = new Map<string, Entry>()
+  /** alle Knoten in Tiefensuche, dazu der Index je ID */
+  private order: DeckNode[] = []
+  private orderIndex = new Map<string, number>()
   /** Position im Elternknoten beim Abtauchen, damit ↑ dorthin zurückkehrt */
   private memory = new Map<string, { slide: number; step: number }>()
+  private excursions: Excursion[]
 
-  constructor(nodes: DeckNode[]) {
+  constructor(nodes: DeckNode[], options: NavigatorOptions = {}) {
     this.nodes = nodes
+    this.states = options.states ?? {}
+    this.all = options.all ?? false
+    this.excursions = [...(options.trip ?? [])]
     const index = (list: DeckNode[], parent?: DeckNode) =>
       list.forEach((node, i) => {
         this.entries.set(node.id, { node, parent, siblings: list, index: i })
+        this.orderIndex.set(node.id, this.order.length)
+        this.order.push(node)
         index(node.children, node)
       })
     index(nodes)
+  }
+
+  /** Kopie mit geändertem Plan; gemerkte Abzweigungen und Ausflüge bleiben erhalten. */
+  with(patch: NavigatorOptions): Navigator {
+    const next = new Navigator(this.nodes, { states: patch.states ?? this.states, all: patch.all ?? this.all, trip: patch.trip ?? this.excursions })
+    next.memory = new Map(this.memory)
+    return next
+  }
+
+  // ---------- Plan ----------
+
+  /**
+   * Wirksamer Zustand eines Knotens. Die nächste Überschreibung des Vortragenden auf dem Weg nach oben gewinnt,
+   * sonst der nächste Standard des Autors, sonst `path`.
+   */
+  state(id: string): PlanState {
+    if (this.all) return 'path'
+    let author: PlanState | undefined
+    for (let e = this.entries.get(id); e; e = e.parent && this.entries.get(e.parent.id)) {
+      const chosen = this.states[e.node.id]
+      if (chosen) return chosen
+      author ??= e.node.plan
+    }
+    return author ?? 'path'
+  }
+
+  onPath(id: string): boolean {
+    return this.state(id) === 'path'
+  }
+
+  /** Nächster Pfad-Knoten in Lesereihenfolge nach `id` (egal ob `id` selbst auf dem Pfad liegt). */
+  private pathAfter(id: string): DeckNode | undefined {
+    for (let i = (this.orderIndex.get(id) ?? -1) + 1; i < this.order.length; i++) if (this.onPath(this.order[i].id)) return this.order[i]
+    return undefined
+  }
+
+  private pathBefore(id: string): DeckNode | undefined {
+    for (let i = (this.orderIndex.get(id) ?? this.order.length) - 1; i >= 0; i--) if (this.onPath(this.order[i].id)) return this.order[i]
+    return undefined
+  }
+
+  // ---------- Ausflüge ----------
+
+  /** laufende Ausflüge, der innerste zuletzt */
+  get trip(): readonly Excursion[] {
+    return [...this.excursions]
+  }
+
+  /** Knoten, die Space in diesem Ausflug abläuft */
+  private items(e: Excursion): DeckNode[] {
+    const root = this.node(e.root)
+    if (!root) return []
+    return e.kind === 'jump' ? [root] : root.children.filter((c) => !this.onPath(c.id))
+  }
+
+  /**
+   * Beendet Ausflüge, in denen `pos` nicht mehr liegt (Pfeile, Sprung auf den Pfad, Hot Reload).
+   * Wird bei jeder Bewegung aufgerufen.
+   */
+  sync(pos: Position): void {
+    while (this.excursions.length) {
+      const top = this.excursions[this.excursions.length - 1]
+      if (this.items(top).some((n) => n.id === pos.id)) return
+      this.excursions.pop()
+    }
   }
 
   get first(): Position | null {
@@ -109,12 +214,37 @@ export class Navigator {
     return null
   }
 
-  /** ↓ / Enter: in den ersten Kindknoten. `peek`: nur Ziel ermitteln (Anzeige), Position nicht merken. */
+  /**
+   * ↓ / Enter: ins Detail. Hat der Knoten Kinder abseits des Pfads (optional, Anhang), beginnt ein Ausflug mit
+   * Rückkehrmarke und es geht ins erste davon. Sonst in den ersten Kindknoten, wie es Pfeile schon immer taten.
+   * `peek`: nur Ziel ermitteln (Anzeige), nichts merken.
+   */
   down(pos: Position, peek = false): Move | null {
-    const child = this.node(pos.id)?.children[0]
-    if (!child) return null
-    if (!peek) this.memory.set(pos.id, { slide: pos.slide, step: pos.step ?? 0 })
-    return { pos: at(child.id, 0), dir: 'down' }
+    const children = this.node(pos.id)?.children
+    if (!children?.length) return null
+    const detail = children.find((c) => !this.onPath(c.id))
+    if (!peek) {
+      this.memory.set(pos.id, { slide: pos.slide, step: pos.step ?? 0 })
+      if (detail) this.begin({ root: pos.id, kind: 'dive', back: at(pos.id, pos.slide, pos.step ?? 0) })
+    }
+    return { pos: at((detail ?? children[0]).id, 0), dir: 'down' }
+  }
+
+  private begin(e: Excursion) {
+    this.excursions.push(e)
+    if (this.excursions.length > MAX_TRIP) this.excursions.shift()
+  }
+
+  /**
+   * Sprung (Suche, Übersicht, Presenter-Baum). Landet er abseits des Pfads, beginnt ein Ausflug:
+   * Space führt nach dieser Folie zurück zu `from`.
+   */
+  jumpTo(target: Position, from: Position): Move {
+    this.sync(from)
+    const top = this.excursions[this.excursions.length - 1]
+    const inside = top && this.items(top).some((n) => n.id === target.id)
+    if (!this.onPath(target.id) && !inside && target.id !== from.id) this.begin({ root: target.id, kind: 'jump', back: from })
+    return { pos: target, dir: 'jump' }
   }
 
   /** ↑ / Esc: zum Elternknoten, an die Sub-Slide, von der aus abgetaucht wurde. */
@@ -129,8 +259,25 @@ export class Navigator {
   }
 
   /**
-   * Space / PageDown (Presenter): der Linie nach in die Tiefe – Tiefensuche durch den ganzen Baum.
-   * Schritte, Sub-Slides, dann erstes Kind, dann nächster Geschwisterknoten bzw. Nachfolger eines Vorfahren.
+   * ↑ / Esc: Ausflug abbrechen und an die Abzweigung zurück, sonst wie `up` zum Elternknoten.
+   * Nach einem Sprung (Suche, Übersicht) führt das dorthin zurück, woher man kam.
+   */
+  leave(pos: Position): Move | null {
+    this.sync(pos)
+    const top = this.excursions[this.excursions.length - 1]
+    return top ? { pos: top.back, dir: 'up' } : this.up(pos)
+  }
+
+  /** Richtung der Bewegung von `from` nach `to` in Lesereihenfolge (steuert den Übergang) */
+  private directionForward(from: DeckNode, to: DeckNode): Direction {
+    if (this.parent(to.id)?.id === from.id) return 'down'
+    return to.depth < from.depth ? 'up' : 'right'
+  }
+
+  /**
+   * Space / PageDown (Presenter): dem Vortragsplan nach. Schritte, Sub-Slides, dann der nächste Knoten auf dem Pfad
+   * (Tiefensuche, ohne Optionales und Anhang). Im Ausflug: die nächste Ausflug-Folie, am Ende zurück zur Abzweigung.
+   * Ist der Plan ausgeschaltet (`all`), läuft es wie früher durch alles.
    */
   forward(pos: Position, peek = false): Move | null {
     const e = this.entries.get(pos.id)
@@ -138,30 +285,43 @@ export class Navigator {
     const step = pos.step ?? 0
     if (step < stepsOf(e.node, pos.slide)) return { pos: at(pos.id, pos.slide, step + 1), dir: 'step' }
     if (pos.slide < e.node.slides.length - 1) return { pos: at(pos.id, pos.slide + 1), dir: 'right' }
-    if (e.node.children.length) return this.down(pos, peek)
-    return this.next(pos)
+    const top = this.excursions[this.excursions.length - 1]
+    if (top) {
+      const items = this.items(top)
+      const next = items[items.findIndex((n) => n.id === pos.id) + 1]
+      if (next) return { pos: at(next.id, 0), dir: 'right' }
+      // Ende des Ausflugs: zurück an die Abzweigung
+      if (!peek) this.excursions.pop()
+      return { pos: top.back, dir: 'up' }
+    }
+    const next = this.pathAfter(pos.id)
+    if (!next) return null
+    if (!peek && this.parent(next.id)?.id === pos.id) this.memory.set(pos.id, { slide: pos.slide, step })
+    return { pos: at(next.id, 0), dir: this.directionForward(e.node, next) }
   }
 
   /** Shift+Space / PageUp: derselbe Weg rückwärts; man landet vollständig aufgedeckt. */
-  backward(pos: Position): Move | null {
+  backward(pos: Position, peek = false): Move | null {
     const e = this.entries.get(pos.id)
     if (!e) return null
     const step = pos.step ?? 0
     if (step > 0) return { pos: at(pos.id, pos.slide, step - 1), dir: 'step' }
     if (pos.slide > 0) return { pos: at(pos.id, pos.slide - 1, stepsOf(e.node, pos.slide - 1)), dir: 'left' }
-    const sib = e.siblings[e.index - 1]
-    if (sib) {
-      // tiefster, letzter Nachfahre des vorherigen Geschwisters
-      let last = sib
-      while (last.children.length) last = last.children[last.children.length - 1]
-      const slide = last.slides.length - 1
-      return { pos: at(last.id, slide, stepsOf(last, slide)), dir: last === sib ? 'left' : 'up' }
+    const full = (n: DeckNode, dir: Direction): Move => {
+      const slide = n.slides.length - 1
+      return { pos: at(n.id, slide, stepsOf(n, slide)), dir }
     }
-    if (e.parent) {
-      const slide = e.parent.slides.length - 1
-      return { pos: at(e.parent.id, slide, stepsOf(e.parent, slide)), dir: 'up' }
+    const top = this.excursions[this.excursions.length - 1]
+    if (top) {
+      const items = this.items(top)
+      const prev = items[items.findIndex((n) => n.id === pos.id) - 1]
+      if (prev) return full(prev, 'left')
+      // vor der ersten Ausflug-Folie: zurück an die Abzweigung
+      if (!peek) this.excursions.pop()
+      return { pos: top.back, dir: 'up' }
     }
-    return null
+    const prev = this.pathBefore(pos.id)
+    return prev ? full(prev, prev.depth === e.node.depth ? 'left' : 'up') : null
   }
 
   /** Position in Lesereihenfolge (1-basiert) und Gesamtzahl der Folien (Sub-Slides zählen einzeln). */
