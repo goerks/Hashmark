@@ -11,7 +11,8 @@
   import type { Problem } from './assist.ts'
   import Palette, { type PaletteItem } from './Palette.svelte'
   import KeyBar from './KeyBar.svelte'
-  import { desktopAction, isDesktop } from '../desktop.ts'
+  import { desktopAction, hasPresentOptions, isDesktop } from '../desktop.ts'
+  import PresentOptions from './PresentOptions.svelte'
   import { onDeckUpdate } from '../deck-source.ts'
 
   type Payload = { deck: Deck } | { error: string }
@@ -47,6 +48,9 @@
   let problems = $state.raw<Found[]>([])
   let problemsOpen = $state(false)
   let palette = $state<{ only: string } | null>(null)
+  /** Optionen fürs Präsentieren (Presenter-View, Bildschirme) – nur im Hauptfenster der Desktop-App */
+  let presentOptions = $state(false)
+  const canPresentOptions = hasPresentOptions()
   let focused = $state(false)
   let startupError = $state<string | null>(null)
 
@@ -283,6 +287,7 @@
     }
     items.push(
       { group: 'Aktionen', title: 'Präsentieren', detail: 'Ab der aktuellen Folie', run: present },
+      ...(canPresentOptions ? [{ group: 'Aktionen', title: 'Präsentieren: Optionen …', detail: 'Presenter-View und Bildschirme', run: () => { presentOptions = true } }] : []),
       { group: 'Aktionen', title: 'PDF / Druckansicht', run: exportPdf },
       { group: 'Aktionen', title: 'Ansicht: Schreiben', run: () => setMode('write') },
       { group: 'Aktionen', title: 'Ansicht: Geteilt', run: () => setMode('split') },
@@ -318,6 +323,13 @@
   }
 
   onMount(() => {
+    // Menü „Präsentieren › Optionen“ der App: Ereignis bzw. Sprung auf #present-options aus einer anderen Ansicht
+    const openOptions = () => { if (canPresentOptions) presentOptions = true }
+    window.addEventListener('hashmark:present-options', openOptions)
+    if (location.hash === '#present-options') {
+      history.replaceState(null, '', location.pathname + location.search)
+      openOptions()
+    }
     ed = createEditor(editorEl, {
       onChange() {
         status = 'dirty'
@@ -390,6 +402,7 @@
     })()
 
     return () => {
+      window.removeEventListener('hashmark:present-options', openOptions)
       window.removeEventListener('message', onMessage)
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('beforeunload', beforeUnload)
@@ -441,9 +454,16 @@
       <span>Suchen</span><kbd>Strg K</kbd>
     </button>
     <button class="ed-pdf" onclick={exportPdf} title="Druckansicht öffnen: drucken oder als PDF speichern">PDF</button>
-    <button class="ed-present" onclick={present} title="Präsentation öffnen">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z" fill="currentColor" stroke="none" /></svg>Präsentieren
-    </button>
+    <span class="ed-presentgroup">
+      <button class="ed-present" onclick={present} title="Präsentation öffnen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z" fill="currentColor" stroke="none" /></svg>Präsentieren
+      </button>
+      {#if canPresentOptions}
+        <button class="ed-present-opt" onclick={() => (presentOptions = true)} title="Optionen: Presenter-View und Bildschirme" aria-label="Optionen fürs Präsentieren">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </button>
+      {/if}
+    </span>
   </header>
 
   <div class="ed-main" style="grid-template-columns: {columns}">
@@ -510,6 +530,7 @@
   </div>
 
   {#if coarse && focused && palette === null}<KeyBar {ed} onblocks={() => openPalette('Bausteine')} />{/if}
+  {#if presentOptions}<PresentOptions onclose={() => (presentOptions = false)} />{/if}
   {#if palette}<Palette items={paletteItems()} only={palette.only} onclose={closePalette} />{/if}
   {#if message}<div class="ed-toast" role="status">{message}</div>{/if}
   <input

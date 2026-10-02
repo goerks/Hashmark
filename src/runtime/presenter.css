@@ -137,3 +137,7 @@
 .pp-note { font-size: 11px; }
 .pp-all { margin-left: auto; }
 .pp-all.on { background: var(--color-muted) !important; color: var(--color-bg) !important; }
+
+.pv-end { padding: 3px 10px; border-radius: 12px; border: 1px solid var(--color-border); background: var(--color-surface); font-size: 13px; }
+.pv-end:hover { border-color: var(--color-danger); color: var(--color-danger); }
+.pv-end.confirm { background: var(--color-danger); border-color: var(--color-danger); color: #fff; font-weight: 700; }

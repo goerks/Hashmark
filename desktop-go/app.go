@@ -4,12 +4,14 @@ package main
 // Entspricht src-tauri/src/main.rs; die eigentliche Arbeit macht der Node-Sidecar.
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -29,6 +31,7 @@ type app struct {
 	hwnd     uintptr
 
 	mu       sync.Mutex
+	settings presentSettings // Presenter-View und Bildschirme, siehe present.go
 	deck     *deck
 	recent   []string
 	children map[string]*exec.Cmd // "presentation", "presenter"
@@ -151,8 +154,8 @@ func (a *app) closeDeck() {
 // ---------- Präsentieren ----------
 
 // spawn startet ein Fenster als eigener Prozess dieser EXE (die Webview kennt nur ein Fenster je Prozess)
-func (a *app) spawn(label, url, title, mode string) error {
-	cmd := exec.Command(a.self, "--window", url, "--title", title, "--mode", mode)
+func (a *app) spawn(label, url, title, mode string, screen int) error {
+	cmd := exec.Command(a.self, "--window", url, "--title", title, "--mode", mode, "--screen", strconv.Itoa(screen))
 	if err := cmd.Start(); err != nil {
 		return err
 	}
@@ -189,16 +192,15 @@ func (a *app) closePresentation() {
 	a.kill("presenter")
 }
 
-func hasExternal() bool {
-	for _, m := range monitors() {
-		if !m.Primary {
-			return true
-		}
-	}
-	return false
+func (a *app) presentSettings() presentSettings {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	return a.settings.normalized(monitors())
 }
 
-// present: Präsentation im Vollbild – mit zweitem Bildschirm dort, und die Presenter-View auf dem Hauptbildschirm
+// present: Präsentation im Vollbild auf dem gewählten Bildschirm. Mit Presenter-View (Einstellung „ein“, oder
+// „automatisch“ mit zweitem Bildschirm) öffnet sich diese auf dem anderen Bildschirm; die Präsentation blendet
+// dann ihre Bedienhilfen aus (?dual), weil sie dort stehen.
 func (a *app) present(hash *string) error {
 	d := a.currentDeck()
 	if d == nil {
@@ -215,16 +217,24 @@ func (a *app) present(hash *string) error {
 		h, _ = p.(string)
 	}
 	a.closePresentation()
-	if err := a.spawn("presentation", d.url+h, titlePresentation, "presentation"); err != nil {
+	all := monitors()
+	s := a.presentSettings()
+	presentation, _ := pickScreens(all, s)
+	withPresenter := s.usePresenter(all)
+	u := d.url + h
+	if withPresenter {
+		u = d.url + "?dual" + h
+	}
+	if err := a.spawn("presentation", u, titlePresentation, "presentation", presentation.Index); err != nil {
 		return err
 	}
-	if hasExternal() {
+	if withPresenter {
 		return a.openPresenter(h)
 	}
 	return nil
 }
 
-// openPresenter: Presenter-View (Taste S bzw. automatisch mit zweitem Bildschirm) auf dem Hauptbildschirm
+// openPresenter: Presenter-View (automatisch beim Präsentieren oder Taste S) auf dem gewählten Bildschirm
 func (a *app) openPresenter(hash string) error {
 	d := a.currentDeck()
 	if d == nil {
@@ -237,7 +247,28 @@ func (a *app) openPresenter(hash string) error {
 		focusWindow(titlePresenter)
 		return nil
 	}
-	return a.spawn("presenter", d.url+"?presenter"+hash, titlePresenter, "presenter")
+	_, presenter := pickScreens(monitors(), a.presentSettings())
+	return a.spawn("presenter", d.url+"?presenter"+hash, titlePresenter, "presenter", presenter.Index)
+}
+
+// presentOptions liefert Stand und Bildschirme als JSON für den Optionen-Dialog der Editor-Seite
+func (a *app) presentOptions() (string, error) {
+	return a.presentSettings().optionsJSON(monitors())
+}
+
+// setPresentOptions übernimmt die Wahl aus dem Dialog (prüft sie gegen die angeschlossenen Bildschirme) und speichert sie
+func (a *app) setPresentOptions(js string) error {
+	s := defaultPresentSettings()
+	if err := json.Unmarshal([]byte(js), &s); err != nil {
+		return err
+	}
+	s = s.normalized(monitors())
+	a.mu.Lock()
+	a.settings = s
+	a.mu.Unlock()
+	err := savePresentSettings(a.data, s)
+	go a.refreshMenu()
+	return err
 }
 
 // ---------- Export ----------
@@ -397,7 +428,8 @@ func (a *app) menu() []menuItem {
 			it("present-start", "Von vorne", "Umschalt+F5", has),
 			it("present-stop", "Präsentation beenden", "", has),
 			sep,
-			it("hint1", "Mit Beamer: Folien im Vollbild dort, Presenter-View hier", "", false),
+			it("present-options", "Optionen: Presenter-View und Bildschirme …", "", has),
+			it("hint1", a.presentSettings().summary(monitors()), "", false),
 			it("hint2", "In der Präsentation: S Presenter · N Notizen · Ctrl+K Suche · Ctrl+W beenden", "", false),
 		}},
 		{Label: "Hilfe", Sub: []menuItem{
@@ -496,6 +528,14 @@ func (a *app) onMenu(id string) {
 		err = a.present(&empty)
 	case id == "present-stop":
 		a.closePresentation()
+	case id == "present-options":
+		// Der Dialog gehört zum Editor: ist er nicht zu sehen, zuerst dorthin wechseln
+		if d := a.currentDeck(); d != nil {
+			u, _ := json.Marshal(d.url + "editor.html#present-options")
+			a.ui(func() {
+				a.v.Eval("if (location.pathname.endsWith('/editor.html')) window.dispatchEvent(new Event('hashmark:present-options')); else location.href = " + string(u))
+			})
+		}
 	case id == "readme":
 		err = openPath(filepath.Join(a.root, "README.md"))
 	case id == "data-dir":

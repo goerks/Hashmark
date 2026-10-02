@@ -89,8 +89,9 @@ func writeIcon(dir string) string {
 	return p
 }
 
-// runChild: Präsentation (Vollbild, mit zweitem Bildschirm dort) bzw. Presenter-View (maximiert, Hauptbildschirm)
-func runChild(url, title, mode string) {
+// runChild: Präsentation (Vollbild) bzw. Presenter-View (maximiert). `screen` ist der gewählte Bildschirm
+// (Index in der Liste des Systems); -1 = automatisch (Präsentation auf dem Zusatzbildschirm, Presenter auf dem Hauptbildschirm).
+func runChild(url, title, mode string, screen int) {
 	v := webview.New(false)
 	defer v.Destroy()
 	v.SetTitle(title)
@@ -99,24 +100,19 @@ func runChild(url, title, mode string) {
 	setIcon(hwnd, writeIcon(dataDir()))
 	// Fenstergeometrie: unter Windows sofort, sonst erst in der laufenden Ereignisschleife (macOS/GTK)
 	geometry := func() {
-		var primary, target monitor
-		for _, m := range monitors() {
-			if m.Primary {
-				primary = m
-			} else if target.W == 0 {
-				target = m
-			}
-		}
-		if target.W == 0 {
-			target = primary
+		all := monitors()
+		// ohne ausdrückliche Wahl: wie die automatische Auswahl der Hülle
+		presentation, presenter := pickScreens(all, defaultPresentSettings())
+		if screen >= 0 && screen < len(all) {
+			presentation, presenter = all[screen], all[screen]
 		}
 		switch {
 		case headless():
 			hideWindow(hwnd)
-		case mode == "presentation" && target.W > 0:
-			setFullscreen(hwnd, target)
-		case mode == "presenter" && primary.W > 0:
-			maximizeOn(hwnd, primary)
+		case mode == "presentation" && presentation.W > 0:
+			setFullscreen(hwnd, presentation)
+		case mode == "presenter" && presenter.W > 0:
+			maximizeOn(hwnd, presenter)
 		}
 	}
 	if runtime.GOOS == "windows" {
@@ -134,6 +130,7 @@ func main() {
 	win := flag.String("window", "", "nur ein Fenster mit dieser URL öffnen (Kindprozess)")
 	title := flag.String("title", "Hashmark", "Fenstertitel (mit --window)")
 	mode := flag.String("mode", "presentation", "presentation | presenter (mit --window)")
+	screen := flag.Int("screen", -1, "Bildschirm für das Fenster (Position in der Liste des Systems, -1 = automatisch; mit --window)")
 	showVersion := flag.Bool("version", false, "Version ausgeben und beenden")
 	selftest := flag.Bool("selftest", false, "Sidecar starten, Beispiel-Deck öffnen, URL ausgeben, beenden")
 	flag.Parse()
@@ -143,7 +140,7 @@ func main() {
 		return
 	}
 	if *win != "" {
-		runChild(*win, *title, *mode)
+		runChild(*win, *title, *mode, *screen)
 		return
 	}
 
@@ -160,7 +157,7 @@ func main() {
 	}
 	defer sc.stop()
 	self, _ := os.Executable()
-	a := &app{sc: sc, root: root, data: data, self: self, children: map[string]*exec.Cmd{}}
+	a := &app{sc: sc, root: root, data: data, self: self, children: map[string]*exec.Cmd{}, settings: loadPresentSettings(data)}
 	defer a.closePresentation()
 
 	if *selftest {
@@ -199,6 +196,9 @@ func main() {
 	_ = v.Bind("hmMenu", func(id string) { go a.onMenu(id) })
 	v.Init(shortcutsJS)
 	_ = v.Bind("hmOpen", openExternal)
+	// Optionen fürs Präsentieren: die Editor-Seite fragt Stand und Bildschirme ab und setzt sie
+	_ = v.Bind("hmPresentOptions", a.presentOptions)
+	_ = v.Bind("hmSetPresentOptions", a.setPresentOptions)
 	v.Init(externalLinksJS)
 	if headless() {
 		hideWindow(a.hwnd)

@@ -24,6 +24,7 @@
         ['S', 'Presenter-View im zweiten Fenster: Notizen, nächste Folie, Timer, Baum'],
         ['P (in der Presenter-View)', 'Vortragsplan bearbeiten: Pfad, Optional, Anhang, Zeitbudget'],
         ['N', 'Notizen unten einblenden (zum Üben mit einem Bildschirm)'],
+        ['Strg+W (Desktop-App)', 'Präsentation beenden, auch mit ✕ oben rechts oder in der Presenter-View'],
       ],
     },
     {

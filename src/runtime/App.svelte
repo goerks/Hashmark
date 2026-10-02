@@ -43,6 +43,15 @@
   let black = $state(false)
   let help = $state(false)
   let dimmed = $state(false)
+  /**
+   * Mit Presenter-View entfallen die Bedienhilfen auf der Präsentation (Steuerkreuz, Schritte, Details, Plan-Hinweise):
+   * Das Publikum braucht sie nicht, der Presenter zeigt sie. Die Presenter-View meldet sich jede Sekunde (hello).
+   * `?dual` (Desktop-App) blendet sie schon beim Start aus, bis der Presenter da ist (oder 15 s vergangen sind).
+   */
+  const expectPresenter = new URLSearchParams(location.search).has('dual')
+  let presenterUntil = $state(expectPresenter ? Date.now() + 15000 : 0)
+  let tick = $state(Date.now())
+  const withPresenter = $derived(tick < presenterUntil)
   let searching = $state(false)
   /** Notizen unten einblenden (N) – zum Üben mit nur einem Bildschirm */
   let notesOpen = $state(false)
@@ -274,6 +283,7 @@
     if (source) presenter = source // file://: Fenster merken, auch nach Neuladen der Präsentation
     // Tasten und Sprünge nur, wenn sie an diese Präsentation gerichtet sind
     if ((msg.type === 'hashmark:presenter-key' || msg.type === 'hashmark:presenter-goto') && msg.target && msg.target !== session) return
+    if (msg.type === 'hashmark:presenter-hello') presenterUntil = Date.now() + 3500
     if (msg.type === 'hashmark:presenter-hello' && pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all })
     else if (msg.type === 'hashmark:presenter-plan') applyPlan(msg.plan)
     else if (msg.type === 'hashmark:presenter-key') {
@@ -300,6 +310,7 @@
   onMount(() => {
     fit()
     void loadPlanFile().then(applyPlan)
+    const ticker = setInterval(() => (tick = Date.now()), 500)
     const onHash = () => {
       const p = parseHash(location.hash)
       if (p && pos && (p.id !== pos.id || p.slide !== pos.slide)) jump(p.id, p.slide)
@@ -345,6 +356,7 @@
       link?.close()
       window.removeEventListener('beforeprint', beforePrint)
       clearTimeout(idle)
+      clearInterval(ticker)
     }
   })
 </script>
@@ -365,23 +377,29 @@
           {#if i > 0}<span class="sep">›</span>{/if}
           <button class:active={crumb.id === node.id} onclick={() => jump(crumb.id)}>{crumb.title}</button>
         {/each}
-        {#if nav.all}
+        {#if withPresenter}
+          <!-- Presenter-View verbunden: Rolle, Schritte und Position stehen dort -->
+        {:else if nav.all}
           <span class="plan-tag" title="Plan ausgeschaltet: Space läuft durch alles (T)">Plan aus</span>
         {:else if planState !== 'path'}
           <span class="plan-tag {planState}" title="Space überspringt diese Folie; sie ist nur über ↓, Suche oder Übersicht erreichbar">{PLAN_LABEL[planState]}</span>
         {/if}
-        <span class="subslide">
+        {#if !withPresenter}<span class="subslide">
           {#if stepCount}
             <span class="step-dots" title="Schritt {pos.step ?? 0} von {stepCount}">
               {#each { length: stepCount } as _, i (i)}<i class:done={i < (pos.step ?? 0)}></i>{/each}
             </span>
           {/if}
           {#if node.slides.length > 1}{pos.slide + 1}/{node.slides.length}{/if}
-        </span>
+        </span>{/if}
       </nav>
 
+      {#if desktop && !embedded && !dimmed}
+        <button class="end-show" onclick={() => void desktopAction({ action: 'close' })} title="Präsentation beenden (Strg+W)">✕ Beenden</button>
+      {/if}
+
       <footer class="status">
-        {#if node.children.length}
+        {#if node.children.length && !withPresenter}
           <button class="children-hint" onclick={() => go(nav.down(pos!))} title="↓ abtauchen">
             <span class="dots">{#each node.children as c (c.id)}<i class:off={!nav.onPath(c.id)}></i>{/each}</span>
             ↓ {node.children.length} {node.children.length === 1 ? 'Detail' : 'Details'}
@@ -389,7 +407,7 @@
         {/if}
       </footer>
 
-      {#if tripBack}
+      {#if tripBack && !withPresenter}
         <div class="trip-bar" role="status">
           <span>↩ Ausflug · zurück zu „{tripBack.title}“</span>
           <span class="trip-hint">Space führt von selbst zurück · Esc bricht ab</span>
@@ -397,7 +415,7 @@
       {/if}
 
       <!-- in der Bühne, im freien Randstreifen unten rechts: überdeckt nie Inhalt, skaliert mit -->
-      {#if controls && !controlsHidden}
+      {#if controls && !controlsHidden && !withPresenter}
         {@const p = nav.progress(pos)}
         <NavControls
           {controls}

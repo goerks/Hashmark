@@ -58,9 +58,10 @@ Die App ist eine schlanke Go-Hülle (ohne CGO, ca. 7 MB) um die Webview des Syst
 - **Startseite:** Deck öffnen (Ctrl+O), Neues Deck (Ctrl+N, leeren Ordner wählen oder anlegen), Liste der Beispiele (`examples/`: `hashmark-demo`, `theme-demo`), zuletzt geöffnete Decks.
 - **Editor:** derselbe wie bei `make edit`. „Präsentieren ↗“ startet die Präsentation, „PDF“ speichert direkt ein PDF.
 - **Präsentieren:** F5 ab der aktuellen Folie, Shift+F5 von vorne.
-  - Mit Beamer laufen die Folien dort im Vollbild, die Presenter-View öffnet sich auf dem Hauptbildschirm.
+  - **Optionen** (Pfeil neben „Präsentieren“ im Editor, Menü Präsentieren › Optionen, Ctrl+K): Presenter-View *automatisch* (nur mit zweitem Bildschirm), *immer* oder *nie*, dazu je ein Bildschirm für die Präsentation und für den Presenter (Karte der angeschlossenen Bildschirme). Die Wahl steht in `present.json` im Datenordner. Ohne Auswahl läuft die Präsentation im Vollbild auf dem Zusatzbildschirm und der Presenter auf dem Hauptbildschirm.
+  - **Mit Presenter-View** zeigt die Präsentation keine Bedienhilfen: kein Steuerkreuz, keine Schrittpunkte und Folienzähler, kein „↓ n Details“, keine Plan-Hinweise. Sie stehen im Presenter. Ohne Presenter bleibt alles sichtbar. Das gilt auch, wenn du den Presenter mit S öffnest.
   - Mit nur einem Bildschirm öffnet S die Presenter-View als eigenes Fenster.
-  - Ctrl+W beendet die Präsentation, Alt+F4 geht ebenfalls.
+  - Beenden: Ctrl+W, der Knopf ✕ Beenden (oben rechts in der Präsentation, erscheint mit der Maus; im Presenter mit Rückfrage) oder Menü Präsentieren › Präsentation beenden. Alt+F4 geht ebenfalls.
 - **Export** (Menü Datei): Als HTML-Datei (Ctrl+Shift+E), PDF mit allen Folien (Ctrl+Shift+P), nur Hauptpfad, jeder Schritt eine Seite, Handout mit Notizen. Das PDF entsteht wie bei `make pdf` über Edge headless, direkt vom laufenden Deck, ohne neuen Build.
 - **Ansicht:** Editor (Ctrl+1), Präsentation im Fenster (Ctrl+2), Neu laden (Ctrl+R), Vollbild (F11), Entwicklertools (F12). Die Tastenkürzel des Menüs sind Skripte in den Seiten, weil WebView2 Tasten selbst verarbeitet.
 - **Sicherheit:**

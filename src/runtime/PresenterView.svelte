@@ -6,6 +6,7 @@
   import type { Deck, DeckNode } from '../core/types.ts'
   import PlanPanel from './PlanPanel.svelte'
   import { loadPlanFile, savePlanFile } from './plan-store.ts'
+  import { desktopAction, isDesktop } from './desktop.ts'
   import { formatClock, pace } from '../core/timing.ts'
   import ScaledSlide from './ScaledSlide.svelte'
   import Notes from './Notes.svelte'
@@ -39,6 +40,19 @@
   let now = $state(Date.now())
 
   const audience = window.opener as Window | null
+  const desktop = isDesktop()
+  /** Beenden braucht eine Bestätigung (zweiter Klick), damit es nicht aus Versehen passiert */
+  let confirmEnd = $state(false)
+  let confirmTimer: ReturnType<typeof setTimeout> | undefined
+  function endShow() {
+    if (!confirmEnd) {
+      confirmEnd = true
+      clearTimeout(confirmTimer)
+      confirmTimer = setTimeout(() => (confirmEnd = false), 3000)
+      return
+    }
+    void desktopAction({ action: 'close' })
+  }
   const connected = $derived(now - lastSeen < 3500)
 
   const node = $derived(pos ? nav.node(pos.id) : undefined)
@@ -184,6 +198,7 @@
       searching = true
       return
     }
+    if (desktop && (e.ctrlKey || e.metaKey) && (e.key === 'w' || e.key === 'W')) { e.preventDefault(); void desktopAction({ action: 'close' }); return }
     if (e.ctrlKey || e.metaKey || e.altKey) return
     // Presenter-Fernbedienung „Play“ würde hier sonst neu laden
     if (e.key === 'F5') { e.preventDefault(); return }
@@ -260,6 +275,11 @@
     {/if}
     {#if tripBack}<span class="pv-trip" title="Space führt von selbst zurück, Esc bricht ab">↩ Ausflug · zurück zu „{tripBack.title}“</span>{/if}
     {#if all}<span class="pv-trip off">Plan aus (T)</span>{/if}
+    {#if desktop}
+      <button class="pv-end" class:confirm={confirmEnd} onclick={endShow} title="Präsentation und Presenter-View schließen (Strg+W)">
+        {confirmEnd ? 'Wirklich beenden?' : '✕ Beenden'}
+      </button>
+    {/if}
     <button class="pv-planbtn" onclick={() => (planOpen = true)} title="Vortragsplan bearbeiten (P)">
       Plan <b>{formatClock(planSum.path)}</b>{planFile.active !== 'Standard' ? ' · ' + planFile.active : ''}
     </button>

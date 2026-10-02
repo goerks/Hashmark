@@ -133,6 +133,8 @@ try {
   const pv = await connect(pvT!)
   pages.push(pv)
   check('Presenter-View verbunden', await until(() => pv.eval(`!!document.querySelector('.pv-conn.ok')`), 20_000))
+  check('Präsentation mit Presenter: Bedienhilfen weg', await until(async () => !(await pr.eval(`!!document.querySelector('.nav-controls, .children-hint')`)), 8_000))
+  check('Präsentation: Beenden-Knopf vorhanden', (await pr.eval(`!!document.querySelector('.end-show')`)) === true)
   const h0 = await pr.eval('location.hash')
   await pv.key('ArrowRight')
   const moved = await until(async () => (await pr.eval('location.hash')) !== h0, 5_000)

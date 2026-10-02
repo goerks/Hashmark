@@ -30,3 +30,41 @@ export function desktopAction(a: DesktopAction): Promise<boolean> {
     body: JSON.stringify(a),
   }).then((r) => r.ok, () => false)
 }
+
+// ---------- Optionen fürs Präsentieren (Go-Hülle, nur im Hauptfenster der App) ----------
+
+declare global {
+  interface Window {
+    hmPresentOptions?: () => Promise<string>
+    hmSetPresentOptions?: (json: string) => Promise<void>
+  }
+}
+
+/** Ein Bildschirm in Koordinaten des Systems; `index` ist seine Position in der Liste (so wählt ihn die Hülle) */
+export interface Screen { index: number; x: number; y: number; w: number; h: number; primary: boolean }
+
+export interface PresentOptions {
+  /** Presenter-View beim Präsentieren: automatisch (mit zweitem Bildschirm), immer, nie */
+  presenter: 'auto' | 'on' | 'off'
+  /** gewählte Bildschirme; -1 = automatisch */
+  presentation: number
+  presenterScreen: number
+  monitors: Screen[]
+  /** was „automatisch“ gerade bedeutet */
+  effective: { presenter: boolean; presentation: number; presenterScreen: number }
+}
+
+/** Gibt es die Optionen? Nur im Hauptfenster der Desktop-App (dort bindet die Hülle die Funktionen). */
+export const hasPresentOptions = () => typeof window.hmPresentOptions === 'function'
+
+export async function loadPresentOptions(): Promise<PresentOptions | null> {
+  try {
+    return JSON.parse(await window.hmPresentOptions!()) as PresentOptions
+  } catch {
+    return null
+  }
+}
+
+export async function savePresentOptions(o: Pick<PresentOptions, 'presenter' | 'presentation' | 'presenterScreen'>): Promise<void> {
+  await window.hmSetPresentOptions!(JSON.stringify({ presenter: o.presenter, presentation: o.presentation, presenterScreen: o.presenterScreen }))
+}
