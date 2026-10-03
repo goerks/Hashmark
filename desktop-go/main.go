@@ -121,12 +121,17 @@ func runChild(url, title, mode string, screen int) {
 		v.Dispatch(geometry)
 	}
 	_ = v.Bind("hmOpen", openExternal)
+	_ = v.Bind("hmLog", func(msg string) { logLine("%s-Fenster: %s", mode, msg) })
 	v.Init(externalLinksJS)
+	v.Init(errorsJS)
+	logLine("%s-Fenster gestartet: %s", mode, url)
 	v.Navigate(url)
 	v.Run()
+	logLine("%s-Fenster beendet (Ereignisschleife zu Ende)", mode)
 }
 
 func main() {
+	defer recoverLog("main")
 	win := flag.String("window", "", "nur ein Fenster mit dieser URL öffnen (Kindprozess)")
 	title := flag.String("title", "Hashmark", "Fenstertitel (mit --window)")
 	mode := flag.String("mode", "presentation", "presentation | presenter (mit --window)")
@@ -193,9 +198,12 @@ func main() {
 	v.SetTitle("Hashmark")
 	v.SetSize(1440, 900, webview.HintNone)
 	setIcon(a.hwnd, writeIcon(data))
-	_ = v.Bind("hmMenu", func(id string) { go a.onMenu(id) })
+	_ = v.Bind("hmMenu", func(id string) { safeGo("Menü", func() { a.onMenu(id) }) })
 	v.Init(shortcutsJS)
 	_ = v.Bind("hmOpen", openExternal)
+	_ = v.Bind("hmLog", func(msg string) { logLine("Hauptfenster: %s", msg) })
+	v.Init(errorsJS)
+	logLine("Hashmark %s gestartet (Go %s)", version, goVersion)
 	// Optionen fürs Präsentieren: die Editor-Seite fragt Stand und Bildschirme ab und setzt sie
 	_ = v.Bind("hmPresentOptions", a.presentOptions)
 	_ = v.Bind("hmSetPresentOptions", a.setPresentOptions)
@@ -206,22 +214,23 @@ func main() {
 	v.Navigate(a.startURL)
 
 	// Ereignisse des Sidecars: ready → Menü, action → Aktionen aus den Seiten
-	go func() {
+	safeGo("Sidecar-Ereignisse", func() {
 		for ev := range sc.events {
 			switch ev["event"] {
 			case "ready":
-				go a.refreshMenu()
+				safeGo("Menü aktualisieren", a.refreshMenu)
 			case "action":
-				go a.onAction(ev)
+				safeGo("Aktion", func() { a.onAction(ev) })
 			}
 		}
-	}()
-	a.ui(func() { setMenu(a.hwnd, a.menu(), func(id string) { go a.onMenu(id) }) })
+		logLine("Sidecar-Ereignisse beendet (Sidecar nicht mehr erreichbar)")
+	})
+	a.ui(func() { setMenu(a.hwnd, a.menu(), func(id string) { safeGo("Menü", func() { a.onMenu(id) }) }) })
 
 	// Deck-Ordner aus der Kommandozeile: `hashmark.exe <ordner>`
 	for _, arg := range flag.Args() {
 		if st, err := os.Stat(arg); err == nil && st.IsDir() {
-			go func() { a.report("Deck öffnen", a.openDeckAt(arg)) }()
+			safeGo("Deck öffnen", func() { a.report("Deck öffnen", a.openDeckAt(arg)) })
 			break
 		}
 	}

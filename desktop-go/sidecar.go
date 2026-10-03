@@ -71,6 +71,8 @@ func startSidecar(node, root, data string) (*sidecar, error) {
 	if err := os.MkdirAll(data, 0o755); err != nil {
 		return nil, err
 	}
+	// das vorige Log bleibt als sidecar.log.1 erhalten (nach einem Absturz startet man neu und überschriebe sonst die Spur)
+	_ = os.Rename(filepath.Join(data, "sidecar.log"), filepath.Join(data, "sidecar.log.1"))
 	logf, err := os.Create(filepath.Join(data, "sidecar.log"))
 	if err != nil {
 		return nil, err
@@ -118,6 +120,7 @@ func startSidecar(node, root, data string) (*sidecar, error) {
 			}
 		}
 		// Sidecar beendet: Wartende freigeben
+		logLine("Sidecar beendet: %v", cmd.Wait())
 		s.mu.Lock()
 		for id, ch := range s.pending {
 			close(ch)

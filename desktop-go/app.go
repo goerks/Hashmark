@@ -162,8 +162,10 @@ func (a *app) spawn(label, url, title, mode string, screen int) error {
 	a.mu.Lock()
 	a.children[label] = cmd
 	a.mu.Unlock()
-	go func() {
-		_ = cmd.Wait()
+	logLine("%s gestartet (pid %d, %s)", label, cmd.Process.Pid, mode)
+	safeGo("Fenster überwachen", func() {
+		err := cmd.Wait()
+		logLine("%s-Prozess %d beendet: Exit-Code %d, %v", label, cmd.Process.Pid, cmd.ProcessState.ExitCode(), err)
 		a.mu.Lock()
 		if a.children[label] == cmd {
 			delete(a.children, label)
@@ -173,7 +175,7 @@ func (a *app) spawn(label, url, title, mode string, screen int) error {
 		if label == "presentation" {
 			a.kill("presenter")
 		}
-	}()
+	})
 	return nil
 }
 
@@ -267,7 +269,7 @@ func (a *app) setPresentOptions(js string) error {
 	a.settings = s
 	a.mu.Unlock()
 	err := savePresentSettings(a.data, s)
-	go a.refreshMenu()
+	safeGo("Menü aktualisieren", a.refreshMenu)
 	return err
 }
 
@@ -457,7 +459,7 @@ func (a *app) refreshMenu() {
 		a.mu.Unlock()
 	}
 	items := a.menu()
-	a.ui(func() { setMenu(a.hwnd, items, func(id string) { go a.onMenu(id) }) })
+	a.ui(func() { setMenu(a.hwnd, items, func(id string) { safeGo("Menü", func() { a.onMenu(id) }) }) })
 }
 
 func (a *app) onMenu(id string) {
