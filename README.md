@@ -434,15 +434,21 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   - **Eigenes Layout:** Eine CSS-Datei mit `.layout-kpi { … }` im `layouts`-Ordner genügt, verwendet wird es mit `## Titel {layout=kpi}`. Jede Folie ist `section.slide.layout-<name>` mit `.slide-title` und `.content`.
   - Relative `url(…)` in Theme-CSS (Bilder, `woff2`/`woff`/`ttf`/`otf`) werden als Data-URI eingebettet, Build und Export bleiben autark.
   - Änderungen an Theme-Dateien laden live nach, auch außerhalb des Deck-Ordners. Fehlende Dateien und ungültige Tokens (z. B. mit `;`) erscheinen als Hinweis im Terminal.
-- **Komponenten (eigene Container):** Eine Datei `components/<name>.html` macht `::: <name>` zu einem eigenen Baustein, im Theme-Ordner (für alle Decks mit diesem Theme) oder im Deck-Ordner (gewinnt bei gleichem Namen). Daneben liegt `components/<name>.css`. Beispiel: `examples/komponenten-demo` mit `timeline` und `person`.
-  ```html
-  <ol>{{#each items}}<li{{#if step}} data-step="{{ step }}"{{/if}}>{{ number }} {{{ html }}}</li>{{/each}}</ol>
-  {{#if title}}<h3>{{ title }}</h3>{{/if}}{{{ body }}}
+- **Komponenten (eigene Container):** Eine Datei `components/<name>.html` macht `::: <name>` zu einem eigenen Baustein. Hashmark bringt `timeline`, `process`, `kpis` und `person` mit (`src/runtime/components/`), eigene liegen im Theme-Ordner oder im Deck-Ordner `components/` und überschreiben bei gleichem Namen (Reihenfolge: eingebaut, Theme, Deck). Daneben liegt `components/<name>.css`. Beispiel: `examples/komponenten-demo` (`make dev DECK=examples/komponenten-demo`).
+  ```md
+  ::: kpis steps
+  ::: kpi value="87 %" label="Zufriedenheit" trend=up delta="+4 %"
+  :::
+  ::: kpi value="42" label="Teams"
+  Anmerkung
+  :::
+  :::
   ```
-  - Die Vorlage ist **logikfrei**: `{{ name }}` (maskiert), `{{ foto|image }}` (Bildpfad wie ein normales Bild auflösen), `{{{ body }}}` und `{{{ html }}}` (gerenderter Markdown), `{{#each items}}`, `{{#if x}}…{{else}}…{{/if}}`, `{{! Kommentar }}`. Keine Ausdrücke, kein JavaScript.
-  - Variablen: alle Attribute des Containers (ein Flag wie `vertical` ist wahr), `body` (Inhalt), `items` (Listenpunkte der obersten Ebene, nur wenn die Vorlage `items` liest) mit `html`, `text`, `index`, `number`, `first`, `last` und `step`. `step` füllt sich bei `steps` (und `start=N`) am Container, sonst ist es leer.
+  - Die Vorlage ist **logikfrei**: `{{ name }}` (maskiert), `{{ foto|image }}` (Bildpfad wie ein normales Bild auflösen), `{{{ body }}}` und `{{{ html }}}` (gerenderter Markdown), `{{#each items}}`, `{{#each children}}`, `{{#if x}}…{{else}}…{{/if}}`, `{{! Kommentar }}`. Keine Ausdrücke, kein JavaScript.
+  - Variablen: alle Attribute des Containers (ein Flag wie `vertical` ist wahr), `body` (Inhalt), `count`; `items` (Listenpunkte der obersten Ebene) mit `html`, `text`, `index`, `number`, `first`, `last`, `step`; `children` (Kind-Container) mit deren Attributen, `kind`, `body` und denselben Zählern. `items` und `children` gibt es nur, wenn die Vorlage sie liest, sonst gehört der Inhalt zu `body`. `step` füllt sich bei `steps` (und `start=N`) am Container, ein eigenes `step=` am Kind gewinnt.
   - Der Container behält den Wrapper `.d-<name>` (damit gehen `class`, `step`, `until`). Der Inhalt läuft durch die normale Pipeline: Bilder, Code, Mermaid, Schritte und Editor-Sync funktionieren darin.
-  - Fehler erscheinen als Hinweis (`hashmark check`): Syntaxfehler mit Zeile, Inhalt ohne `{{{ body }}}`, Namen eingebauter Container. Der Editor kennt Komponenten im Linter und bei `::: ` + Vorschlägen.
+  - **Kopf `{{!meta … }}`** (YAML, ganz oben in der Vorlage): `description`, `attrs` und `flags` (Name → Beschreibung), `required`, `example` (wird vom Editor eingefügt) und `children` (Kind-Container mit eigenem `attrs`/`flags`/`required`). Der Kopf speist die Hinweise (unbekanntes Attribut mit „meintest du …?“, fehlendes Pflichtattribut, unbekannter Kind-Container) und den Editor: Vorschläge nach `::: ` und für Attribute, Linter.
+  - Weitere Fehler erscheinen ebenfalls als Hinweis (`hashmark check`): Syntaxfehler mit Zeile, Inhalt ohne `{{{ body }}}`, Namen eingebauter Container (die gewinnen immer).
 
 ## Aufbau
 

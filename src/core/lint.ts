@@ -1,6 +1,7 @@
 // Linter für eine Markdown-Quelle im Editor: unbekannte Layouts/Attribute/Container, ungeschlossene Blöcke.
 // Arbeitet nur auf dem Text (Zeilen und Zeichen-Offsets), damit der Editor die Stellen direkt markieren kann.
 
+import type { ComponentMeta } from './components.ts'
 import { PLAN_STATES } from './plan.ts'
 import { BUILTIN_LAYOUTS, CONTAINERS, KNOWN_ATTRS, TRANSITIONS, nearest } from './vocab.ts'
 
@@ -19,7 +20,7 @@ export interface LintOptions {
   /** zusätzliche Layouts aus dem Theme des Decks */
   layouts?: string[]
   /** eigene Container (Komponenten) aus dem Theme bzw. Deck */
-  components?: string[]
+  components?: Record<string, ComponentMeta>
 }
 
 /** bare Flags ohne Wert */
@@ -28,7 +29,13 @@ const meant = (fix?: string) => (fix ? ` Meinst du „${fix}“?` : '')
 
 export function lintText(text: string, opts: LintOptions = {}): Problem[] {
   const layouts = [...BUILTIN_LAYOUTS, ...(opts.layouts ?? [])]
-  const containers = [...CONTAINERS, ...(opts.components ?? [])]
+  // Kind-Container einer Komponente (z. B. `kpi` in `kpis`) gelten ebenfalls als bekannt
+  const metas = new Map<string, ComponentMeta>()
+  for (const [name, meta] of Object.entries(opts.components ?? {})) {
+    metas.set(name, meta)
+    for (const [child, m] of Object.entries(meta.children ?? {})) if (!metas.has(child)) metas.set(child, m)
+  }
+  const containers = [...CONTAINERS, ...metas.keys()]
   const problems: Problem[] = []
   const lines = text.split('\n')
   let offset = 0
@@ -91,6 +98,18 @@ export function lintText(text: string, opts: LintOptions = {}): Problem[] {
         if (!containers.includes(name)) {
           const fix = nearest(name, containers)
           problems.push({ ...at(m[1].length + m[2].length, name.length), severity: 'error', message: `Container „${name}“ ist unbekannt.${meant(fix)}`, fix })
+        }
+        // Attribute einer Komponente gegen ihren Kopf prüfen
+        const meta = metas.get(name)
+        const known = [...Object.keys(meta?.attrs ?? {}), ...Object.keys(meta?.flags ?? {})]
+        if (known.length) {
+          const restCol = m[1].length + m[2].length + name.length
+          for (const t of m[4].matchAll(/([\w-]+)(?:=("[^"]*"|\S+))?/g)) {
+            const key = t[1]
+            if (known.includes(key) || ['class', 'id', 'step', 'until'].includes(key)) continue
+            const fix = nearest(key, known)
+            problems.push({ ...at(restCol + (t.index ?? 0), key.length), severity: 'warning', message: `Attribut „${key}“ ist für ${name} unbekannt.${meant(fix)}`, fix })
+          }
         }
         open.push({ name, line: i + 1, from: start, to: start + line.length })
       } else if (!m[4].trim()) {

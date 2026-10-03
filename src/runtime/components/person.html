@@ -1,4 +1,15 @@
-{{! Profilkarte: Attribute name, role, photo; der Rumpf ist die Beschreibung }}
+{{!meta
+description: Profilkarte mit Bild, Name und Rolle; der Rumpf ist die Beschreibung
+attrs:
+  name: Name der Person
+  role: Rolle oder Funktion
+  photo: Bild (Pfad wie bei normalen Bildern, auch SVG)
+required: name
+example: |
+  ::: person name="Anna Beispiel" role="Product Owner" photo=anna.svg
+  Verantwortet das Backlog und die **Priorisierung**.
+  :::
+}}
 <div class="person">
   {{#if photo}}<img class="person-photo" src="{{ photo|image }}" alt="{{ name }}">{{else}}<div class="person-photo person-initial"></div>{{/if}}
   <div class="person-info">

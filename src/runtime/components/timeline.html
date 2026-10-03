@@ -1,4 +1,18 @@
-{{! Zeitstrahl: jeder Listenpunkt wird ein Punkt auf der Linie. Attribute: title, vertical, steps }}
+{{!meta
+description: Zeitstrahl aus einer Liste, waagerecht oder senkrecht
+attrs:
+  title: Überschrift über dem Zeitstrahl
+  start: Erste Schrittnummer bei steps (Standard 1)
+flags:
+  vertical: Senkrecht statt waagerecht
+  steps: Punkte nacheinander einblenden
+example: |
+  ::: timeline title="Roadmap" steps
+  - **Q1** Erster Meilenstein
+  - **Q2** Zweiter Meilenstein
+  - **Q3** Dritter Meilenstein
+  :::
+}}
 <div class="timeline{{#if vertical}} timeline-vertical{{/if}}">
   {{#if title}}<div class="timeline-title">{{ title }}</div>{{/if}}
   <ol class="timeline-items">

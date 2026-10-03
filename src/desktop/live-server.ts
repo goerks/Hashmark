@@ -178,7 +178,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
   }
   // Theme-Dateien außerhalb des Decks ebenfalls beobachten (eingebaute Themes nicht)
   for (const t of current?.themeFiles ?? []) {
-    if (!fs.existsSync(t) || !path.relative(deckDir, t).startsWith('..') || t.includes(`${path.sep}runtime${path.sep}themes${path.sep}`)) continue
+    if (!fs.existsSync(t) || !path.relative(deckDir, t).startsWith('..') || /[\\/]runtime[\\/](themes|components)[\\/]/.test(t + path.sep)) continue
     try { watchers.push(fs.watch(t, { recursive: true }, schedule)) } catch { /* egal */ }
   }
 

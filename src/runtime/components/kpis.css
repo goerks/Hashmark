@@ -1,0 +1,17 @@
+/* Komponente kpis: Kacheln mit großer Zahl; Trend färbt Pfeil und Veränderung (Tokens --color-success / --color-warning) */
+.d-kpis .kpis-title { font-family: var(--font-heading); font-size: 0.8em; color: var(--color-muted); margin-bottom: 1rem; }
+.d-kpis .kpis-grid { display: flex; flex-wrap: wrap; gap: 1.2rem; }
+.d-kpis .kpi {
+  flex: 1 1 220px; background: var(--color-surface); border: 1px solid var(--color-border);
+  border-top: 5px solid var(--color-accent); border-radius: var(--radius); padding: 1.2rem 1.4rem; transition: opacity 0.25s;
+}
+.d-kpis .kpi-value { font-family: var(--font-heading); font-size: 2.6em; font-weight: 700; line-height: 1.05; color: var(--color-heading); }
+.d-kpis .kpi-label { color: var(--color-muted); font-size: 0.7em; margin-top: 0.3rem; }
+.d-kpis .kpi-delta { font-size: 0.7em; font-weight: 700; margin-top: 0.5rem; color: var(--color-muted); }
+.d-kpis .kpi-note { font-size: 0.6em; margin-top: 0.5rem; }
+.d-kpis .kpi-note p { margin: 0; }
+.d-kpis .kpi-up .kpi-delta { color: var(--color-success, #16a34a); }
+.d-kpis .kpi-up .kpi-delta::before { content: '▲ '; }
+.d-kpis .kpi-down .kpi-delta { color: var(--color-warning, #d97706); }
+.d-kpis .kpi-down .kpi-delta::before { content: '▼ '; }
+.d-kpis .kpi-flat .kpi-delta::before { content: '▶ '; }

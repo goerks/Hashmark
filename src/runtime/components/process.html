@@ -1,0 +1,26 @@
+{{!meta
+description: Prozess aus Schritten mit Pfeilen (Chevrons), aus einer Liste
+attrs:
+  title: Überschrift über dem Prozess
+  start: Erste Schrittnummer bei steps (Standard 1)
+flags:
+  steps: Phasen nacheinander einblenden
+example: |
+  ::: process steps
+  - **Planen** Ziele klären
+  - **Bauen** Umsetzen
+  - **Prüfen** Testen
+  - **Liefern** Ausrollen
+  :::
+}}
+<div class="process">
+  {{#if title}}<div class="process-title">{{ title }}</div>{{/if}}
+  <ol class="process-steps">
+    {{#each items}}
+    <li class="process-step"{{#if step}} data-step="{{ step }}"{{/if}}>
+      <div class="process-text">{{{ html }}}</div>
+    </li>
+    {{/each}}
+  </ol>
+  {{{ body }}}
+</div>

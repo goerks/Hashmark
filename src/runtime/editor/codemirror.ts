@@ -14,6 +14,7 @@ import { javascript } from '@codemirror/lang-javascript'
 import { css } from '@codemirror/lang-css'
 import { html } from '@codemirror/lang-html'
 import { yaml } from '@codemirror/lang-yaml'
+import type { ComponentMeta } from '../../core/components.ts'
 import { expand } from '../../core/snippets.ts'
 import { completion, formatBubble, formatKeymap, lint, link, relint, toggleHeading, wrap, type Problem } from './assist.ts'
 import { hashmarkSyntax } from './hashmark-lang.ts'
@@ -30,7 +31,7 @@ export interface EditorHooks {
   /** zusätzliche Layouts aus dem Theme des Decks */
   layouts: () => string[]
   /** eigene Container (Komponenten) aus dem Theme bzw. Deck */
-  components: () => string[]
+  components: () => Record<string, ComponentMeta>
   /** Fokus hat sich geändert (für die Tastaturleiste) */
   onFocus: (focused: boolean) => void
 }

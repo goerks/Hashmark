@@ -5,12 +5,13 @@ import { forceLinting, linter, type Diagnostic } from '@codemirror/lint'
 import { EditorSelection, type Extension } from '@codemirror/state'
 import { EditorView, keymap, showTooltip, type Tooltip } from '@codemirror/view'
 import { completionAt } from '../../core/complete.ts'
+import type { ComponentMeta } from '../../core/components.ts'
 import { lintText, type Problem } from '../../core/lint.ts'
 import { expand } from '../../core/snippets.ts'
 
 // ---------- Vorschläge ----------
 
-export function completion(getLayouts: () => string[], getComponents: () => string[]): Extension {
+export function completion(getLayouts: () => string[], getComponents: () => Record<string, ComponentMeta>): Extension {
   const source = (ctx: CompletionContext): CompletionResult | null => {
     const r = completionAt(ctx.state.doc.toString(), ctx.pos, { explicit: ctx.explicit, layouts: getLayouts(), components: getComponents() })
     if (!r) return null
@@ -55,7 +56,7 @@ export function completion(getLayouts: () => string[], getComponents: () => stri
 
 export type { Problem }
 
-export function lint(getLayouts: () => string[], getComponents: () => string[], onProblems: (list: Problem[]) => void): Extension {
+export function lint(getLayouts: () => string[], getComponents: () => Record<string, ComponentMeta>, onProblems: (list: Problem[]) => void): Extension {
   return linter((view): Diagnostic[] => {
     const problems = lintText(view.state.doc.toString(), { layouts: getLayouts(), components: getComponents() })
     onProblems(problems)

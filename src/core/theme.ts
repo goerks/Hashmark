@@ -24,6 +24,12 @@ export interface ResolvedTheme {
   components: Record<string, Template>
 }
 
+/** Eingebaute Komponenten (timeline, person, process, kpis …): in jedem Deck verfügbar, Theme und Deck dürfen sie überschreiben */
+export const BUILTIN_COMPONENTS_DIR = (() => {
+  const dir = fileURLToPath(new URL('../runtime/components/', import.meta.url))
+  try { return fs.realpathSync.native(dir) + path.sep } catch { return dir }
+})()
+
 const DEFAULT_THEME = 'minimal'
 const ASSET_MIME: Record<string, string> = { ...IMAGE_MIME, '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf' }
 
@@ -146,13 +152,15 @@ export function resolveTheme(deckDir: string, theme: string | ThemeConfig | unde
   const components: Record<string, Template> = {}
   const baseDir = isPath(base) ? path.resolve(deckDir, base) : undefined
   const componentDirs = [
+    BUILTIN_COMPONENTS_DIR,
     ...(baseDir && fs.existsSync(baseDir) && fs.statSync(baseDir).isDirectory() ? [path.join(baseDir, COMPONENTS_DIR)] : []),
     path.join(deckDir, COMPONENTS_DIR),
   ]
   for (const dir of componentDirs) css += readComponents(dir, components, files, warnings)
-  // Namen für den Editor (Linter, Vorschläge): als Eigenschaft lesbar, ohne dass die Seite sie anzeigt
-  const names = Object.keys(components)
-  if (names.length) css += `/* components */\n:root { --hm-components: "${names.join(' ')}"; }\n`
+  // Namen und Beschreibungen für den Editor (Linter, Vorschläge): als Eigenschaft lesbar, ohne dass die Seite sie anzeigt.
+  // URL-kodiertes JSON, damit nichts maskiert werden muss.
+  const info = Object.fromEntries(Object.entries(components).map(([name, t]) => [name, t.meta ?? {}]))
+  if (Object.keys(info).length) css += `/* components */\n:root { --hm-components: "${encodeURIComponent(JSON.stringify(info))}"; }\n`
 
   const extra = cfg.css === undefined ? [] : [cfg.css].flat()
   for (const file of extra) css += readCss(path.resolve(deckDir, file), files, warnings)

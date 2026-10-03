@@ -551,7 +551,8 @@ describe('Komponenten', () => {
     expect(slide.html).toContain('<h3>Q &amp; A &lt;b&gt;</h3>') // Attribute werden maskiert
     expect(slide.html).toContain('<p>Rumpf mit <code>code</code></p>')
     expect(slide.steps.length).toBe(3) // höchster data-step
-    expect(r.themeCss).toContain('--hm-components: "timeline"')
+    const marker = r.themeCss.match(/--hm-components: "([^"]+)"/)![1]
+    expect(Object.keys(JSON.parse(decodeURIComponent(marker)))).toContain('timeline') // Namen und Beschreibungen für den Editor
   })
 
   it('ohne steps keine data-step; Flag ohne Wert gilt als gesetzt', async () => {
@@ -618,8 +619,75 @@ describe('Komponenten', () => {
   it('Editor kennt eigene Container (Linter und Vorschläge)', () => {
     const text = '::: timeline\n- x\n:::\n'
     expect(lintText(text).map((p) => p.message).join()).toMatch(/Container „timeline“ ist unbekannt/)
-    expect(lintText(text, { components: ['timeline'] })).toEqual([])
-    const c = completionAt('::: ti', 6, { components: ['timeline'] })
+    expect(lintText(text, { components: { timeline: {} } })).toEqual([])
+    const c = completionAt('::: ti', 6, { components: { timeline: { description: 'Zeitstrahl' } } })
     expect(c?.options.map((o) => o.label)).toContain('timeline')
+  })
+
+  const kpisMeta = { kpis: { attrs: { title: 'Titel' }, flags: { steps: 'Schritte' }, children: { kpi: { attrs: { value: 'Zahl', label: 'Text' }, flags: { big: 'Groß' } } } } }
+
+  it('Editor: Attribute und Kind-Container aus dem Kopf der Komponente', () => {
+    // Linter: bekannte Kinder, unbekannte Attribute mit Korrektur
+    const text = '::: kpis stepz\n::: kpi valu=1\n:::\n:::\n'
+    const messages = lintText(text, { components: kpisMeta }).map((p) => p.message).join('\n')
+    expect(messages).toMatch(/„stepz“ ist für kpis unbekannt.*„steps“/)
+    expect(messages).toMatch(/„valu“ ist für kpi unbekannt.*„value“/)
+    expect(messages).not.toMatch(/Container/)
+    // Vorschläge: Attribute (ohne schon gesetzte), auch für Kinder
+    const t1 = '::: kpis ti'
+    expect(completionAt(t1, t1.length, { components: kpisMeta })?.options.map((o) => o.insert)).toEqual(['title='])
+    const t2 = '::: kpi value=1 '
+    expect(completionAt(t2, t2.length, { components: kpisMeta })?.options.map((o) => o.insert).sort()).toEqual(['big', 'label='])
+    // Kind-Container werden als Container vorgeschlagen
+    expect(completionAt('::: k', 5, { components: kpisMeta })?.options.map((o) => o.label)).toEqual(expect.arrayContaining(['kpis', 'kpi']))
+    // in Anführungszeichen kein Vorschlag
+    const t3 = '::: kpis title="a b'
+    expect(completionAt(t3, t3.length, { components: kpisMeta })).toBeNull()
+  })
+})
+
+describe('Komponenten: Kopf, Kinder, Bibliothek', () => {
+  it('liest den Kopf {{!meta}} und behält die Zeilennummern der Datei', () => {
+    const meta = parseTemplate('{{!meta\ndescription: Test\nattrs:\n  a: Eins\nflags:\n  b: Zwei\nrequired: a\nchildren:\n  k:\n    attrs:\n      v: Wert\n}}\n<p>{{ a }}</p>').meta
+    expect(meta).toEqual({ description: 'Test', attrs: { a: 'Eins' }, flags: { b: 'Zwei' }, required: ['a'], children: { k: { attrs: { v: 'Wert' } } } })
+    expect(() => parseTemplate('{{!meta\ndescription: x\n}}\n<p>\n{{#if x}}')).toThrow(/Zeile 5/)
+    expect(() => parseTemplate('{{!meta\nattrs: [a\n}}\n')).toThrow(/YAML/)
+    expect(() => parseTemplate('{{!meta\nattrs: 5\n}}\n')).toThrow(/Liste/)
+  })
+
+  it('eingebaute Komponenten stehen in jedem Deck bereit', async () => {
+    const r = await loadDeck(await tempDeck({ 'a.md': '# A\n\n::: process steps\n- **Eins** a\n- **Zwei** b\n:::\n' }))
+    expect(r.warnings).toEqual([])
+    expect(r.deck.nodes[0].slides[0].html).toContain('class="process-step" data-step="2"')
+    expect(r.themeCss).toContain('.d-process')
+    const names = Object.keys(JSON.parse(decodeURIComponent(r.themeCss.match(/--hm-components: "([^"]+)"/)![1])))
+    expect(names).toEqual(expect.arrayContaining(['timeline', 'person', 'process', 'kpis']))
+  })
+
+  it('kpis: Kind-Container, Schritte, eigene Schrittnummer und Anmerkung', async () => {
+    const dir = await tempDeck({
+      'a.md': '# A\n\n::: kpis steps title="Q1 & Q2"\n::: kpi value="87 %" label="Zufriedenheit" trend=up delta="+4 %"\n:::\n::: kpi value=42 label=Teams step=1\nAnmerkung **fett**\n:::\n:::\n',
+    })
+    const r = await loadDeck(dir)
+    expect(r.warnings).toEqual([])
+    const html = r.deck.nodes[0].slides[0].html
+    expect(html).toContain('<div class="kpis-title">Q1 &amp; Q2</div>')
+    expect(html).toContain('<div class="kpi kpi-up" data-step="1">')
+    expect(html).toContain('<div class="kpi" data-step="1">') // eigenes step=1 gewinnt gegen den Zähler (2)
+    expect(html).toContain('<div class="kpi-value">87 %</div>')
+    expect(html).toContain('<div class="kpi-delta">+4 %</div>')
+    expect(html).toContain('<p>Anmerkung <strong>fett</strong></p>')
+    expect(html).not.toContain('d-kpi"') // das Kind wurde zur Kachel, kein eigener Container
+  })
+
+  it('prüft Attribute gegen den Kopf: unbekannt (mit Vorschlag), Pflicht, unbekanntes Kind', async () => {
+    const dir = await tempDeck({
+      'a.md': '# A\n\n::: kpis stepz\n::: kpi label=x\n:::\n::: foo\n:::\n:::\n\n::: person\n:::\n',
+    })
+    const w = (await loadDeck(dir)).warnings.join('\n')
+    expect(w).toMatch(/kpis: Attribut „stepz“ ist unbekannt \(meintest du „steps“\?\)/)
+    expect(w).toMatch(/kpis › kpi: Attribut „value“ fehlt/)
+    expect(w).toMatch(/kpis: „foo“ ist hier unbekannt \(erlaubt: kpi\)/)
+    expect(w).toMatch(/person: Attribut „name“ fehlt/)
   })
 })

@@ -9,6 +9,7 @@
   import { api, relativeTo, type FileEntry } from './api.ts'
   import { createEditor, type Editor } from './codemirror.ts'
   import type { Problem } from './assist.ts'
+  import type { ComponentMeta } from '../../core/components.ts'
   import Palette, { type PaletteItem } from './Palette.svelte'
   import KeyBar from './KeyBar.svelte'
   import { desktopAction, hasPresentOptions, isDesktop } from '../desktop.ts'
@@ -65,7 +66,7 @@
   let imageMode: 'file' | 'base64' = 'file'
   /** Layouts, die das Theme des Decks mitbringt (`.layout-<name>` im CSS der Vorschau) */
   let themeLayouts: string[] = []
-  let themeComponents: string[] = []
+  let themeComponents: Record<string, ComponentMeta> = {}
   /** zuletzt an die Vorschau geschickte Position – deren Echo nicht zurück in den Editor spiegeln */
   let requested = ''
 
@@ -201,13 +202,14 @@
     } catch { /* anderes Origin */ }
     const next = [...names].sort()
     // eigene Container: das Theme-CSS nennt sie in --hm-components
-    let comps: string[] = []
+    let comps: Record<string, ComponentMeta> = {}
     try {
       const doc = frame.contentDocument
       const raw = doc ? getComputedStyle(doc.documentElement).getPropertyValue("--hm-components") : ""
-      comps = raw.replace(/["']/g, "").split(/s+/).filter(Boolean).sort()
+      const encoded = raw.trim().replace(/^["']|["']$/g, "")
+      if (encoded) comps = JSON.parse(decodeURIComponent(encoded))
     } catch { /* anderes Origin */ }
-    if (next.join() !== themeLayouts.join() || comps.join() !== themeComponents.join()) {
+    if (next.join() !== themeLayouts.join() || JSON.stringify(comps) !== JSON.stringify(themeComponents)) {
       themeLayouts = next
       themeComponents = comps
       ed?.relint()

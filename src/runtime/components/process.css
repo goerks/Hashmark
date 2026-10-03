@@ -1,0 +1,13 @@
+/* Komponente process: Chevron-Pfeile, Farbe aus --color-accent, Text aus --color-bg */
+.d-process .process-title { font-family: var(--font-heading); font-size: 0.8em; color: var(--color-muted); margin-bottom: 1rem; }
+.d-process .process-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; }
+.d-process .process-step {
+  flex: 1 1 0; margin: 0; padding: 1.1rem 1.4rem 1.1rem 2.2rem; min-width: 0;
+  background: var(--color-accent); color: var(--color-bg); transition: opacity 0.25s;
+  clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 0 100%, 28px 50%);
+}
+.d-process .process-step:first-child { padding-left: 1.4rem; clip-path: polygon(0 0, calc(100% - 28px) 0, 100% 50%, calc(100% - 28px) 100%, 0 100%); }
+.d-process .process-step:nth-child(even) { background: color-mix(in srgb, var(--color-accent) 80%, var(--color-heading, #000)); }
+.d-process .process-text { font-size: 0.75em; }
+.d-process .process-text p { margin: 0; }
+.d-process .process-text strong { display: block; font-size: 1.15em; color: inherit; }

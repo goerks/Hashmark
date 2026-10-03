@@ -1,6 +1,7 @@
 // Kontext für die Autovervollständigung im Editor: aus Text und Cursorposition die passenden Vorschläge.
 // Rein und ohne DOM, damit es getestet werden kann. `§` im Einfügetext markiert die Cursorposition.
 
+import type { ComponentMeta } from './components.ts'
 import { SNIPPETS } from './snippets.ts'
 import {
   ATTR_INFO, BUILTIN_LAYOUTS, CALLOUTS, CODE_LANGS, CONTAINER_INFO, LAYOUT_INFO, TRANSITIONS, fold,
@@ -32,7 +33,15 @@ export interface CompleteOptions {
   /** zusätzliche Layouts aus dem Theme des Decks */
   layouts?: string[]
   /** eigene Container (Komponenten) aus dem Theme bzw. Deck */
-  components?: string[]
+  components?: Record<string, ComponentMeta>
+}
+
+/** Beschreibung einer Komponente, auch eines ihrer Kind-Container */
+function findMeta(components: Record<string, ComponentMeta> | undefined, name: string): ComponentMeta | undefined {
+  if (!components) return undefined
+  if (components[name]) return components[name]
+  for (const meta of Object.values(components)) if (meta.children?.[name]) return meta.children[name]
+  return undefined
 }
 
 function pick(from: number, to: number, title: string, all: Suggestion[], query: string): Completion | null {
@@ -61,8 +70,31 @@ export function completionAt(text: string, pos: number, opts: CompleteOptions = 
   // ::: + Leertaste → Container (ein bloßes ::: schließt meist einen Block)
   if ((m = before.match(/^:{3}(\s+([\w-]*))?$/)) && (m[1] || opts.explicit)) {
     const all = Object.entries(CONTAINER_INFO).map(([label, i]): Suggestion => ({ label, detail: i.detail, kind: 'Container', insert: i.text }))
-    for (const label of opts.components ?? []) if (!(label in CONTAINER_INFO)) all.push({ label, detail: 'Komponente aus dem Theme', kind: 'Komponente', insert: `::: ${label}\n§\n:::\n` })
+    for (const [label, meta] of Object.entries(opts.components ?? {})) {
+      if (label in CONTAINER_INFO) continue
+      all.push({ label, detail: meta.description ?? 'Komponente', kind: 'Komponente', insert: meta.example ?? `::: ${label}
+§
+:::
+` })
+      for (const [child, m] of Object.entries(meta.children ?? {})) {
+        if (!(child in CONTAINER_INFO) && !all.some((s) => s.label === child)) all.push({ label: child, detail: m.description ?? `Teil von ${label}`, kind: 'Komponente', insert: `::: ${child}
+§
+:::
+` })
+      }
+    }
     return pick(ls, pos, 'Container', all, m[2] ?? '')
+  }
+
+  // Attribute eines Containers, dessen Komponente sie im Kopf beschreibt: ::: person na§
+  if ((m = before.match(/^:{3,}\s*([\w-]+)\s+(.*?)([\w-]*)$/)) && (before.match(/"/g) ?? []).length % 2 === 0) {
+    const meta = findMeta(opts.components, m[1])
+    const given = new Set([...m[2].matchAll(/([\w-]+)(?:=|\s|$)/g)].map((x) => x[1]))
+    const all: Suggestion[] = [
+      ...Object.entries(meta?.attrs ?? {}).map(([label, detail]): Suggestion => ({ label, detail, kind: 'Attribut', insert: `${label}=` })),
+      ...Object.entries(meta?.flags ?? {}).map(([label, detail]): Suggestion => ({ label, detail, kind: 'Attribut', insert: label })),
+    ].filter((s) => !given.has(s.label))
+    if (all.length) return pick(ls + before.length - m[3].length, pos, 'Attribute', all, m[3])
   }
 
   // ```sprache beim Öffnen eines Blocks

@@ -1,0 +1,41 @@
+{{!meta
+description: "Kennzahl-Kacheln: je ::: kpi eine große Zahl mit Beschriftung und optionalem Trend"
+attrs:
+  title: Überschrift über den Kacheln
+  start: Erste Schrittnummer bei steps (Standard 1)
+flags:
+  steps: Kacheln nacheinander einblenden
+children:
+  kpi:
+    description: Eine Kennzahl; der Rumpf ist eine kurze Anmerkung
+    attrs:
+      value: Die Zahl, z. B. "87 %"
+      label: Beschriftung unter der Zahl
+      trend: up, down oder flat (Pfeil und Farbe)
+      delta: Veränderung, z. B. "+12 %"
+      step: Eigene Schrittnummer
+    required: value
+example: |
+  ::: kpis steps
+  ::: kpi value="87 %" label="Zufriedenheit" trend=up delta="+4 %"
+  :::
+  ::: kpi value="1,2 s" label="Antwortzeit" trend=down delta="-0,3 s"
+  :::
+  ::: kpi value="42" label="Teams"
+  :::
+  :::
+}}
+<div class="kpis">
+  {{#if title}}<div class="kpis-title">{{ title }}</div>{{/if}}
+  <div class="kpis-grid">
+    {{#each children}}
+    <div class="kpi{{#if trend}} kpi-{{ trend }}{{/if}}"{{#if step}} data-step="{{ step }}"{{/if}}>
+      <div class="kpi-value">{{ value }}</div>
+      <div class="kpi-label">{{ label }}</div>
+      {{#if delta}}<div class="kpi-delta">{{ delta }}</div>{{/if}}
+      {{#if body}}<div class="kpi-note">{{{ body }}}</div>{{/if}}
+    </div>
+    {{/each}}
+  </div>
+  {{{ body }}}
+</div>
