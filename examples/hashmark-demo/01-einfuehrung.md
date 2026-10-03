@@ -1,4 +1,3 @@
-# Hashmark {layout=title}
 
 Präsentieren entlang der Überschriften – mit Abstechern in die Tiefe.
 
@@ -7,6 +6,8 @@ Begrüssung. Kurz erklären: → geht weiter, ↓ taucht ab.
 :::
 
 # Agenda {layout=agenda}
+
+## Test {layout=two-col}
 
 # Warum?
 
