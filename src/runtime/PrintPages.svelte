@@ -57,7 +57,8 @@
       <div class="print-slide">
         <div class="print-stage">
           <Slide node={page.node} slide={page.slide} step={page.step} layout={layoutOf(page.node)} titleTag={titleTag(page.node, page.first)} />
-          {#if options.footer}
+          <!-- eine im Deck eingestellte Fußzeile (deck.yaml: footer/slideNumber) ersetzt die Druck-Fußzeile, sonst lägen beide übereinander -->
+          {#if options.footer && !page.node.footer}
             <div class="print-crumb">{#if page.role && page.role !== 'path'}<b>{PLAN_LABEL[page.role]}</b> · {/if}{page.trail.map((t) => t.title).join(' › ')}</div>
             <div class="print-num">{i + 1} / {pages.length}</div>
           {/if}

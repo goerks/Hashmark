@@ -14,18 +14,26 @@ export interface CheckOptions {
 }
 
 interface OverflowRow { node: string; sub: number; fit: number | null }
+interface DiagramError { node: string; sub: number; message: string }
+interface Measured { rows: OverflowRow[]; errors: DiagramError[] }
 
 /** Alle Seiten der Druckansicht messen: `Slide.svelte` setzt `data-overflow` (und `data-fit`, wenn `{fit}` verkleinert hat). */
-async function measureOverflow(deckDir: string, browser?: string): Promise<OverflowRow[]> {
+async function measureOverflow(deckDir: string, browser?: string): Promise<Measured> {
   const site = await serveBuild(config(deckDir))
   try {
     return await withPrintView(`${site.url}?print&footer=0`, browser, async (cdp) => {
-      const expr = `JSON.stringify([...document.querySelectorAll('.print-page')].flatMap((p) => {
-        const s = p.querySelector('.slide'); if (!s || !s.hasAttribute('data-overflow')) return []
-        return [{ node: p.dataset.node, sub: Number(p.dataset.sub), fit: s.dataset.fit ? Number(s.dataset.fit) : null }]
-      }))`
+// Mermaid-Fehler (`.mermaid-error`) stehen nach dem Rendern im DOM; die Druckansicht wartet darauf
+      const expr = `JSON.stringify({
+        rows: [...document.querySelectorAll('.print-page')].flatMap((p) => {
+          const s = p.querySelector('.slide'); if (!s || !s.hasAttribute('data-overflow')) return []
+          return [{ node: p.dataset.node, sub: Number(p.dataset.sub), fit: s.dataset.fit ? Number(s.dataset.fit) : null }]
+        }),
+        errors: [...document.querySelectorAll('.mermaid-error')].map((e) => {
+          const p = e.closest('.print-page'); return { node: p?.dataset.node ?? '', sub: Number(p?.dataset.sub ?? 0), message: (e.textContent || '').split('\\n').slice(1, 3).join(' ').trim() }
+        }),
+      })`
       const r = await cdp.send('Runtime.evaluate', { expression: expr, returnByValue: true })
-      return JSON.parse(r.result.value) as OverflowRow[]
+      return JSON.parse(r.result.value) as Measured
     })
   } finally {
     await site.close()
@@ -46,7 +54,16 @@ export async function checkDeck(deckDir: string, opts: CheckOptions = {}): Promi
     const sources = new Map<string, DeckNode>()
     const visit = (nodes: DeckNode[]) => nodes.forEach((n) => { sources.set(n.id, n); visit(n.children) })
     visit(result.deck.nodes)
-    for (const row of await measureOverflow(deckDir, opts.browser)) {
+    const measured = await measureOverflow(deckDir, opts.browser)
+    for (const err of measured.errors) {
+      const node = sources.get(err.node)
+      findings.push({
+        level: 'error',
+        message: `„${node?.title ?? err.node}“: Mermaid-Diagramm fehlerhaft${err.message ? ` (${err.message})` : ''}`,
+        ...(node ? { file: node.source.file, line: node.source.line } : {}),
+      })
+    }
+    for (const row of measured.rows) {
       const node = sources.get(row.node)
       const part = node && node.slides.length > 1 ? ` (Folie ${row.sub + 1} von ${node.slides.length})` : ''
       const still = row.fit ? `, auch verkleinert auf ${Math.round(row.fit * 100)} %` : ''

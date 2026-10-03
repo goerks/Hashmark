@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" font-family="Arial, Helvetica, sans-serif" font-size="20">
+  <rect width="800" height="440" rx="14" fill="#f4f6f9" stroke="#d5dbe3"/>
+  <g id="step-1">
+    <rect x="40" y="170" width="140" height="70" rx="8" fill="#fff" stroke="#6b7280" stroke-width="2"/>
+    <text x="110" y="212" text-anchor="middle" fill="#1f2328">Bediener</text>
+    <rect x="620" y="40" width="140" height="70" rx="8" fill="#fff" stroke="#6b7280" stroke-width="2"/>
+    <text x="690" y="82" text-anchor="middle" fill="#1f2328">GPS</text>
+  </g>
+  <g id="step-2">
+    <circle cx="400" cy="220" r="95" fill="#2563eb"/>
+    <text x="400" y="228" text-anchor="middle" fill="#fff" font-weight="700" font-size="22">System</text>
+  </g>
+  <g id="step-3" fill="none" stroke="#374151" stroke-width="2.5">
+    <path d="M180 200L303 210"/><path d="M303 235L180 228"/>
+    <path d="M620 100L470 155"/>
+  </g>
+  <g id="step-4" fill="#374151" font-size="18">
+    <text x="215" y="188">Ziel</text><text x="215" y="262">Route</text><text x="545" y="112">Position</text>
+  </g>
+</svg>

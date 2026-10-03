@@ -31,6 +31,10 @@ export interface DeckNode {
   slides: Slide[]
   /** alle Notizen des Knotens zusammen (Handout); pro Sub-Slide siehe `Slide.notes` */
   notes?: string
+  /** Nummer der ersten Folie dieses Knotens (Baumreihenfolge, 1-basiert); Sub-Slide k trägt slideNo + k */
+  slideNo?: number
+  /** Fußzeile dieses Knotens (aus deck.yaml `footer`/`slideNumber`); `{n}` setzt die Runtime ein, `{total}` ist schon ersetzt */
+  footer?: { text?: string; number?: string }
   /** wirksames Layout (Attribut, sonst `layouts` je Ebene, sonst Deck-Default) – setzt `loadDeck` */
   layout?: string
   /** geplante Redezeit in Sekunden (`{duration=5m}`) */
@@ -77,6 +81,10 @@ export interface Manifest {
   layouts?: Record<string, string>
   /** geplante Gesamtdauer, z. B. `30m` */
   duration?: string | number
+  /** Fußzeile auf jeder Folie (außer mit `{footer=off}`), z. B. `Acme Academy` */
+  footer?: string
+  /** Folienzahl: `true` = nur die Zahl, sonst Vorlage wie `Seite {n} / {total}` */
+  slideNumber?: boolean | string
   mount?: MountEntry[]
 }
 

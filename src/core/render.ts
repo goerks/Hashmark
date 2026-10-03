@@ -6,10 +6,14 @@ import { unified } from 'unified'
 import remarkRehype from 'remark-rehype'
 import rehypeStringify from 'rehype-stringify'
 import { visit, SKIP } from 'unist-util-visit'
+import qrcode from 'qrcode-generator'
 import { bundledLanguages, createCssVariablesTheme, createHighlighter, type Highlighter } from 'shiki'
 import type { Root, RootContent, Code } from 'mdast'
 import { drawioSteps } from './drawio.ts'
 import { excalidrawSteps } from './excalidraw.ts'
+import { ICON_NAMES, iconSvg } from './icons.ts'
+import { nearest } from './vocab.ts'
+import { svgIdSteps } from './svg-steps.ts'
 import { parseAttrs } from './syntax.ts'
 import type { Slide } from './types.ts'
 
@@ -167,20 +171,70 @@ export function mermaidVersions(src: string): string[] {
   return sections.map((_, k) => sections.slice(0, k + 1).flat().join('\n'))
 }
 
+/**
+ * Codeblock `mermaid` mit `{height=520 look=hand align=left}`: `height` = maximale Höhe in px (Standard 460),
+ * `look=hand` = Skizzen-Stil, `align=left|center`.
+ */
 export const mermaidPlugin: CodeBlockPlugin = {
   langs: ['mermaid'],
-  render(node) {
+  render(node, attrs, ctx) {
+    const warn = (m: string) => ctx.warnings?.push(`Mermaid: ${m} (${path.relative(ctx.deckDir, ctx.file)})`)
+    for (const key of Object.keys(attrs)) if (!['height', 'look', 'align'].includes(key)) warn(`Attribut „${key}“ ist unbekannt (height, look, align)`)
+    if (attrs.height !== undefined && !/^\d+$/.test(attrs.height)) warn(`height="${attrs.height}" ist ungültig (Pixel, z. B. height=520)`)
+    if (attrs.look !== undefined && !/^(hand|handdrawn|sketch|classic)$/i.test(attrs.look)) warn(`look="${attrs.look}" ist ungültig (hand | classic)`)
+    if (attrs.align !== undefined && !ALIGNS.includes(attrs.align)) warn(`align="${attrs.align}" ist ungültig (left | center)`)
     const versions = mermaidVersions(node.value)
     // eine Version pro Schritt: sichtbar von Schritt k bis vor Schritt k+1
     const sources = versions.length === 1
       ? `<pre class="mermaid-src">${escape(node.value)}</pre>`
       : versions.map((v, k) =>
           `<pre class="mermaid-src" data-step="${k}"${k < versions.length - 1 ? ` data-until="${k + 1}"` : ''}>${escape(v)}</pre>`).join('')
-    return { html: `<div class="mermaid-block">${sources}</div>`, steps: [] }
+    const data: string[] = []
+    if (attrs.look) data.push(`data-look="${escape(attrs.look)}"`)
+    if (attrs.align) data.push(`data-align="${escape(attrs.align)}"`)
+    if (/^\d+$/.test(attrs.height ?? '')) data.push(`style="--mermaid-max:${attrs.height}px"`)
+    return { html: `<div class="mermaid-block"${data.length ? ` ${data.join(' ')}` : ''}>${sources}</div>`, steps: [] }
   },
 }
 
-const plugins: CodeBlockPlugin[] = [mermaidPlugin, shikiPlugin]
+/**
+ * QR-Code als Inline-SVG (Farbe = Textfarbe), ohne externen Dienst: Codeblock mit Sprache `qr`, die Adresse im Block,
+ * Attribute `size` (px) und `label`.
+ */
+export function qrSvg(text: string): string {
+  const qr = qrcode(0, 'M')
+  qr.addData(text)
+  qr.make()
+  const n = qr.getModuleCount()
+  let d = ''
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c} ${r}h1v1h-1z`
+  return `<svg class="qr-svg" viewBox="-2 -2 ${n + 4} ${n + 4}" shape-rendering="crispEdges" role="img" aria-label="QR-Code"><rect x="-2" y="-2" width="${n + 4}" height="${n + 4}" fill="#fff"/><path d="${d}" fill="#000"/></svg>`
+}
+
+export const qrPlugin: CodeBlockPlugin = {
+  langs: ['qr'],
+  render(node, attrs, ctx) {
+    const warn = (m: string) => ctx.warnings?.push(`QR-Code: ${m} (${path.relative(ctx.deckDir, ctx.file)})`)
+    for (const key of Object.keys(attrs)) if (!['size', 'label'].includes(key)) warn(`Attribut „${key}“ ist unbekannt (size, label)`)
+    if (attrs.size !== undefined && !/^\d+$/.test(attrs.size)) warn(`size="${attrs.size}" ist ungültig (Pixel, z. B. size=220)`)
+    const size = /^\d+$/.test(attrs.size ?? '') ? Number(attrs.size) : 220
+    const label = attrs.label ? `<figcaption>${escape(attrs.label)}</figcaption>` : ''
+    const text = node.value.trim()
+    let svg: string
+    if (!text) {
+      warn('der Block ist leer (die Adresse gehört in den Block)')
+      svg = ''
+    } else {
+      try { svg = qrSvg(text) } catch (e) {
+        warn(`kein QR-Code möglich (${(e as Error).message})`)
+        svg = ''
+      }
+    }
+    return { html: `<figure class="qr-block" style="width:${size}px">${svg || '<p class="qr-error">QR-Code nicht erzeugt</p>'}${label}</figure>`, steps: [] }
+  },
+}
+
+const plugins: CodeBlockPlugin[] = [mermaidPlugin, qrPlugin, shikiPlugin]
 
 function findPlugin(lang: string | null | undefined) {
   return plugins.find((p) => p.langs.includes(lang ?? '')) ?? plugins.find((p) => p.langs.includes('*'))!
@@ -198,20 +252,38 @@ function codeAttrs(meta: string | null | undefined) {
 type AnyNode = RootContent & { name?: string; attributes?: Record<string, string>; data?: Record<string, unknown>; children?: AnyNode[] }
 
 /** `![](x.png){width=60% .rund}`: Attribute im Text direkt nach dem Bild */
-function imageAttrs(node: AnyNode, index: number, parent: AnyNode) {
+const OBJECT_FITS = ['cover', 'contain', 'fill', 'none', 'scale-down']
+
+function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn) {
   const next = parent.children?.[index + 1] as { type: string; value: string } | undefined
   const m = next?.type === 'text' ? next.value.match(/^\{([^{}]*)\}/) : null
-  if (!m) return
+  if (!m) {
+    // `{ratio=16:9}`: der Doppelpunkt zerreißt den Text, die Attribute bleiben sichtbar stehen
+    if (next?.type === 'text' && /^\{\w+=[^{}]*$/.test(next.value)) warn(`Bild-Attribute nicht lesbar: „${next.value.slice(0, 40)}…“ (kein Doppelpunkt im Wert, z. B. ratio=16/9)`)
+    return
+  }
   next!.value = next!.value.slice(m[0].length)
   const attrs = parseAttrs(m[1])
+  const known = ['width', 'height', 'fit', 'pos', 'ratio', 'step', 'until', 'style', 'class', 'id']
+  for (const key of Object.keys(attrs)) {
+    if (!known.includes(key)) warn(`Bild-Attribut „${key}“ ist unbekannt (bekannt: ${known.join(', ')})`)
+  }
+  if (attrs.fit && !OBJECT_FITS.includes(attrs.fit)) warn(`Bild: fit="${attrs.fit}" ist ungültig (${OBJECT_FITS.join(' | ')})`)
+  for (const key of ['step', 'until']) if (attrs[key] !== undefined && !/^\d+$/.test(attrs[key])) warn(`Bild: ${key}="${attrs[key]}" ist ungültig (Schrittnummer)`)
   const props: Record<string, unknown> = {}
   const style: string[] = []
   for (const key of ['width', 'height']) {
     const v = attrs[key]
     if (v) style.push(`${key}:${/^\d+$/.test(v) ? `${v}px` : v}`)
   }
+  // fit=cover|contain|fill, pos="50% 20%" (object-position), ratio="16/9"
+  if (attrs.fit) style.push(`object-fit:${attrs.fit}`)
+  if (attrs.pos) style.push(`object-position:${attrs.pos}`)
+  if (attrs.ratio) style.push(`aspect-ratio:${attrs.ratio.replace(':', '/')}`)
   if (attrs.style) style.push(attrs.style)
   if (style.length) props.style = style.join(';')
+  if (/^\d+$/.test(attrs.step ?? '')) props.dataStep = attrs.step
+  if (/^\d+$/.test(attrs.until ?? '')) props.dataUntil = attrs.until
   if (attrs.class) props.className = attrs.class.split(/\s+/)
   if (attrs.id) props.id = attrs.id
   const existing = (node.data as { hProperties?: Record<string, unknown> } | undefined)?.hProperties
@@ -281,11 +353,183 @@ function applyCallout(node: AnyNode) {
   node.data = { ...node.data, hName: 'div', hProperties: { className: ['callout', `callout-${kind}`] } }
 }
 
+// ---------- Gestaltungs-Container: figure/bubble/frame/pin, cards/card, table, reveal ----------
+
+type Props = Record<string, unknown>
+type Warn = (message: string) => void
+
+function addProps(node: AnyNode, props: Props) {
+  const data = (node.data ??= {}) as { hProperties?: Props }
+  data.hProperties = { ...data.hProperties, ...props }
+}
+
+const html = (value: string) => ({ type: 'html', value }) as unknown as AnyNode
+
+/** Erlaubte Attribute je Gestaltungs-Container (`class` und `id` gehen immer); alles andere meldet `hashmark check` */
+export const DESIGN_ATTRS: Record<string, string[]> = {
+  figure: ['w', 'align'],
+  bubble: ['at', 'w', 'tail', 'step', 'until'],
+  frame: ['at', 'size', 'w', 'label', 'step', 'until'],
+  pin: ['at', 'step', 'until'],
+  cards: ['cols', 'gap', 'steps', 'start'],
+  card: ['icon', 'title', 'accent', 'step', 'until'],
+  table: ['widths', 'steps', 'start', 'hl'],
+  reveal: ['step', 'until'],
+}
+const TAILS = ['none', 'left', 'right', 'up', 'down']
+const ALIGNS = ['left', 'center', 'right']
+
+/** `"x,y"` → zwei Zahlen (Prozent), sonst undefined */
+function pair(v: string | undefined): [number, number] | undefined {
+  const m = v?.match(/^\s*(-?[\d.]+)%?\s*[, ]\s*(-?[\d.]+)%?\s*$/)
+  return m ? [Number(m[1]), Number(m[2])] : undefined
+}
+
+/** Position `at="x,y"` (Prozent der Figur bzw. Folie), Breite `w=30` bzw. `size="w,h"` */
+function placement(name: string, attrs: Record<string, string>, warn: Warn): string[] {
+  const style: string[] = []
+  const at = pair(attrs.at)
+  if (at) style.push(`left:${at[0]}%`, `top:${at[1]}%`)
+  else if (name !== 'frame' || attrs.at !== undefined) {
+    warn(attrs.at === undefined
+      ? `::: ${name}: at fehlt (Position in Prozent, z. B. at="60,20")`
+      : `::: ${name}: at="${attrs.at}" ist ungültig (erwartet "x,y" in Prozent, z. B. at="60,20")`)
+  }
+  const size = pair(attrs.size)
+  if (attrs.size !== undefined && !size) warn(`::: ${name}: size="${attrs.size}" ist ungültig (erwartet "breite,höhe" in Prozent, z. B. size="30,20")`)
+  if (size) style.push(`width:${size[0]}%`, `height:${size[1]}%`)
+  else if (attrs.w !== undefined) {
+    if (/^[\d.]+$/.test(attrs.w)) style.push(`width:${attrs.w}%`)
+    else warn(`::: ${name}: w="${attrs.w}" ist ungültig (Zahl in Prozent, z. B. w=30)`)
+  }
+  return style
+}
+
+/** Icon-Name aus icons.ts; ein Wort, das wie ein Name aussieht, aber fehlt, wird gemeldet, alles andere (Emoji, Text) gilt als Text */
+function iconHtml(value: string, warn: Warn): string {
+  const svg = iconSvg(value)
+  if (svg) return svg
+  if (/^[a-z][\w-]*$/i.test(value)) {
+    const fix = nearest(value, ICON_NAMES)
+    warn(`::: card: Icon „${value}“ gibt es nicht${fix ? ` (meintest du „${fix}“?)` : ''} – als Text eingesetzt`)
+  }
+  return escape(value)
+}
+
+/** `::: table widths="2:1:1" steps=rows hl="r2c3,c4"`: Spaltenbreiten, Zeilen/Spalten als Schritte, Zellen hervorheben (r = Zeile, c = Spalte, 1-basiert, r0 = Kopf) */
+function applyTable(node: AnyNode, attrs: Record<string, string>, warn: Warn) {
+  const table = (node.children ?? []).find((c) => c.type === 'table')
+  if (!table) { warn('::: table enthält keine Markdown-Tabelle'); return }
+  const rows = (table.children ?? []) as AnyNode[]
+  const columns = rows[0]?.children?.length ?? 0
+  addProps(table, { className: ['d-table-el'] })
+  if (attrs.widths !== undefined) {
+    const widths = attrs.widths.split(/[:\s,]+/).filter(Boolean).map(Number)
+    if (!widths.length || widths.some((n) => !(n > 0))) warn(`::: table: widths="${attrs.widths}" ist ungültig (positive Zahlen, z. B. widths="2:1:1")`)
+    else {
+      if (widths.length !== columns) warn(`::: table: widths nennt ${widths.length} Spalten, die Tabelle hat ${columns}`)
+      const sum = widths.reduce((a, b) => a + b, 0)
+      addProps(table, { style: 'table-layout:fixed;width:100%' })
+      ;(rows[0]?.children ?? []).forEach((cell, i) => { if (widths[i]) addProps(cell as AnyNode, { style: `width:${(widths[i] / sum * 100).toFixed(2)}%` }) })
+    }
+  }
+  const start = Number(attrs.start ?? 1)
+  if (attrs.steps !== undefined && attrs.steps !== 'rows' && attrs.steps !== 'cols') warn(`::: table: steps="${attrs.steps}" ist ungültig (rows oder cols)`)
+  if (attrs.steps === 'rows') rows.forEach((row, i) => { if (i > 0) addProps(row, { dataStep: String(start + i - 1) }) })
+  else if (attrs.steps === 'cols') {
+    rows.forEach((row) => (row.children ?? []).forEach((cell, c) => { if (c > 0) addProps(cell as AnyNode, { dataStep: String(start + c - 1) }) }))
+  }
+  for (const spec of (attrs.hl ?? '').split(/[,\s]+/).filter(Boolean)) {
+    const m = spec.toLowerCase().match(/^(?:r(\d+))?(?:c(\d+))?$/)
+    if (!m || (m[1] === undefined && m[2] === undefined)) { warn(`::: table: hl „${spec}“ ist ungültig (z. B. r2c3, r2, c1)`); continue }
+    if ((m[1] !== undefined && Number(m[1]) >= rows.length) || (m[2] !== undefined && (Number(m[2]) < 1 || Number(m[2]) > columns))) {
+      warn(`::: table: hl „${spec}“ liegt außerhalb der Tabelle (${rows.length - 1} Zeilen, ${columns} Spalten)`)
+      continue
+    }
+    rows.forEach((row, r) => (row.children ?? []).forEach((cell, c) => {
+      if ((m[1] === undefined || Number(m[1]) === r) && (m[2] === undefined || Number(m[2]) === c + 1)) addProps(cell as AnyNode, { className: ['hl-cell'] })
+    }))
+  }
+}
+
+/** Container mit eigener Gestaltung; liefert zusätzliche Klassen und Stil für den Wrapper und meldet ungültige Angaben */
+function applyDesignContainer(node: AnyNode, attrs: Record<string, string>, warn: Warn): { classes: string[]; style: string[] } {
+  const classes: string[] = []
+  const style: string[] = []
+  const name = node.name ?? ''
+  const allowed = DESIGN_ATTRS[name]
+  if (allowed) {
+    for (const key of Object.keys(attrs)) {
+      if (key === 'class' || key === 'id' || allowed.includes(key)) continue
+      const fix = nearest(key, allowed)
+      warn(`::: ${name}: Attribut „${key}“ ist unbekannt${fix ? ` (meintest du „${fix}“?)` : ` (bekannt: ${allowed.join(', ')})`}`)
+    }
+  }
+  switch (name) {
+    case 'figure':
+      if (attrs.w) style.push(`width:${/^\d+$/.test(attrs.w) ? `${attrs.w}%` : attrs.w}`)
+      if (attrs.align) {
+        if (ALIGNS.includes(attrs.align)) classes.push(`align-${attrs.align}`)
+        else warn(`::: figure: align="${attrs.align}" ist ungültig (${ALIGNS.join(' | ')})`)
+      }
+      break
+    case 'bubble': {
+      const tail = attrs.tail ?? 'none'
+      if (!TAILS.includes(tail)) warn(`::: bubble: tail="${tail}" ist ungültig (${TAILS.join(' | ')})`)
+      classes.push(`tail-${TAILS.includes(tail) ? tail : 'none'}`)
+      style.push(...placement(name, attrs, warn))
+      break
+    }
+    case 'frame':
+      style.push(...placement(name, attrs, warn))
+      if (attrs.label) node.children = [html(`<span class="frame-label">${escape(attrs.label)}</span>`), ...(node.children ?? [])]
+      break
+    case 'pin':
+      style.push(...placement(name, attrs, warn))
+      break
+    case 'cards': {
+      if (attrs.cols) style.push(`grid-template-columns:${gridColumns(attrs.cols)}`)
+      if (attrs.gap) style.push(`gap:${/^[\d.]+$/.test(attrs.gap) ? `${attrs.gap}rem` : attrs.gap}`)
+      if ('steps' in attrs && attrs.steps !== 'false') {
+        let step = Number(attrs.start ?? 1)
+        for (const child of node.children ?? []) if (child.type === 'containerDirective') addProps(child, { dataStep: String(step++) })
+      }
+      const other = (node.children ?? []).filter((c) => c.type === 'containerDirective' && c.name !== 'card').length
+      if (other) warn('::: cards darf nur ::: card enthalten')
+      break
+    }
+    case 'card': {
+      const body = { type: 'containerDirective', name: 'card-body', attributes: {}, children: node.children ?? [] } as unknown as AnyNode
+      body.data = { ...body.data, hName: 'div' }
+      const head: AnyNode[] = []
+      if (attrs.icon) head.push(html(`<div class="card-icon">${iconHtml(attrs.icon, warn)}</div>`))
+      if (attrs.title) body.children = [html(`<div class="card-title">${escape(attrs.title)}</div>`), ...(body.children ?? [])]
+      node.children = [...head, body]
+      if (attrs.accent) style.push(`--card-accent:${attrs.accent}`)
+      break
+    }
+    case 'table':
+      applyTable(node, attrs, warn)
+      break
+    case 'reveal':
+      if (!/^\d+$/.test(attrs.step ?? '')) warn('::: reveal braucht step=<Nummer>, z. B. ::: reveal step=2')
+      break
+  }
+  return { classes, style }
+}
+
 function applyDirectives(root: Root, ctx: RenderContext) {
+  const where = path.relative(ctx.deckDir, ctx.file)
+  const warn: Warn = (message) => ctx.warnings?.push(`${message} (${where})`)
   visit(root, (node: AnyNode, index, parent: AnyNode | undefined) => {
     if (node.type === 'blockquote') applyCallout(node)
     if (node.type === 'containerDirective') {
       const attrs = node.attributes ?? {}
+      if (node.name !== 'note-step') {
+        for (const key of ['step', 'until']) {
+          if (attrs[key] !== undefined && !/^\d+$/.test(attrs[key])) warn(`::: ${node.name}: ${key}="${attrs[key]}" ist ungültig (Schrittnummer)`)
+        }
+      }
       const props: Record<string, unknown> = { className: [`d-${node.name}`, ...(attrs.class ? attrs.class.split(/\s+/) : [])] }
       if (node.name === 'grid' || node.name === 'columns') {
         const style: string[] = []
@@ -295,6 +539,14 @@ function applyDirectives(root: Root, ctx: RenderContext) {
         if (style.length) props.style = style.join(';')
       }
       if (node.name === 'children') props.dataChildren = ''
+      // `step=2` / `until=4` an jedem Container; `::: reveal step=2` blendet einen beliebigen Block ab Schritt 2 ein
+      if (node.name !== 'note-step') {
+        if (/^\d+$/.test(attrs.step ?? '')) props.dataStep = attrs.step
+        if (/^\d+$/.test(attrs.until ?? '')) props.dataUntil = attrs.until
+      }
+      const design = applyDesignContainer(node, attrs, warn)
+      ;(props.className as string[]).push(...design.classes)
+      if (design.style.length) props.style = [props.style, ...design.style].filter(Boolean).join(';')
       if (node.name === 'steps') markSteps(node.children ?? [], Number(attrs.start ?? 1))
       // hProperties zusammenführen: ein äußeres `::: steps` kann schon data-step gesetzt haben
       const existing = (node.data as { hProperties?: Record<string, unknown> } | undefined)?.hProperties
@@ -314,7 +566,7 @@ function applyDirectives(root: Root, ctx: RenderContext) {
     if (node.type === 'image') {
       const img = node as unknown as { url: string }
       img.url = resolveImage(img.url, ctx)
-      if (parent && index !== undefined) imageAttrs(node, index, parent)
+      if (parent && index !== undefined) imageAttrs(node, index, parent, warn)
     }
   })
 }
@@ -377,18 +629,22 @@ function inlineDiagramSteps(root: Root, ctx: RenderContext) {
     const kids = p.children ?? []
     const image = kids.find((k) => k.type === 'image') as unknown as { url: string } | undefined
     if (!image || isUrl(image.url)) return
-    const kind = /\.drawio\.svg$/i.test(image.url) ? 'drawio' : /\.excalidraw\.svg$/i.test(image.url) ? 'excalidraw' : null
+    const kind = /\.drawio\.svg$/i.test(image.url) ? 'drawio' : /\.excalidraw\.svg$/i.test(image.url) ? 'excalidraw' : /\.svg$/i.test(image.url) ? 'svg' : null
     if (!kind) return
     const attrText = kids.find((k) => k.type === 'text') as { value: string } | undefined
     const m = attrText?.value.match(/^\s*\{([^{}]*)\}/)
     const attrs = m ? parseAttrs(m[1]) : {}
-    if (attrs.steps !== (kind === 'drawio' ? 'layers' : 'groups')) return
+    if (attrs.steps !== (kind === 'drawio' ? 'layers' : kind === 'svg' ? 'ids' : 'groups')) return
     const file = path.resolve(path.dirname(ctx.file), decodeURI(image.url))
     if (!fs.existsSync(file)) return // resolveImage meldet die fehlende Datei
     const source = fs.readFileSync(file, 'utf8')
     const where = `${image.url} (${path.relative(ctx.deckDir, ctx.file)})`
     let svg: string | undefined
-    if (kind === 'drawio') {
+    if (kind === 'svg') {
+      const r = svgIdSteps(source)
+      if (!r.count) ctx.warnings?.push(`Keine Elemente mit id="step-N" in ${where} – als Bild eingebunden`)
+      else svg = r.svg
+    } else if (kind === 'drawio') {
       svg = drawioSteps(source)?.svg
       if (!svg) ctx.warnings?.push(`Kein draw.io-Modell in ${where} – als Bild eingebunden`)
     } else {

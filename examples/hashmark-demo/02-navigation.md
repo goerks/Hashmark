@@ -2,7 +2,7 @@
 
 Nach rechts geht die Story weiter, nach unten geht es ins Detail.
 
-## Tasten
+## Tasten {fit}
 
 | Taste | Wirkung |
 | --- | --- |

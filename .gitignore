@@ -8,3 +8,6 @@
 /runtime-dist/
 /src/desktop/sidecar.bundle.mjs
 /src/desktop/bundle-*.mjs
+
+# lokale Decks (nicht eingecheckt, nicht im Docker-Image): z. B. firmeninterne Präsentationen
+/local/

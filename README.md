@@ -359,6 +359,7 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   | `quote` | Blockquote groß mit Anführungszeichen, Titel klein darüber, Text darunter = Quelle |
   | `image-right` / `image-left` | das erste Bild (bzw. Mermaid-Diagramm) füllt eine Hälfte, der Rest steht daneben |
   | `comparison` | `::: col`-Blöcke als gleich hohe Karten nebeneinander (2 bis 4), die erste Zeile jeder Karte ist ihre Überschrift |
+  | `banner` | Bildband oben (`banner=bild bannerh=210`), Titel und Inhalt darunter |
   | `code-focus` | der Codeblock füllt die Folie, Text steht klein darüber. Passt zu `lines="…"` und `steps="…"` |
   | `agenda` | Liste der Kapitel des Hauptpfads. Erledigte gedämpft, das nächste (zwischen Kapiteln) bzw. aktuelle (unter einem Kapitel) hervorgehoben. Ab 10 Kapiteln zweispaltig |
 
@@ -402,6 +403,21 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   - Größe/Klasse direkt hinter dem Bild: `![](x.png){width=60% height=200 .rund}`
   - Fehlende Bilder meldet das Terminal als Warnung.
   - **Diagramme als Schritte:** `![](a.drawio.svg){steps=layers}` blendet die Ebenen eines draw.io-Diagramms der Reihe nach ein. `![](map.excalidraw.svg){steps=groups order="3,1,2+4"}` macht das mit den Gruppen einer Excalidraw-Zeichnung (Export als SVG mit **„Szene einbetten“**). Gruppe k in Z-Reihenfolge (äußerste Gruppe) ist Schritt k, `order` legt eine andere Reihenfolge fest (Nummer = Gruppe, `,` = nächster Schritt, `+` = gleichzeitig; nicht genannte Gruppen bleiben sichtbar). Ungruppierte Elemente sind immer sichtbar. Die Schritte laufen mit `::: steps` in der Folie synchron. Beispiel: `examples/hashmark-demo/story-map.md`.
+- **Gestaltung** (Beispiel: `examples/hashmark-demo/gestaltung.md`; ungültige Angaben meldet `hashmark check` als Hinweis):
+  - **Bildband:** `## Titel {layout=banner banner=bilder/x.jpg bannerh=210 bannerpos="50% 60%"}` legt ein Bild als Band an den oberen Rand, der Titel steht darunter. `banner` funktioniert mit jedem Layout (`.slide-banner` im Theme-CSS).
+  - **Bilder:** `![](x.png){fit=cover pos="50% 20%" ratio=16/9 step=2 until=3}`: Zuschnitt (`object-fit`, `object-position`, `aspect-ratio`) und Einblenden ab Schritt `step` bis vor `until`.
+  - **Figur mit Beschriftungen:** `::: figure` um ein Bild oder Diagramm, darin frei platzierte Elemente. Position und Größe in Prozent der Figur (ohne Figur: der Folie): `at="x,y"`, `w=30` bzw. `size="breite,höhe"`, jedes mit `step=n`.
+    - `::: bubble at="60,20" w=30 tail=left|right|up|down` – Sprechblase (Markdown darin erlaubt)
+    - `::: frame at="10,15" size="30,25" label="Fokus"` – Hervorhebungsrahmen
+    - `::: pin at="80,32"` mit `1` darin – nummerierte Markierung
+  - **Karten:** `::: cards cols=3 steps` mit `::: card icon=user title="Titel"` und Text. `steps` blendet die Karten nacheinander ein. `icon` ist ein eingebauter Name (`user users target clock check x alert star book gear link cloud flag list map layers scissors search lock card bank phone bulb file code chart arrow ball sitemap shield mail calendar coffee rocket puzzle heart`) oder beliebiger Text, z. B. ein Emoji. Die Farbe setzt `accent=#…`.
+  - **Tabellen:** `::: table widths="2:1:1" steps=rows|cols hl="r2c3,c1"` um eine Markdown-Tabelle: Spaltenbreiten, Zeilen oder Spalten als Schritte, Zellen hervorheben (`r` = Zeile, `c` = Spalte, 1-basiert, `r0` = Kopfzeile).
+  - **Beliebiger Block als Schritt:** `::: reveal step=2` um Absatz, Tabelle, Bild oder Hinweis. `step=n` und `until=m` gehen an jedem Container (`::: col step=2`).
+  - **SVG als Schritte:** `![](x.svg){steps=ids}`: Elemente mit `id="step-N"` (auch `step_N`, `step-N-name`) erscheinen ab Schritt N, gleiche Nummer gleichzeitig. Das SVG darf von Hand sein oder aus Inkscape, Figma und Illustrator stammen (Ebenen und Gruppen so benennen).
+  - **QR-Code:** ` ```qr {size=220 label="Poster"} ` mit der Adresse im Block, erzeugt ein Inline-SVG ohne externen Dienst.
+  - **Folienzahl und Fußzeile:** `footer: Acme Academy` und `slideNumber: "Seite {n} / {total}"` (`true` = nur die Zahl) in der `deck.yaml`. Nummeriert wird in Baumreihenfolge wie im PDF „Baum“. `## Titel {footer=off}` blendet sie auf einer Folie aus, Titel-, Kapitel- und Statement-Folien zeigen keine.
+  - **Nummerierte Unterlisten:** `## Titel {.alpha}` zählt verschachtelte Listen als `1.` → `a.` → `i.` (ein Theme kann das für alle Folien setzen).
+  - **Mermaid:** ` ```mermaid {height=520 look=hand align=left} `: `height` (px, Standard 460), `look=hand` (Skizzenstil), `align`. In Flussdiagrammen, Zuständen und Klassendiagrammen stehen die Theme-Klassen `accent`, `ok`, `warn`, `bad`, `important`, `muted` und `actor` bereit: `A[Start]:::accent`. `hashmark check` meldet fehlerhafte Diagramme.
 - **`---` als Folientrenner** funktioniert auch ohne Leerzeile darüber. CommonMark würde daraus sonst eine Überschrift machen.
 - **Theme** = CSS mit Tokens (`--color-*`, `--font-*`, `--radius`, `--space-*`, `--shiki-*`), eingebaute Themes in `src/runtime/themes/`. Kurzform: `theme: dark-tech` oder `theme: ./eigenes.css`. Ausführlich als Objekt (Beispiel: `examples/theme-demo`, `make dev DECK=examples/theme-demo`):
   ```yaml

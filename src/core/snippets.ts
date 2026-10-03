@@ -43,6 +43,18 @@ export const SNIPPETS: Snippet[] = [
     title: 'Mermaid-Diagramm, wächst mit %% step',
     text: '```mermaid\nflowchart LR\n  A[§Start]\n%% step\n  A --> B[Ziel]\n```\n',
   },
+  {
+    label: 'Karten', kind: 'Inhalt', keywords: 'cards card icon kachel',
+    title: 'Karten mit Icon und Titel im Raster (icon=user, star, target, …)',
+    text: '::: cards cols=3\n::: card icon=user title="§Titel"\nText\n:::\n::: card icon=target title="Titel"\nText\n:::\n::: card icon=check title="Titel"\nText\n:::\n:::\n',
+  },
+  {
+    label: 'Figur mit Beschriftung', kind: 'Inhalt', keywords: 'figure bubble frame pin callout sprechblase',
+    title: 'Bild mit Sprechblase und Hervorhebungsrahmen (Position in %)',
+    text: '::: figure\n![§Bild](bilder/bild.png)\n\n::: frame at="10,15" size="30,25" label="Fokus" step=1\n:::\n\n::: bubble at="55,20" w=30 tail=left step=2\nErklärung\n:::\n:::\n',
+  },
+  { label: 'Block einblenden', kind: 'Inhalt', keywords: 'reveal step block einblenden', title: 'Beliebigen Block ab Schritt n einblenden', text: '::: reveal step=1\n§Text\n:::\n' },
+  { label: 'QR-Code', kind: 'Inhalt', keywords: 'qr link', title: 'QR-Code aus einer Adresse', text: '```qr {size=220 label="§Beschriftung"}\nhttps://example.com\n```\n' },
   { label: 'Hinweis', kind: 'Inhalt', keywords: 'note tip warning callout', title: 'Hinweiskasten: [!NOTE] [!TIP] [!IMPORTANT] [!WARNING] [!CAUTION]', text: '> [!NOTE]\n> §Text\n' },
   { label: 'Kacheln', kind: 'Inhalt', keywords: 'children', title: 'Kinder des Knotens als klickbare Kacheln', text: '::: children\n:::\n§' },
   { label: 'Notizen', kind: 'Sprecher', keywords: 'notes sprecher', title: 'Sprechernotizen (erscheinen nicht auf der Folie); ::: notes step=2 gilt ab Schritt 2', text: '::: notes\n§\n:::\n' },

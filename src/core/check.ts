@@ -14,10 +14,10 @@ export interface Finding {
 
 /** Layouts, für die base.css Regeln mitbringt */
 export const BUILTIN_LAYOUTS = [
-  'title', 'section', 'default', 'two-col', 'three-col', 'statement', 'quote', 'image-left', 'image-right', 'agenda', 'comparison', 'code-focus',
+  'title', 'section', 'default', 'two-col', 'three-col', 'statement', 'quote', 'image-left', 'image-right', 'agenda', 'comparison', 'code-focus', 'banner',
 ]
 /** Attribute einer Überschrift `{…}`, die Hashmark kennt */
-export const KNOWN_ATTRS = ['layout', 'id', 'class', 'transition', 'duration', 'bg', 'bgdim', 'steps', 'fit', 'optional', 'appendix', 'plan']
+export const KNOWN_ATTRS = ['layout', 'id', 'class', 'transition', 'duration', 'bg', 'bgdim', 'steps', 'fit', 'optional', 'appendix', 'plan', 'banner', 'bannerpos', 'bannerh', 'footer']
 export const TRANSITIONS = ['slide', 'zoom', 'fade', 'none']
 
 function* walk(nodes: DeckNode[]): Generator<DeckNode> {

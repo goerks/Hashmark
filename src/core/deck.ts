@@ -102,13 +102,20 @@ async function finalize(raw: RawNode[], parentId: string, ctx: FinalizeContext):
     if (n.attrs.duration && duration === undefined) {
       ctx.warnings?.push(`Ungültige Dauer "${n.attrs.duration}" bei "${n.title}" (z. B. 5m, 90s, 1h30m)`)
     }
+    if (layout === 'banner' && !n.attrs.banner) ctx.warnings?.push(`"${n.title}": Layout banner ohne banner=<Bild> zeigt kein Bildband`)
+    if (n.attrs.bannerh && !/^\d+(\.\d+)?(px|%)?$/.test(n.attrs.bannerh.trim())) ctx.warnings?.push(`Ungültige Bandhöhe bannerh="${n.attrs.bannerh}" bei "${n.title}" (Pixel, z. B. bannerh=210)`)
+    if ((n.attrs.bannerh || n.attrs.bannerpos) && !n.attrs.banner) ctx.warnings?.push(`"${n.title}": bannerh/bannerpos ohne banner=<Bild>`)
     const plan = authorPlan(n.attrs)
     if (n.attrs.plan && !plan) ctx.warnings?.push(`Ungültiger Plan "${n.attrs.plan}" bei "${n.title}" (path, optional oder appendix)`)
     out.push({
       id,
       title: n.title,
       depth: n.depth,
-      attrs: n.attrs.bg ? { ...n.attrs, bg: background(n.attrs.bg, nodeCtx) } : n.attrs,
+      attrs: {
+        ...n.attrs,
+        ...(n.attrs.bg ? { bg: background(n.attrs.bg, nodeCtx) } : {}),
+        ...(n.attrs.banner ? { banner: `url("${resolveImage(n.attrs.banner.trim(), nodeCtx)}")` } : {}),
+      },
       slides,
       ...(notes ? { notes } : {}),
       layout,
@@ -155,6 +162,34 @@ function injectAgendas(nodes: DeckNode[]) {
   visit(nodes, undefined)
 }
 
+/** Folienzahl und Fußzeile: nummeriert in Baumreihenfolge (wie die PDF-Ansicht „Baum“) und hängt die Vorlage an jeden Knoten */
+function applyFooter(nodes: DeckNode[], manifest: Manifest, warnings: string[]) {
+  if (manifest.footer !== undefined && typeof manifest.footer !== 'string') warnings.push('deck.yaml: footer muss ein Text sein')
+  const text = typeof manifest.footer === 'string' ? manifest.footer.trim() || undefined : undefined
+  const sn = manifest.slideNumber
+  if (sn !== undefined && typeof sn !== 'boolean' && typeof sn !== 'string') warnings.push('deck.yaml: slideNumber muss true oder ein Text wie "Seite {n}" sein')
+  if (typeof sn === 'string' && sn && !sn.includes('{n}')) warnings.push(`deck.yaml: slideNumber "${sn}" enthält kein {n} (die Foliennummer)`)
+  const template = sn === true ? '{n}' : typeof sn === 'string' && sn ? sn : undefined
+  let n = 0
+  const visit = (list: DeckNode[]) => {
+    for (const node of list) {
+      node.slideNo = n + 1
+      n += node.slides.length
+      visit(node.children)
+    }
+  }
+  visit(nodes)
+  if (!text && !template) return
+  const off = (v: string | undefined) => !!v && ['off', 'false', 'no', 'none'].includes(v.toLowerCase())
+  const walk = (list: DeckNode[]) => {
+    for (const node of list) {
+      if (!off(node.attrs.footer)) node.footer = { ...(text ? { text } : {}), ...(template ? { number: template.replace('{total}', String(n)) } : {}) }
+      walk(node.children)
+    }
+  }
+  walk(nodes)
+}
+
 export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
   const deckDir = path.resolve(deckDirInput)
   const manifest = await readManifest(deckDir)
@@ -188,6 +223,7 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
   const warnings: string[] = []
   const nodes = await finalize(top, '', { deckDir, assets, warnings, embedImages: manifest.embedImages === true, manifest })
   injectAgendas(nodes)
+  applyFooter(nodes, manifest, warnings)
   const duration = parseDuration(manifest.duration)
   if (manifest.duration !== undefined && duration === undefined) warnings.push(`deck.yaml: ungültige Dauer "${manifest.duration}" (z. B. 30m, 1h)`)
   const theme = resolveTheme(deckDir, manifest.theme)

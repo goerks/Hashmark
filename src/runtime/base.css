@@ -102,7 +102,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* Mermaid */
 .mermaid-block { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; flex: 1; }
 /* feste Maximalhöhe statt %: in Spalten würde sich das SVG sonst an die Nachbarspalte anpassen */
-.mermaid-block svg { max-width: 100%; height: auto; max-height: 460px; }
+.mermaid-block svg { max-width: 100%; height: auto; }
 .mermaid-src { visibility: hidden; margin: 0; }
 .mermaid-error { color: var(--color-danger); font-size: 18px; white-space: pre-wrap; }
 
@@ -472,3 +472,72 @@ button.nc-next:hover { color: var(--color-accent); }
   background: var(--color-danger); color: #fff; cursor: help;
 }
 @media print { .overflow-badge { display: none; } }
+
+/* ---------- Gestaltung: Banner, Fußzeile, Figur mit Beschriftungen, Karten, Tabellen, QR ---------- */
+
+/* Bildband am oberen Folienrand (`{banner=bild.jpg bannerh=240 bannerpos="50% 30%"}`) */
+.slide-banner { position: absolute; left: 0; right: 0; top: 0; height: var(--banner-h, 240px); background: var(--color-surface-2) center / cover no-repeat; z-index: 0; }
+.slide > header, .slide > .content, .slide > .title-wrap { position: relative; z-index: 1; }
+.layout-banner { padding-top: calc(var(--banner-h, 240px) + 36px); }
+.layout-banner .slide-title { font-size: 60px; }
+.layout-banner .content { flex: 1; }
+
+/* Fußzeile mit Text links und Folienzahl rechts (deck.yaml: footer, slideNumber) */
+.slide-footer { position: absolute; left: 64px; right: 64px; bottom: 18px; display: flex; justify-content: space-between; gap: var(--space-2); font-size: 15px; color: var(--color-muted); z-index: 2; pointer-events: none; }
+.layout-title .slide-footer, .layout-statement .slide-footer, .layout-section .slide-footer { display: none; }
+
+/* Figur: Bild oder Diagramm mit frei platzierten Beschriftungen (Position in % der Figur) */
+.d-figure { position: relative; display: block; width: fit-content; max-width: 100%; align-self: center; line-height: 0; }
+.d-figure.align-left { align-self: flex-start; }
+.d-figure.align-right { align-self: flex-end; }
+.d-figure > p { margin: 0; }
+.d-figure img, .d-figure svg { display: block; max-width: 100%; height: auto; }
+.d-bubble, .d-pin, .d-frame { position: absolute; line-height: 1.3; font-size: 0.8em; }
+.d-bubble {
+  --tail: 12px; box-sizing: border-box; width: max-content; max-width: 40%; padding: 10px 16px; border-radius: 12px;
+  background: var(--bubble-bg, #6b6b6b); color: var(--bubble-fg, #fff); box-shadow: 0 3px 10px rgb(0 0 0 / 0.25);
+}
+.d-bubble > * { margin: 0; }
+.d-bubble strong { color: inherit; }
+.d-bubble::after { content: ""; position: absolute; width: 0; height: 0; border: var(--tail) solid transparent; }
+.d-bubble.tail-down::after { top: 100%; left: 22px; border-top-color: var(--bubble-bg, #6b6b6b); border-bottom: 0; }
+.d-bubble.tail-up::after { bottom: 100%; left: 22px; border-bottom-color: var(--bubble-bg, #6b6b6b); border-top: 0; }
+.d-bubble.tail-left::after { right: 100%; top: 14px; border-right-color: var(--bubble-bg, #6b6b6b); border-left: 0; }
+.d-bubble.tail-right::after { left: 100%; top: 14px; border-left-color: var(--bubble-bg, #6b6b6b); border-right: 0; }
+.d-frame { box-sizing: border-box; border: 4px solid var(--color-accent); border-radius: 8px; background: color-mix(in srgb, var(--color-accent) 8%, transparent); pointer-events: none; }
+.d-frame .frame-label { position: absolute; left: -4px; bottom: 100%; padding: 2px 10px; border-radius: 6px 6px 0 0; background: var(--color-accent); color: #fff; font-weight: 700; white-space: nowrap; }
+.d-pin { width: 1.9em; height: 1.9em; margin: -0.95em 0 0 -0.95em; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: var(--color-accent); color: #fff; font-weight: 700; box-shadow: 0 2px 6px rgb(0 0 0 / 0.3); }
+.d-pin > * { margin: 0; }
+
+/* Karten mit Icon (`::: cards cols=3` + `::: card icon=user title="…"`) */
+.d-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-2); align-content: start; }
+.d-card { --card-accent: var(--color-accent); display: flex; gap: var(--space-2); align-items: flex-start; padding: 18px 22px; border-radius: calc(var(--radius) + 4px); background: var(--color-surface); min-width: 0; }
+.d-card > * { margin: 0; }
+.d-card .card-icon { flex: none; width: 2.2em; height: 2.2em; display: flex; align-items: center; justify-content: center; color: var(--card-accent); font-size: 1.1em; }
+.d-card .card-icon svg { width: 100%; height: 100%; }
+.d-card .d-card-body { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.d-card .d-card-body > * { margin: 0; }
+.d-card .card-title { font-family: var(--font-heading); font-weight: 700; font-size: 1.1em; color: var(--color-heading); }
+
+/* Tabelle mit Optionen (`::: table widths="2:1" steps=rows hl="r1c2"`) */
+.d-table { min-height: 0; }
+.d-table table { width: 100%; }
+.hl-cell { background: color-mix(in srgb, var(--color-accent) 16%, transparent) !important; font-weight: 700; box-shadow: inset 0 0 0 2px var(--color-accent); }
+
+/* QR-Code */
+.qr-block { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; align-self: center; font-size: 0.7em; color: var(--color-muted); }
+.qr-block .qr-svg { width: 100%; height: auto; border-radius: 6px; }
+.qr-block figcaption { text-align: center; }
+
+/* verschachtelte nummerierte Listen 1. → a. → i. nur mit Klasse `{.alpha}` an der Überschrift (oder im Theme) */
+.alpha .content ol ol { list-style-type: lower-alpha; }
+.alpha .content ol ol ol { list-style-type: lower-roman; }
+
+/* Mermaid: Höhe pro Block (`{height=520}`), Ausrichtung und Skizzen-Stil */
+.mermaid-block svg { max-height: var(--mermaid-max, 460px); }
+.mermaid-block[data-align="left"] svg { margin-left: 0; }
+/* Figur um ein Inline-SVG (steps=ids, draw.io, Excalidraw): volle Breite, damit das SVG ohne eigene Größe nicht auf 0 schrumpft */
+.d-figure:has(> .svg-block, > .drawio-block, > .excalidraw-block, > p > .svg-block) { width: 100%; }
+.svg-block svg { display: block; margin: 0 auto; max-width: 100%; height: auto; max-height: var(--figure-max, 460px); }
+.svg-block { line-height: normal; }
+.d-figure:has(.svg-block) .svg-block svg { max-height: none; }

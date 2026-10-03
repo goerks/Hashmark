@@ -79,12 +79,16 @@
   data-depth={node.depth}
   style:background={node.attrs.bg}
   style:--bg-dim={node.attrs.bgdim}
+  style:--banner-h={node.attrs.bannerh ? (/^[\d.]+$/.test(node.attrs.bannerh) ? node.attrs.bannerh + 'px' : node.attrs.bannerh) : undefined}
   data-fit={zoom < 1 ? zoom : undefined}
   data-overflow={overflow ? '' : undefined}
   bind:this={el}
 >
   {#if overflow && showOverflow}
     <span class="overflow-badge" title={fit ? `Der Inhalt passt auch bei ${Math.round(MIN_ZOOM * 100)} % nicht: kürzen oder auf mehrere Folien verteilen` : 'Der Inhalt ist höher oder breiter als die Folie: kürzen, auf mehrere Folien verteilen (---) oder {fit} an die Überschrift setzen'}>Überlauf</span>
+  {/if}
+  {#if node.attrs.banner}
+    <div class="slide-banner" style:background-image={node.attrs.banner} style:background-position={node.attrs.bannerpos}></div>
   {/if}
   {#if layout === 'title' || layout === 'statement'}
     <div class="title-wrap">
@@ -97,5 +101,11 @@
     {#if showTiles}
       <div class="d-children">{@html tiles(node.children)}</div>
     {/if}
+  {/if}
+  {#if node.footer}
+    <footer class="slide-footer">
+      <span class="footer-text">{node.footer.text ?? ''}</span>
+      <span class="footer-number">{node.footer.number ? node.footer.number.replace('{n}', String((node.slideNo ?? 1) + slide)) : ''}</span>
+    </footer>
   {/if}
 </section>

@@ -10,7 +10,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
 | `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen (mit Datei: Logo zuschneiden und ersetzen) |
-| `make test` | Vitest (`tests/*.test.ts`, 121 Tests, Kern-Logik ohne DOM) |
+| `make test` | Vitest (`tests/*.test.ts`, 139 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-cross` / `make app-package` | Desktop-App (Go): bauen + starten (`DECK=…` optional) / Hülle für Windows, Linux, macOS (amd64, arm64) nach `dist-go/` / portables `dist-app/Hashmark/` (windows-amd64). Andere Ziele samt Archiv: `node scripts/package-app.ts <ziel> --version=… --archive` (online, lädt Node und die Pakete des Ziels) |
 | `hashmark --version` | Version `<letzter Tag ohne v>.<Kurz-Hash>`, per `-ldflags "-X main.version=…"` eingebettet (`make` über `git describe`, in der Pipeline der Job `version`); `VERSION=…` überschreibt |
 | Go | liegt **nicht** im Repo (ab 1.26, im `PATH`). Mehr braucht die Desktop-Hülle nicht: kein CGO, kein C-Compiler, kein Rust |
@@ -65,6 +65,8 @@ src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
   vocab.ts      Wortschatz für Editor: Layouts/Container/Attribute mit Beschreibung (Quelle: check.ts), fold, nearest („Meinst du …?“)
   complete.ts   `completionAt(text, pos)`: Vorschläge je Kontext (`/`, `::: `, ```` ```x ````, `> [!`, `{…}`, `layout=`); rein, getestet
   lint.ts       `lintText(text)`: unbekannte Layouts/Attribute/Container, offene `:::`/Codeblöcke, mit Offsets und Korrektur; rein, getestet
+  icons.ts      eingebaute Linien-Icons für `::: card icon=…` (eigene Zeichnungen, `iconSvg`)
+  svg-steps.ts  beliebiges SVG: Elemente mit `id="step-N"` → `data-step` (`![](x.svg){steps=ids}`)
   excalidraw.ts Excalidraw-SVG: Szene aus `<metadata>` (zlib/bstring) → Gruppen per Reihenfolge den Top-Level-`<g>` zuordnen → `data-step`; drawio.ts analog mit Ebenen
 src/desktop/  Node-Sidecar der Desktop-App: sidecar.ts (stdin JSON-Zeilen → stdout `@@hashmark {…}`; open/isDeck/scaffold/examples/
               recent/forget/pdf/html/position/close; Ereignis `action` aus den Seiten), settings.ts, ui/ (Startseite, `fetch` an `api/<befehl>` der Hülle)
@@ -105,6 +107,7 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Überschriften:** `#`…`######` sind Knoten. Die oberste Ebene einer Datei wird auf Tiefe 1 bzw. unter das `under`-Ziel gelegt. Überschriften tiefer als `maxDepth` werden Abschnitte innerhalb der Folie.
 - **`---`** teilt einen Knoten in Sub-Slides. Auch direkt unter Text ist es ein Trenner (Setext-Fix nach dem Parsen, damit die Zeilennummern stimmen).
 - **Container:** `::: col`, `::: columns`, `::: grid cols=… gap=…`, `::: steps [start=N]`, `::: notes`, `::: children`. Notizen auch per `<!-- notes -->`.
+- **Gestaltung** (render.ts, `applyDesignContainer`; CSS am Ende von base.css): `::: figure` + `bubble`/`frame`/`pin` (Position `at="x,y"` in %, `step=n`), `::: cards` + `card icon= title=`, `::: table widths= steps=rows|cols hl="r2c3"`, `::: reveal step=2`, Bild-Attribute `fit pos ratio step until`, Codeblock ` ```qr `, Mermaid-Attribute `height look=hand align`, Überschrift `banner= bannerh= bannerpos=` (Layout `banner`, in deck.ts per `resolveImage` aufgelöst), `deck.yaml` `footer`/`slideNumber` (`applyFooter` in deck.ts nummeriert in Baumreihenfolge: `DeckNode.slideNo`/`footer`, Anzeige in Slide.svelte). `step`/`until` gelten an jedem Container außer `note-step`.
 - **Schritte** synchronisieren sich über die Nummer:
   - Listenpunkte in `::: steps` bzw. automatisch per `## Titel {steps}` (`markAutoSteps` in render.ts; `{steps}` ist das einzige Überschriften-Flag ohne `=`/`.`/`#`, siehe `splitHeadingAttrs`; `::: steps` in der Folie hat Vorrang);
   - Code ` ```ts {steps="1,6|2-3||4"} ` (Zeilen ohne Schritt bilden das Gerüst);
@@ -141,6 +144,9 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Bühne absolut zentrieren** (`left/top 50%` + `translate(-50%,-50%) scale()`), nicht per Grid. Sonst wird in Fenstern unter 1280 px links abgeschnitten.
 - **Mermaid:** feste `max-height` (460px) statt `%`, weil sich das SVG in Spalten sonst an die Nachbarspalte anpasst. Der Versions-Container braucht `grid-template-columns: minmax(0,1fr)`.
 - **Druckbereitschaft:** `document.documentElement.dataset.printReady = '1'` ist das Signal für `make pdf`. Die Präsentation rendert die Druckseiten nach 1,5 s bzw. bei `beforeprint` (`.print-only`).
+- **Mermaid (mermaid.ts):** `prepare()` hängt bei flowchart/graph/stateDiagram/classDiagram die Theme-`classDef`s (`accent ok warn bad important muted actor`) an und setzt bei `look=hand` ein YAML-Frontmatter davor. Fehler stehen als `.mermaid-error` im DOM, `hashmark check` liest sie (src/cli/check.ts).
+- **Bild-Attribute:** `{ratio=16:9}` geht nicht (`:9` zerreißt den Text-Knoten, das Attribut-Muster greift nicht), deshalb `16/9`.
+- **Figur mit Inline-SVG:** Ein SVG ohne Breite schrumpft in `width: fit-content` auf 0, darum `.d-figure:has(.svg-block…) { width: 100% }`.
 - **Navigator:** `down()`/`forward()` merken sich die Position für ↑. Für reine Anzeige immer `peek = true` übergeben.
 - **Slugs behalten Umlaute** (github-slugger): `# Präsentieren` → Id `präsentieren`, im Hash `#pr%C3%A4sentieren`. In CDP-Tests die Ids kodieren.
 - **Presenter-Link** (`presenter-link.ts`):
@@ -209,3 +215,6 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Commit-Betreffzeilen sind der Changelog:** Fehlerbehebungen mit `Fix: …` beginnen oder „behoben“/„Fehler“ nennen, dann landen sie unter „Behobene Fehler“, alles andere unter „Neue Funktionen“. Reines `docs:`/`chore:`/`ci:`/`test:` oder `[skip changelog]` taucht nicht auf. Dafür kurze, für Anwender verständliche Betreffzeilen schreiben.
 - **Git:** Es gibt noch **kein Remote**, pushen ist erst mit URL möglich. Grösse ca. 125 MB wegen `vendor/`, `node.exe` hat 93 MB (Limit bei GitHub: 100 MB pro Datei).
 - **Beispiel-Deck:** `01-einfuehrung.md` enthält einen Test-Abschnitt des Nutzers („### Test“). Nur auf Wunsch entfernen.
+- **Lokale Decks:** `local/` ist ignoriert (`.gitignore`, `.dockerignore`), taucht weder in `listExamples` noch in Build, Docker oder Desktop-Beispielen auf. Dort liegen firmeninterne Decks, z. B. `local/<deck>` (Diagramm-Generator unter `tools/`): `make dev DECK=local/<deck>`. Nie nach `examples/` verschieben.
+- **Hinweise statt stiller Fehler:** Gestaltungs-Container, Bild- und Mermaid-/QR-Attribute melden ungültige Angaben als Ladehinweis (`ctx.warnings`, in `hashmark check` sichtbar). Neue Attribute immer in `DESIGN_ATTRS` (render.ts) eintragen, sonst gelten sie als unbekannt.
+- **Fußzeile im PDF:** Hat ein Knoten eine Deck-Fußzeile (`node.footer`), entfällt die Druck-Fußzeile (Brotkrumen und `i / n` in `PrintPages.svelte`), sonst liegen beide übereinander.

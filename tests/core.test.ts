@@ -464,7 +464,7 @@ describe('Editor: Vorschläge', () => {
   it('::: erst mit Leertaste (oder explizit), sonst schließt es nur', async () => {
     expect(await at('::: col\nx\n:::')).toBeNull()
     expect((await at('::: st'))?.options[0].label).toBe('steps')
-    expect((await at(':::', { explicit: true }))?.options.length).toBe(6)
+    expect((await at(':::', { explicit: true }))?.options.length).toBeGreaterThanOrEqual(14)
   })
   it('Attribute, Layout-Werte und Theme-Layouts in {…}', async () => {
     expect((await at('## T {'))?.title).toBe('Attribute')

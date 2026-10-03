@@ -17,6 +17,7 @@ export const LAYOUT_INFO: Record<string, string> = {
   agenda: 'Agenda aus den Kapiteln',
   comparison: 'Gegenüberstellung',
   'code-focus': 'Code im Mittelpunkt',
+  banner: 'Bildband oben (banner=…), Titel und Inhalt darunter',
 }
 
 export const CONTAINER_INFO: Record<string, { detail: string; text: string }> = {
@@ -26,6 +27,14 @@ export const CONTAINER_INFO: Record<string, { detail: string; text: string }> = 
   steps: { detail: 'Liste Punkt für Punkt einblenden', text: '::: steps\n- §Erstens\n- Zweitens\n:::\n' },
   notes: { detail: 'Sprechernotizen', text: '::: notes\n§\n:::\n' },
   children: { detail: 'Kacheln der Kinder', text: '::: children\n:::\n§' },
+  reveal: { detail: 'Beliebigen Block ab Schritt n einblenden', text: '::: reveal step=1\n§Text\n:::\n' },
+  figure: { detail: 'Bild mit frei platzierten Beschriftungen', text: '::: figure\n![§Bild](bilder/bild.png)\n\n::: bubble at="60,20" tail=left\nBeschriftung\n:::\n:::\n' },
+  bubble: { detail: 'Sprechblase in einer Figur (at, w, tail, step)', text: '::: bubble at="50,20" w=30 tail=down\n§Text\n:::\n' },
+  frame: { detail: 'Hervorhebungsrahmen in einer Figur (at, size, label)', text: '::: frame at="10,10" size="30,20" label="§Titel"\n:::\n' },
+  pin: { detail: 'Nummerierte Markierung in einer Figur', text: '::: pin at="50,50"\n§1\n:::\n' },
+  cards: { detail: 'Karten im Raster (cols, steps)', text: '::: cards cols=3\n::: card icon=star title="§Titel"\nText\n:::\n:::\n' },
+  card: { detail: 'Karte mit Icon und Titel', text: '::: card icon=star title="§Titel"\nText\n:::\n' },
+  table: { detail: 'Tabelle mit Spaltenbreiten, Schritten und Hervorhebung', text: '::: table widths="2:1:1" steps=rows\n| A | B | C |\n| --- | --- | --- |\n| §1 | 2 | 3 |\n:::\n' },
 }
 export const CONTAINERS = Object.keys(CONTAINER_INFO)
 
@@ -37,6 +46,10 @@ export const ATTR_INFO: { label: string; detail: string; insert: string; chain?:
   { label: 'appendix', detail: 'Anhang: nur über Suche oder Übersicht erreichbar', insert: 'appendix' },
   { label: 'plan=', detail: 'Rolle im Vortrag: path, optional oder appendix', insert: 'plan=', chain: true },
   { label: 'id=', detail: 'Eigene Sprungmarke', insert: 'id=' },
+  { label: 'banner=', detail: 'Bildband am oberen Rand (mit layout=banner)', insert: 'banner=' },
+  { label: 'bannerh=', detail: 'Höhe des Bildbands in px, z. B. 240', insert: 'bannerh=240' },
+  { label: 'bannerpos=', detail: 'Ausschnitt des Bildbands, z. B. "50% 30%"', insert: 'bannerpos=' },
+  { label: 'footer=off', detail: 'Fußzeile auf dieser Folie ausblenden', insert: 'footer=off' },
   { label: 'bg=', detail: 'Hintergrund: Farbe, Verlauf oder Bild', insert: 'bg=' },
   { label: 'bgdim=', detail: 'Bild abdunkeln, z. B. 0.5', insert: 'bgdim=0.5' },
   { label: 'duration=', detail: 'Zeitplan, z. B. 5m', insert: 'duration=5m' },
@@ -49,7 +62,7 @@ export const CALLOUTS: [string, string][] = [
 ]
 
 export const CODE_LANGS: [string, string][] = [
-  ['ts', 'TypeScript'], ['js', 'JavaScript'], ['mermaid', 'Diagramm'], ['bash', 'Shell'], ['yaml', 'deck.yaml'],
+  ['ts', 'TypeScript'], ['js', 'JavaScript'], ['mermaid', 'Diagramm'], ['qr', 'QR-Code'], ['bash', 'Shell'], ['yaml', 'deck.yaml'],
   ['json', 'JSON'], ['css', 'Theme-CSS'], ['html', 'HTML'], ['python', 'Python'], ['md', 'Markdown'],
 ]
 
