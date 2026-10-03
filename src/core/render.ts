@@ -9,6 +9,7 @@ import { visit, SKIP } from 'unist-util-visit'
 import qrcode from 'qrcode-generator'
 import { bundledLanguages, createCssVariablesTheme, createHighlighter, type Highlighter } from 'shiki'
 import type { Root, RootContent, Code } from 'mdast'
+import { expandComponent, type Template } from './components.ts'
 import { drawioSteps } from './drawio.ts'
 import { excalidrawSteps } from './excalidraw.ts'
 import { ICON_NAMES, iconSvg } from './icons.ts'
@@ -31,6 +32,8 @@ export interface RenderContext {
   embedImages?: boolean
   /** Hinweise, z. B. fehlende Bilder */
   warnings?: string[]
+  /** Vorlagen eigener Container (`components/*.html`) */
+  components?: Record<string, Template>
 }
 
 export interface CodeBlockPlugin {
@@ -543,6 +546,14 @@ function applyDirectives(root: Root, ctx: RenderContext) {
       if (node.name !== 'note-step') {
         if (/^\d+$/.test(attrs.step ?? '')) props.dataStep = attrs.step
         if (/^\d+$/.test(attrs.until ?? '')) props.dataUntil = attrs.until
+      }
+      // eigener Container: der Inhalt geht durch die Vorlage, der Wrapper `.d-<name>` bleibt (class, step, until)
+      const template = ctx.components?.[node.name ?? '']
+      if (template) {
+        node.children = expandComponent(template, { name: node.name!, attrs, children: node.children ?? [] }, {
+          image: (url) => resolveImage(url, ctx),
+          warn: (m) => warn(`${node.name}: ${m}`),
+        }) as AnyNode[]
       }
       const design = applyDesignContainer(node, attrs, warn)
       ;(props.className as string[]).push(...design.classes)

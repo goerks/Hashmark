@@ -65,6 +65,7 @@
   let imageMode: 'file' | 'base64' = 'file'
   /** Layouts, die das Theme des Decks mitbringt (`.layout-<name>` im CSS der Vorschau) */
   let themeLayouts: string[] = []
+  let themeComponents: string[] = []
   /** zuletzt an die Vorschau geschickte Position – deren Echo nicht zurück in den Editor spiegeln */
   let requested = ''
 
@@ -199,8 +200,16 @@
       for (const sheet of frame.contentDocument?.styleSheets ?? []) walk(sheet.cssRules)
     } catch { /* anderes Origin */ }
     const next = [...names].sort()
-    if (next.join() !== themeLayouts.join()) {
+    // eigene Container: das Theme-CSS nennt sie in --hm-components
+    let comps: string[] = []
+    try {
+      const doc = frame.contentDocument
+      const raw = doc ? getComputedStyle(doc.documentElement).getPropertyValue("--hm-components") : ""
+      comps = raw.replace(/["']/g, "").split(/s+/).filter(Boolean).sort()
+    } catch { /* anderes Origin */ }
+    if (next.join() !== themeLayouts.join() || comps.join() !== themeComponents.join()) {
       themeLayouts = next
+      themeComponents = comps
       ed?.relint()
     }
   }
@@ -346,6 +355,7 @@
       onImages: (list, pos) => insertImages(list, pos),
       onProblems,
       layouts: () => themeLayouts,
+      components: () => themeComponents,
       onFocus: (f) => { focused = f },
     })
     // für Browser-Tests und Debugging

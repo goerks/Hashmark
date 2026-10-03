@@ -3,8 +3,10 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parseTemplate, type Template } from './components.ts'
 import { IMAGE_MIME } from './render.ts'
 import type { ThemeConfig } from './types.ts'
+import { CONTAINERS } from './vocab.ts'
 
 /** Langer Pfad (ohne 8.3-Kurznamen wie MICHAE~1), sonst verweigert Vite das Theme als „außerhalb“ */
 export const BUILTIN_THEMES_DIR = (() => {
@@ -18,6 +20,8 @@ export interface ResolvedTheme {
   /** alle gelesenen Dateien und Ordner (für den File-Watcher) */
   files: string[]
   warnings: string[]
+  /** Vorlagen eigener Container (`components/*.html`), nach Name */
+  components: Record<string, Template>
 }
 
 const DEFAULT_THEME = 'minimal'
@@ -97,16 +101,61 @@ function tokenRule(tokens: Record<string, unknown>, warnings: string[]): string 
   return lines.length ? `/* tokens */\n:root {\n${lines.join('\n')}\n}\n` : ''
 }
 
+/** Ordner für `components/`: Theme-Ordner und Deck-Ordner, der Deck-Ordner gewinnt bei gleichem Namen */
+const COMPONENTS_DIR = 'components'
+const COMPONENT_NAME = /^[a-z][\w-]*$/i
+/** Namen, die Hashmark selbst belegt (Container der Gestaltung und interne) */
+const RESERVED = new Set([...CONTAINERS, 'note-step', 'card-body'])
+
+/** `components/*.html` (Vorlagen) und `components/*.css` lesen. */
+function readComponents(dir: string, templates: Record<string, Template>, files: string[], warnings: string[]): string {
+  let names: string[]
+  try { names = fs.readdirSync(dir).sort() } catch { return '' }
+  files.push(dir)
+  let css = ''
+  for (const n of names) {
+    const file = path.join(dir, n)
+    const ext = path.extname(n).toLowerCase()
+    if (ext === '.css') css += readCss(file, files, warnings)
+    else if (ext === '.html') {
+      const name = path.basename(n, path.extname(n))
+      files.push(file)
+      if (!COMPONENT_NAME.test(name)) { warnings.push(`Komponente: „${n}“ ist kein gültiger Name (Buchstaben, Ziffern, - und _)`); continue }
+      if (RESERVED.has(name)) { warnings.push(`Komponente „${name}“ ist ein eingebauter Container und wird nicht überschrieben (${n})`); continue }
+      try {
+        templates[name] = parseTemplate(fs.readFileSync(file, 'utf8'))
+      } catch (e) {
+        warnings.push(`Komponente „${name}“ (${path.join(COMPONENTS_DIR, n)}): ${(e as Error).message}`)
+        delete templates[name]
+      }
+    }
+  }
+  return css
+}
+
 export function resolveTheme(deckDir: string, theme: string | ThemeConfig | undefined): ResolvedTheme {
   const files: string[] = []
   const warnings: string[] = []
   const cfg: ThemeConfig = typeof theme === 'object' && theme !== null ? theme : { extends: theme }
-  let css = readBase(deckDir, cfg.extends ?? DEFAULT_THEME, files, warnings)
+  const base = cfg.extends ?? DEFAULT_THEME
+  let css = readBase(deckDir, base, files, warnings)
 
   const dirs = cfg.layouts === undefined ? [] : [cfg.layouts].flat()
   for (const dir of dirs) css += readCssDir(path.resolve(deckDir, dir), files, warnings)
+
+  const components: Record<string, Template> = {}
+  const baseDir = isPath(base) ? path.resolve(deckDir, base) : undefined
+  const componentDirs = [
+    ...(baseDir && fs.existsSync(baseDir) && fs.statSync(baseDir).isDirectory() ? [path.join(baseDir, COMPONENTS_DIR)] : []),
+    path.join(deckDir, COMPONENTS_DIR),
+  ]
+  for (const dir of componentDirs) css += readComponents(dir, components, files, warnings)
+  // Namen für den Editor (Linter, Vorschläge): als Eigenschaft lesbar, ohne dass die Seite sie anzeigt
+  const names = Object.keys(components)
+  if (names.length) css += `/* components */\n:root { --hm-components: "${names.join(' ')}"; }\n`
+
   const extra = cfg.css === undefined ? [] : [cfg.css].flat()
   for (const file of extra) css += readCss(path.resolve(deckDir, file), files, warnings)
   if (cfg.tokens) css += tokenRule(cfg.tokens, warnings)
-  return { css, files, warnings }
+  return { css, files, warnings, components }
 }

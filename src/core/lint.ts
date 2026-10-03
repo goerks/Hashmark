@@ -18,6 +18,8 @@ export interface Problem {
 export interface LintOptions {
   /** zusätzliche Layouts aus dem Theme des Decks */
   layouts?: string[]
+  /** eigene Container (Komponenten) aus dem Theme bzw. Deck */
+  components?: string[]
 }
 
 /** bare Flags ohne Wert */
@@ -26,6 +28,7 @@ const meant = (fix?: string) => (fix ? ` Meinst du „${fix}“?` : '')
 
 export function lintText(text: string, opts: LintOptions = {}): Problem[] {
   const layouts = [...BUILTIN_LAYOUTS, ...(opts.layouts ?? [])]
+  const containers = [...CONTAINERS, ...(opts.components ?? [])]
   const problems: Problem[] = []
   const lines = text.split('\n')
   let offset = 0
@@ -85,8 +88,8 @@ export function lintText(text: string, opts: LintOptions = {}): Problem[] {
     if (m) {
       const name = m[3]
       if (name) {
-        if (!CONTAINERS.includes(name)) {
-          const fix = nearest(name, CONTAINERS)
+        if (!containers.includes(name)) {
+          const fix = nearest(name, containers)
           problems.push({ ...at(m[1].length + m[2].length, name.length), severity: 'error', message: `Container „${name}“ ist unbekannt.${meant(fix)}`, fix })
         }
         open.push({ name, line: i + 1, from: start, to: start + line.length })

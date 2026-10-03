@@ -171,7 +171,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
   const watchers: fs.FSWatcher[] = []
   try {
     watchers.push(fs.watch(deckDir, { recursive: true }, (_event, name) => {
-      if (name && /\.(md|ya?ml|css)$/i.test(String(name)) && !String(name).split(/[\\/]/).some((p) => p.startsWith('.') || p === 'node_modules')) schedule()
+      if (name && /\.(md|ya?ml|css|html)$/i.test(String(name)) && !String(name).split(/[\\/]/).some((p) => p.startsWith('.') || p === 'node_modules')) schedule()
     }))
   } catch (e) {
     log(`[hashmark] Datei-Überwachung nicht möglich: ${(e as Error).message}`)

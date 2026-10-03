@@ -1,0 +1,13 @@
+{{! Zeitstrahl: jeder Listenpunkt wird ein Punkt auf der Linie. Attribute: title, vertical, steps }}
+<div class="timeline{{#if vertical}} timeline-vertical{{/if}}">
+  {{#if title}}<div class="timeline-title">{{ title }}</div>{{/if}}
+  <ol class="timeline-items">
+    {{#each items}}
+    <li class="timeline-item"{{#if step}} data-step="{{ step }}"{{/if}}>
+      <span class="timeline-dot">{{ number }}</span>
+      <div class="timeline-text">{{{ html }}}</div>
+    </li>
+    {{/each}}
+  </ol>
+  {{{ body }}}
+</div>

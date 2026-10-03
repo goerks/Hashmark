@@ -5,6 +5,9 @@ import path from 'node:path'
 import { normalizeContainers, parseAttrs, splitHeadingAttrs } from '../src/core/syntax.ts'
 import { buildNodes, parseMarkdown } from '../src/core/parse.ts'
 import { loadDeck } from '../src/core/deck.ts'
+import { parseTemplate } from '../src/core/components.ts'
+import { completionAt } from '../src/core/complete.ts'
+import { lintText } from '../src/core/lint.ts'
 import { Navigator, formatHash, parseHash, type Position } from '../src/core/navigator.ts'
 import type { DeckNode } from '../src/core/types.ts'
 
@@ -528,5 +531,95 @@ describe('Editor: Bausteine', () => {
     expect(expand('## §Titel {layout=two-col}')).toEqual({ text: '## Titel {layout=two-col}', cursor: 3, select: 5 })
     expect(expand('::: notes\n§\n:::')).toMatchObject({ cursor: 10, select: 0 })
     expect(expand('ohne')).toEqual({ text: 'ohne', cursor: 4, select: 0 })
+  })
+})
+
+describe('Komponenten', () => {
+  const timeline = '<ol class="tl">{{#each items}}<li{{#if step}} data-step="{{ step }}"{{/if}}>{{ number }}: {{{ html }}}</li>{{/each}}</ol>{{#if title}}<h3>{{ title }}</h3>{{/if}}{{{ body }}}'
+
+  it('setzt Attribute, Listenpunkte (items) und den Rumpf (body) in die Vorlage', async () => {
+    const dir = await tempDeck({
+      'a.md': '# A\n\n::: timeline title="Q & A <b>" steps start=2\n- eins\n- **zwei**\n\nRumpf mit `code`\n:::\n',
+      'components/timeline.html': timeline,
+    })
+    const r = await loadDeck(dir)
+    expect(r.warnings).toEqual([])
+    const slide = r.deck.nodes[0].slides[0]
+    expect(slide.html).toContain('<div class="d-timeline"><ol class="tl">')
+    expect(slide.html).toContain('<li data-step="2">1: <p>eins</p></li>')
+    expect(slide.html).toContain('<li data-step="3">2: <p><strong>zwei</strong></p></li>')
+    expect(slide.html).toContain('<h3>Q &amp; A &lt;b&gt;</h3>') // Attribute werden maskiert
+    expect(slide.html).toContain('<p>Rumpf mit <code>code</code></p>')
+    expect(slide.steps.length).toBe(3) // höchster data-step
+    expect(r.themeCss).toContain('--hm-components: "timeline"')
+  })
+
+  it('ohne steps keine data-step; Flag ohne Wert gilt als gesetzt', async () => {
+    const dir = await tempDeck({
+      'a.md': '# A\n\n::: timeline\n- eins\n:::\n\n::: timeline steps\n- zwei\n:::\n',
+      'components/timeline.html': timeline,
+    })
+    const html = (await loadDeck(dir)).deck.nodes[0].slides[0].html
+    expect(html.match(/data-step/g)?.length).toBe(1)
+  })
+
+  it('Deck-Ordner schlägt Theme-Ordner; CSS aus components/ landet im Theme', async () => {
+    const dir = await tempDeck({
+      'deck.yaml': 'theme: ./acme\n',
+      'a.md': '# A\n\n::: box\nX\n:::\n',
+      'acme/theme.css': ':root { --color-bg: #fff }',
+      'acme/components/box.html': '<i>Theme</i>{{{ body }}}',
+      'acme/components/box.css': '.d-box i { color: red }',
+      'components/box.html': '<b>Deck</b>{{{ body }}}',
+    })
+    const r = await loadDeck(dir)
+    expect(r.deck.nodes[0].slides[0].html).toContain('<b>Deck</b>')
+    expect(r.deck.nodes[0].slides[0].html).not.toContain('<i>Theme</i>')
+    expect(r.themeCss).toContain('.d-box i { color: red }')
+  })
+
+  it('Bildfilter löst Pfade wie normale Bilder auf', async () => {
+    const dir = await tempDeck({
+      'a.md': '# A\n\n::: person photo=anna.svg name=Anna\n:::\n::: person photo=fehlt.png\n:::\n',
+      'anna.svg': '<svg xmlns="http://www.w3.org/2000/svg"/>',
+      'components/person.html': '<img src="{{ photo|image }}" alt="{{ name }}">',
+    })
+    const r = await loadDeck(dir)
+    expect(r.deck.nodes[0].slides[0].html).toContain('<img src="deck-assets/anna.svg" alt="Anna">')
+    expect(r.assets.length).toBe(1)
+    expect(r.warnings.join('\n')).toMatch(/Bild nicht gefunden: fehlt\.png/)
+  })
+
+  it('meldet Fehler als Hinweis statt still zu scheitern', async () => {
+    const dir = await tempDeck({
+      'a.md': '# A\n\n::: kaputt\nX\n:::\n\n::: still\nText ohne Platz\n:::\n\n::: cards\n:::\n',
+      'components/kaputt.html': '<div>\n{{#each items}}\n</div>',
+      'components/still.html': '<p>fest</p>',
+      'components/cards.html': '<p>überschrieben?</p>',
+    })
+    const r = await loadDeck(dir)
+    const w = r.warnings.join('\n')
+    expect(w).toMatch(/Komponente „kaputt“.*Zeile 2.*nicht geschlossen/)
+    expect(w).toMatch(/still: Inhalt wird von der Vorlage nicht verwendet/)
+    expect(w).toMatch(/„cards“ ist ein eingebauter Container/)
+    expect(r.deck.nodes[0].slides[0].html).toContain('<p>fest</p>')
+  })
+
+  it('Vorlagenfehler nennen die Zeile', () => {
+    expect(() => parseTemplate('a\n{{#if x}}\nb')).toThrow(/Zeile 2/)
+    expect(() => parseTemplate('{{/each}}')).toThrow(/ohne öffnendes/)
+    expect(() => parseTemplate('{{#if a}}{{/each}}')).toThrow(/passt nicht/)
+    expect(() => parseTemplate('{{ x|upper }}')).toThrow(/Filter/)
+    expect(() => parseTemplate('{{ a b }}')).toThrow(/ungültig/)
+    expect(() => parseTemplate('{{else}}')).toThrow(/#if/)
+    expect(parseTemplate('{{! Kommentar }}{{#if a}}1{{else}}2{{/if}}').uses.has('a')).toBe(true)
+  })
+
+  it('Editor kennt eigene Container (Linter und Vorschläge)', () => {
+    const text = '::: timeline\n- x\n:::\n'
+    expect(lintText(text).map((p) => p.message).join()).toMatch(/Container „timeline“ ist unbekannt/)
+    expect(lintText(text, { components: ['timeline'] })).toEqual([])
+    const c = completionAt('::: ti', 6, { components: ['timeline'] })
+    expect(c?.options.map((o) => o.label)).toContain('timeline')
   })
 })

@@ -31,6 +31,8 @@ export interface CompleteOptions {
   explicit?: boolean
   /** zusätzliche Layouts aus dem Theme des Decks */
   layouts?: string[]
+  /** eigene Container (Komponenten) aus dem Theme bzw. Deck */
+  components?: string[]
 }
 
 function pick(from: number, to: number, title: string, all: Suggestion[], query: string): Completion | null {
@@ -59,6 +61,7 @@ export function completionAt(text: string, pos: number, opts: CompleteOptions = 
   // ::: + Leertaste → Container (ein bloßes ::: schließt meist einen Block)
   if ((m = before.match(/^:{3}(\s+([\w-]*))?$/)) && (m[1] || opts.explicit)) {
     const all = Object.entries(CONTAINER_INFO).map(([label, i]): Suggestion => ({ label, detail: i.detail, kind: 'Container', insert: i.text }))
+    for (const label of opts.components ?? []) if (!(label in CONTAINER_INFO)) all.push({ label, detail: 'Komponente aus dem Theme', kind: 'Komponente', insert: `::: ${label}\n§\n:::\n` })
     return pick(ls, pos, 'Container', all, m[2] ?? '')
   }
 

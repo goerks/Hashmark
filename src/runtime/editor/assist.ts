@@ -10,9 +10,9 @@ import { expand } from '../../core/snippets.ts'
 
 // ---------- Vorschläge ----------
 
-export function completion(getLayouts: () => string[]): Extension {
+export function completion(getLayouts: () => string[], getComponents: () => string[]): Extension {
   const source = (ctx: CompletionContext): CompletionResult | null => {
-    const r = completionAt(ctx.state.doc.toString(), ctx.pos, { explicit: ctx.explicit, layouts: getLayouts() })
+    const r = completionAt(ctx.state.doc.toString(), ctx.pos, { explicit: ctx.explicit, layouts: getLayouts(), components: getComponents() })
     if (!r) return null
     return {
       from: r.from,
@@ -55,9 +55,9 @@ export function completion(getLayouts: () => string[]): Extension {
 
 export type { Problem }
 
-export function lint(getLayouts: () => string[], onProblems: (list: Problem[]) => void): Extension {
+export function lint(getLayouts: () => string[], getComponents: () => string[], onProblems: (list: Problem[]) => void): Extension {
   return linter((view): Diagnostic[] => {
-    const problems = lintText(view.state.doc.toString(), { layouts: getLayouts() })
+    const problems = lintText(view.state.doc.toString(), { layouts: getLayouts(), components: getComponents() })
     onProblems(problems)
     return problems.map((p) => ({
       from: p.from,

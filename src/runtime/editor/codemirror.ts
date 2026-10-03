@@ -29,6 +29,8 @@ export interface EditorHooks {
   onProblems: (list: Problem[]) => void
   /** zusätzliche Layouts aus dem Theme des Decks */
   layouts: () => string[]
+  /** eigene Container (Komponenten) aus dem Theme bzw. Deck */
+  components: () => string[]
   /** Fokus hat sich geändert (für die Tastaturleiste) */
   onFocus: (focused: boolean) => void
 }
@@ -73,7 +75,7 @@ export function createEditor(parent: HTMLElement, hooks: EditorHooks) {
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({ autocorrect: 'off', 'aria-label': 'Quelltext' }),
     EditorState.languageData.of(() => [{ closeBrackets: { brackets: ['(', '[', '{', '`', '"'] } }]),
-    lang === 'yaml' ? yaml() : [markdown({ base: markdownLanguage, codeLanguages }), hashmarkSyntax, completion(hooks.layouts), lint(hooks.layouts, hooks.onProblems), formatBubble, formatKeymap],
+    lang === 'yaml' ? yaml() : [markdown({ base: markdownLanguage, codeLanguages }), hashmarkSyntax, completion(hooks.layouts, hooks.components), lint(hooks.layouts, hooks.components, hooks.onProblems), formatBubble, formatKeymap],
     keymap.of([
       indentWithTab,
       { key: 'Mod-s', preventDefault: true, run: () => { hooks.onSave(); return true } },

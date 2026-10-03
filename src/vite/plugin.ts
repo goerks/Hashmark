@@ -118,7 +118,7 @@ export function hashmark(options: HashmarkOptions): Plugin {
       let timer: NodeJS.Timeout | undefined
       const onFile = (file: string) => {
         const rel = path.relative(deckDir, file)
-        const isTheme = /\.css$/i.test(file) && themeFiles.some((t) => file === t || !path.relative(t, file).startsWith('..'))
+        const isTheme = /\.(css|html)$/i.test(file) && themeFiles.some((t) => file === t || !path.relative(t, file).startsWith('..'))
         if (!isTheme && (rel.startsWith('..') || !/\.(md|ya?ml)$/i.test(file))) return
         clearTimeout(timer)
         timer = setTimeout(() => reload(server), 50)

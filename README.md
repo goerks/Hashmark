@@ -434,6 +434,15 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   - **Eigenes Layout:** Eine CSS-Datei mit `.layout-kpi { … }` im `layouts`-Ordner genügt, verwendet wird es mit `## Titel {layout=kpi}`. Jede Folie ist `section.slide.layout-<name>` mit `.slide-title` und `.content`.
   - Relative `url(…)` in Theme-CSS (Bilder, `woff2`/`woff`/`ttf`/`otf`) werden als Data-URI eingebettet, Build und Export bleiben autark.
   - Änderungen an Theme-Dateien laden live nach, auch außerhalb des Deck-Ordners. Fehlende Dateien und ungültige Tokens (z. B. mit `;`) erscheinen als Hinweis im Terminal.
+- **Komponenten (eigene Container):** Eine Datei `components/<name>.html` macht `::: <name>` zu einem eigenen Baustein, im Theme-Ordner (für alle Decks mit diesem Theme) oder im Deck-Ordner (gewinnt bei gleichem Namen). Daneben liegt `components/<name>.css`. Beispiel: `examples/komponenten-demo` mit `timeline` und `person`.
+  ```html
+  <ol>{{#each items}}<li{{#if step}} data-step="{{ step }}"{{/if}}>{{ number }} {{{ html }}}</li>{{/each}}</ol>
+  {{#if title}}<h3>{{ title }}</h3>{{/if}}{{{ body }}}
+  ```
+  - Die Vorlage ist **logikfrei**: `{{ name }}` (maskiert), `{{ foto|image }}` (Bildpfad wie ein normales Bild auflösen), `{{{ body }}}` und `{{{ html }}}` (gerenderter Markdown), `{{#each items}}`, `{{#if x}}…{{else}}…{{/if}}`, `{{! Kommentar }}`. Keine Ausdrücke, kein JavaScript.
+  - Variablen: alle Attribute des Containers (ein Flag wie `vertical` ist wahr), `body` (Inhalt), `items` (Listenpunkte der obersten Ebene, nur wenn die Vorlage `items` liest) mit `html`, `text`, `index`, `number`, `first`, `last` und `step`. `step` füllt sich bei `steps` (und `start=N`) am Container, sonst ist es leer.
+  - Der Container behält den Wrapper `.d-<name>` (damit gehen `class`, `step`, `until`). Der Inhalt läuft durch die normale Pipeline: Bilder, Code, Mermaid, Schritte und Editor-Sync funktionieren darin.
+  - Fehler erscheinen als Hinweis (`hashmark check`): Syntaxfehler mit Zeile, Inhalt ohne `{{{ body }}}`, Namen eingebauter Container. Der Editor kennt Komponenten im Linter und bei `::: ` + Vorschlägen.
 
 ## Aufbau
 
@@ -445,7 +454,7 @@ src/runtime/editor/  Editor (editor.html): CodeMirror, Vorschau-Sync, Bild-Uploa
 src/cli/       hashmark dev | build | preview | export | pdf, gemeinsame Vite-Konfiguration, Deck-Gerüst
 src/desktop/   Node-Sidecar der Desktop-App (stdin/stdout-Protokoll), Startseite (ui/)
 desktop-go/    Desktop-App in Go (ohne CGO): Fenster, Menü, Dialoge, Bildschirmwahl
-examples/      Beispiel-Decks: hashmark-demo (Funktionen, 3 Ebenen) und theme-demo (eigenes Theme)
+examples/      Beispiel-Decks: hashmark-demo (Funktionen, 3 Ebenen), theme-demo (eigenes Theme) und komponenten-demo (eigene Container)
 ```
 
 ## Noch nicht umgesetzt

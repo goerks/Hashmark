@@ -10,7 +10,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
 | `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen (mit Datei: Logo zuschneiden und ersetzen) |
-| `make test` | Vitest (`tests/*.test.ts`, 139 Tests, Kern-Logik ohne DOM) |
+| `make test` | Vitest (`tests/*.test.ts`, 146 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-cross` / `make app-package` | Desktop-App (Go): bauen + starten (`DECK=…` optional) / Hülle für Windows, Linux, macOS (amd64, arm64) nach `dist-go/` / portables `dist-app/Hashmark/` (windows-amd64). Andere Ziele samt Archiv: `node scripts/package-app.ts <ziel> --version=… --archive` (online, lädt Node und die Pakete des Ziels) |
 | `hashmark --version` | Version `<letzter Tag ohne v>.<Kurz-Hash>`, per `-ldflags "-X main.version=…"` eingebettet (`make` über `git describe`, in der Pipeline der Job `version`); `VERSION=…` überschreibt |
 | Go | liegt **nicht** im Repo (ab 1.26, im `PATH`). Mehr braucht die Desktop-Hülle nicht: kein CGO, kein C-Compiler, kein Rust |
@@ -50,6 +50,7 @@ src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
                 zählt data-step und data-hl-count − 1 → slide.steps
   theme.ts      Theme v2: `theme:` (String | Objekt `extends/tokens/layouts/css`) → ein CSS-Text (Basis, layouts/*.css, css, zuletzt Tokens),
                 Theme-Ordner (`theme.css` + `layouts/`), relative `url()` als Data-URI, Dateiliste fürs Watchen, Hinweise
+  components.ts Komponenten: logikfreie HTML-Vorlagen für eigene Container (`components/<name>.html` im Theme- oder Deck-Ordner): parseTemplate, expandComponent (Rumpf/Listenpunkte bleiben mdast, Platzhalter `{{{ body }}}`/`{{{ html }}}`), Filter `image`; von `resolveTheme` geladen (`components`, `--hm-components` im Theme-CSS für den Editor), von `applyDirectives` angewendet
   deck.ts       deck.yaml/Ordner → Mounts (under + automatisches Verschieben der Ebenen) → Deck + Theme-CSS (`themeCss`, `themeFiles`) + Warnungen;
                 löst das Layout auf (Attribut > layouts[Ebene] > layout), bg=, duration=, erzeugt Agenda-HTML
   timing.ts     parseDuration (5m, 1h30m, 1:30), formatClock, pace – Zeitplan der Presenter-View
@@ -216,6 +217,7 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Git:** Es gibt noch **kein Remote**, pushen ist erst mit URL möglich. Grösse ca. 125 MB wegen `vendor/`, `node.exe` hat 93 MB (Limit bei GitHub: 100 MB pro Datei).
 - **Beispiel-Deck:** `01-einfuehrung.md` enthält einen Test-Abschnitt des Nutzers („### Test“). Nur auf Wunsch entfernen.
 - **Lokale Decks:** `local/` ist ignoriert (`.gitignore`, `.dockerignore`), taucht weder in `listExamples` noch in Build, Docker oder Desktop-Beispielen auf. Dort liegen firmeninterne Decks, z. B. `local/<deck>` (Diagramm-Generator unter `tools/`): `make dev DECK=local/<deck>`. Nie nach `examples/` verschieben.
+- **Komponenten** (`src/core/components.ts`): Vorlage bleibt logikfrei (kein JS, keine Ausdrücke), das ist die bewusste Grenze zur späteren Plugin-API. Eingebaute Container-Namen (`CONTAINERS` in vocab.ts) gewinnen immer. Dateiwächter brauchen `.html` (Vite-Plugin, live-server). Beispiel: `examples/komponenten-demo`.
 - **Hinweise statt stiller Fehler:** Gestaltungs-Container, Bild- und Mermaid-/QR-Attribute melden ungültige Angaben als Ladehinweis (`ctx.warnings`, in `hashmark check` sichtbar). Neue Attribute immer in `DESIGN_ATTRS` (render.ts) eintragen, sonst gelten sie als unbekannt.
 - **Fußzeile im PDF:** Hat ein Knoten eine Deck-Fußzeile (`node.footer`), entfällt die Druck-Fußzeile (Brotkrumen und `i / n` in `PrintPages.svelte`), sonst liegen beide übereinander.
 - **Diagnose der Desktop-App:** `hashmark.log` im Datenordner (`%APPDATA%\app.hashmark.desktop`) sammelt Panics (`recoverLog`/`safeGo` in `desktop-go/log.go`), Start und Ende der Fenster-Prozesse mit Exit-Code, das Ende des Sidecars und JS-Fehler der Fenster (`hmLog`). `sidecar.log` wird bei jedem Start nach `sidecar.log.1` gesichert. Neue Goroutinen immer mit `safeGo` starten. **Tests mit `make app-test` teilen sich den Datenordner mit der echten App** (Zuletzt-geöffnet-Liste) und scheitern, solange die echte App läuft.

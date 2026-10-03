@@ -1,0 +1,7 @@
+title: Hashmark – Eigene Komponenten (Beispiel)
+# Komponenten brauchen keine Einträge hier: jede Datei components/<name>.html ist ein Container ::: <name>
+theme: minimal
+maxDepth: 3
+duration: 10m
+mount:
+  - file: 01-start.md

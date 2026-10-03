@@ -1,0 +1,9 @@
+{{! Profilkarte: Attribute name, role, photo; der Rumpf ist die Beschreibung }}
+<div class="person">
+  {{#if photo}}<img class="person-photo" src="{{ photo|image }}" alt="{{ name }}">{{else}}<div class="person-photo person-initial"></div>{{/if}}
+  <div class="person-info">
+    <div class="person-name">{{ name }}</div>
+    {{#if role}}<div class="person-role">{{ role }}</div>{{/if}}
+    <div class="person-text">{{{ body }}}</div>
+  </div>
+</div>
