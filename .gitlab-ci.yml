@@ -118,8 +118,15 @@ publish:
     - |
       for file in dist-app/hashmark-*; do
         echo "Lade $file hoch"
-        curl --fail --silent --show-error --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$file" \
-          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/hashmark/$VERSION/$(basename "$file")"
+        # Antwort von GitLab zeigen: ein 403 hat dort die Ursache (Registry abgeschaltet, fehlende Rechte …)
+        code=$(curl --silent --show-error --output response.txt --write-out '%{http_code}' \
+          --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file "$file" \
+          "$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/hashmark/$VERSION/$(basename "$file")")
+        if [ "$code" != "201" ] && [ "$code" != "200" ]; then
+          echo "Upload fehlgeschlagen: HTTP $code"
+          cat response.txt
+          exit 1
+        fi
       done
 
 release:
