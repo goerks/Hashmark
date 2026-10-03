@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <rect width="200" height="200" fill="#dbeafe"/>
+  <!-- Schultern -->
+  <path d="M25 200c0-42 33-66 75-66s75 24 75 66z" fill="#2563eb"/>
+  <path d="M82 138l18 24 18-24z" fill="#fff"/>
+  <!-- Hals -->
+  <rect x="86" y="112" width="28" height="30" rx="8" fill="#f2b88f"/>
+  <!-- Haare hinten -->
+  <path d="M48 98c-8-50 28-72 56-72s62 22 52 76c-4 22-10 30-10 30l-96-4s-4-10-2-30z" fill="#5b3a29"/>
+  <!-- Gesicht -->
+  <ellipse cx="100" cy="94" rx="42" ry="46" fill="#f8c9a3" stroke="#2b1d14" stroke-width="3"/>
+  <!-- Pony -->
+  <path d="M58 82c4-30 30-42 58-34 16 4 26 18 26 34-14-6-26-18-30-26-8 14-30 26-54 26z" fill="#5b3a29" stroke="#2b1d14" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Brille -->
+  <circle cx="82" cy="98" r="13" fill="#fff" fill-opacity=".7" stroke="#2b1d14" stroke-width="3"/>
+  <circle cx="118" cy="98" r="13" fill="#fff" fill-opacity=".7" stroke="#2b1d14" stroke-width="3"/>
+  <path d="M95 98h10" stroke="#2b1d14" stroke-width="3"/>
+  <circle cx="84" cy="99" r="4" fill="#2b1d14"/>
+  <circle cx="120" cy="99" r="4" fill="#2b1d14"/>
+  <circle cx="85.5" cy="97.5" r="1.3" fill="#fff"/>
+  <circle cx="121.5" cy="97.5" r="1.3" fill="#fff"/>
+  <!-- Brauen, Nase, Mund, Wangen -->
+  <path d="M70 80q12-8 24-2M106 78q12-6 24 2" fill="none" stroke="#2b1d14" stroke-width="3" stroke-linecap="round"/>
+  <path d="M100 104q-4 10 2 12" fill="none" stroke="#c98a60" stroke-width="3" stroke-linecap="round"/>
+  <path d="M84 126q16 14 32 0" fill="#fff" stroke="#2b1d14" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="70" cy="116" r="7" fill="#f4978e" fill-opacity=".55"/>
+  <circle cx="130" cy="116" r="7" fill="#f4978e" fill-opacity=".55"/>
+</svg>

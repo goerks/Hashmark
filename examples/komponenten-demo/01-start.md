@@ -33,10 +33,10 @@ Eine Datei `components/timeline.html` macht aus `::: timeline` einen Zeitstrahl.
 
 ## Profilkarte
 
-::: person name="Anna Beispiel" role="Product Owner"
+::: person name="Anna Beispiel" role="Product Owner" photo=anna.svg
 Verantwortet das Backlog und die **Priorisierung**.
 :::
 
 ::: notes
-Die Karte nutzt den Rumpf als Beschreibung. Mit `photo=anna.jpg` käme ein Bild dazu: Pfade in Attributen löst `{{ photo|image }}` wie normale Bilder auf.
+Die Karte nutzt den Rumpf als Beschreibung. Das Bild kommt per `photo=anna.svg`: Pfade in Attributen löst `{{ photo|image }}` wie normale Bilder auf.
 :::
