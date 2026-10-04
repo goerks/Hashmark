@@ -314,6 +314,32 @@ func (a *app) exportPDF(query, suffix string) error {
 	return nil
 }
 
+func (a *app) exportPPTX(query, suffix string) error {
+	d := a.currentDeck()
+	if d == nil {
+		return nil
+	}
+	out, err := a.savePath("PowerPoint speichern", d.name+suffix+".pptx", "PowerPoint", "*.pptx")
+	if err != nil || out == "" {
+		return err
+	}
+	var res any
+	if err := a.withBusy("PPTX wird erstellt", func() (e error) {
+		res, e = a.call("pptx", map[string]any{"query": query, "out": out})
+		return
+	}); err != nil {
+		return err
+	}
+	slides := 0
+	if m, ok := res.(map[string]any); ok {
+		if p, ok := m["slides"].(float64); ok {
+			slides = int(p)
+		}
+	}
+	a.done(fmt.Sprintf("PowerPoint-Datei erstellt: %d Folien (Text, Listen, Code und Tabellen sind bearbeitbar)", slides), out)
+	return nil
+}
+
 func (a *app) exportHTML() error {
 	d := a.currentDeck()
 	if d == nil {
@@ -365,6 +391,13 @@ func (a *app) onAction(msg map[string]any) {
 			suffix = "-handout"
 		}
 		err = a.exportPDF(q, suffix)
+	case "pptx":
+		q := str(msg, "query")
+		suffix := ""
+		if strings.Contains(q, "depth=1") {
+			suffix = "-hauptpfad"
+		}
+		err = a.exportPPTX(q, suffix)
 	case "close":
 		a.closePresentation()
 	}
@@ -411,6 +444,9 @@ func (a *app) menu() []menuItem {
 			it("pdf-main", "PDF – nur Hauptpfad …", "", has),
 			it("pdf-steps", "PDF – jeder Schritt eine Seite …", "", has),
 			it("pdf-handout", "Handout mit Notizen (A4) …", "", has),
+			it("pptx-all", "PowerPoint (PPTX) – alle Folien …", "Strg+Umschalt+X", has),
+			it("pptx-main", "PowerPoint (PPTX) – nur Hauptpfad …", "", has),
+			it("pptx-steps", "PowerPoint (PPTX) – jeder Schritt eine Folie …", "", has),
 			sep,
 			it("reveal", "Deck-Ordner im Explorer zeigen", "", has),
 			it("close-deck", "Deck schließen", "", has),
@@ -497,6 +533,12 @@ func (a *app) onMenu(id string) {
 		err = a.exportPDF("?print&steps=1", "-schritte")
 	case id == "pdf-handout":
 		err = a.exportPDF("?print&notes=1", "-handout")
+	case id == "pptx-all":
+		err = a.exportPPTX("?print", "")
+	case id == "pptx-main":
+		err = a.exportPPTX("?print&depth=1", "-hauptpfad")
+	case id == "pptx-steps":
+		err = a.exportPPTX("?print&steps=1", "-schritte")
 	case id == "reveal":
 		if d := a.currentDeck(); d != nil {
 			err = openPath(d.dir)
@@ -549,7 +591,7 @@ func (a *app) onMenu(id string) {
 // Tastenkürzel (WebView2 schluckt Tasten, native Beschleuniger greifen nicht): JS in jeder Seite des Hauptfensters
 const shortcutsJS = `(() => {
   if (window.top !== window) return
-  const map = { 'ctrl+o': 'open', 'ctrl+n': 'new', 'ctrl+shift+e': 'export-html', 'ctrl+shift+p': 'pdf-all',
+  const map = { 'ctrl+o': 'open', 'ctrl+n': 'new', 'ctrl+shift+e': 'export-html', 'ctrl+shift+p': 'pdf-all', 'ctrl+shift+x': 'pptx-all',
     'ctrl+1': 'view-editor', 'ctrl+2': 'view-present', 'ctrl+r': 'reload', 'f11': 'fullscreen', 'f5': 'present', 'shift+f5': 'present-start' }
   addEventListener('keydown', (e) => {
     if (e.altKey) return

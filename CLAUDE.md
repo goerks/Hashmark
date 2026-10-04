@@ -10,16 +10,17 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
 | `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen (mit Datei: Logo zuschneiden und ersetzen) |
-| `make test` | Vitest (`tests/*.test.ts`, 151 Tests, Kern-Logik ohne DOM) |
+| `make test` | Vitest (`tests/*.test.ts`, 156 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-cross` / `make app-package` | Desktop-App (Go): bauen + starten (`DECK=…` optional) / Hülle für Windows, Linux, macOS (amd64, arm64) nach `dist-go/` / portables `dist-app/Hashmark/` (windows-amd64). Andere Ziele samt Archiv: `node scripts/package-app.ts <ziel> --version=… --archive` (online, lädt Node und die Pakete des Ziels) |
 | `hashmark --version` | Version `<letzter Tag ohne v>.<Kurz-Hash>`, per `-ldflags "-X main.version=…"` eingebettet (`make` über `git describe`, in der Pipeline der Job `version`); `VERSION=…` überschreibt |
 | Go | liegt **nicht** im Repo (ab 1.26, im `PATH`). Mehr braucht die Desktop-Hülle nicht: kein CGO, kein C-Compiler, kein Rust |
-| `make sidecar-smoke` | Node-Sidecar wie aus der App ansprechen: Deck, Datei-API, Aktionen, PDF, Handout, HTML (`SIDECAR_BUNDLE=1`: das Bündel) |
+| `make sidecar-smoke` | Node-Sidecar wie aus der App ansprechen: Deck, Datei-API, Aktionen, PDF, Handout, PPTX, HTML (`SIDECAR_BUNDLE=1`: das Bündel) |
 | `make build-examples` / `make docker-examples` | alle `examples/*` als statische Seiten mit Auswahlseite (`scripts/build-examples.ts`, `src/cli/examples.ts` teilt die Liste mit der Desktop-Startseite); Docker-Image `hashmark/beispiele` |
 | `make app-test` | E2E der Desktop-App **headless** (`HASHMARK_HEADLESS=1`, Fenster unsichtbar) über WebView2-CDP, nutzt `dist-app/Hashmark` bzw. `export/hashmark.exe` (`make app`); `VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json` mit Zeiten |
 | `make serve` / `make image` / `make image-run` | Webdienst lokal (`hashmark serve`, `EDITOR_PASSWORD`, Standard „geheim“) / Docker-Image des Webdienstes (`Dockerfile` im Root) bauen / starten |
 | `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/hashmark-demo`, 3030). `make dev` ohne ausdrückliches `DECK=` startet mit `--examples`: Plugin-Option `examples` (plugin.ts, `/__hashmark/examples` GET/POST wechselt das Deck) + `src/runtime/example-switcher.ts` (nur `import.meta.env.DEV`) |
 | `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless (`PLAN=path` oder `PLAN=grouped`: Reihenfolge nach Vortragsplan) |
+| `make pptx` | PowerPoint-Export (`hashmark pptx`, `DEPTH=1 STEPS=1 PLAN=… PPTX=…`): `src/pptx/` (extract.ts läuft im Browser, build.ts nutzt pptxgenjs + jszip), Orchestrierung `src/cli/pptx.ts` über dieselbe Druckansicht wie das PDF; Editor-Button, Desktop-Menü (Aktion `pptx`), `GET /__hashmark/pptx` |
 | `make check` | `hashmark check`: `src/core/check.ts` (statisch: Layouts, Attribute, Übergänge, Hinweise des Ladens), `src/cli/check.ts` (Überlauf: Build + Druckansicht per Edge/Chrome, liest `data-overflow` der `.print-page[data-node][data-sub]`); Exit 1 bei Fehlern; `pdf.ts`: `withPrintView`/`serveBuild` geteilt mit dem PDF-Export |
 | `make deps-update` | neue Pakete online holen, landen im Cache `vendor/npm-cache` |
 
@@ -190,6 +191,12 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
   - Headless: `Emulation.setTouchEmulationEnabled` macht `pointer: coarse` wahr (Tastaturleiste), `setFocusEmulationEnabled` liefert `view.hasFocus`.
   - Beim Laden wechselt der Editor einmal die Datei, sobald die Vorschau ihre Position meldet (`followPreview`). Tests erst danach bedienen.
 
+- **PPTX-Export** (`src/pptx/`, `src/cli/pptx.ts`):
+  - Ablauf: Druckansicht in Edge/Chrome (Viewport 1400 × 900, Faktor 2) → `extractPages` (als `fn.toString()` per CDP ausgewertet, **in sich geschlossen**, keine Imports) beschreibt jede Seite als Objekte (`model.ts`) → Aufnahmen → `buildPptx`. Maße in Bühnen-Pixeln (1280 × 720 = 13,33 × 7,5 Zoll), Schrift px × 0,75 = pt.
+  - Drei Ebenen je Folie: Hintergrundbild (Seite mit durchsichtigem Text, `html.hm-bg`; Bilder/Tabellen/Diagramme per `data-pn/pt/pr` ausgeblendet; Pseudo-Elemente behalten ihre Farbe über `--hm-pb/--hm-pa`), darüber Bilder bzw. Einzelaufnahmen (`html.hm-r`, durchsichtig), darüber der native Text. Dekoration, die im DOM nach einem Bild liegt und es überlappt (Sprechblasen, Rahmen), wird als `overlay`-Bild über das Bild gelegt, sonst läge sie darunter.
+  - Ohne Dekoration (`solidBg`) gibt es kein Hintergrundbild, nur eine Folienfarbe. Inline-Elemente mit Hintergrund (Inline-Code) werden zur Textmarkierung (`data-ph`), nicht zur Kachel.
+  - pptxgenjs-Eigenheiten: Ein Lauf mit `bullet` beginnt immer einen neuen Absatz (Absatz-Eigenschaften nur am ersten Lauf); Aufzählungsfarbe fehlt, `colorBullets` setzt `buClr` per XML nach (nur wenn die Anzahl stimmt); Tabellenränder ≥ 1 gelten als Punkte.
+  - Prüfen: PowerPoint ist hier installiert, `Presentations.Open` + `Export(dir,'PNG',1280,720)` per COM und Vergleich mit Browser-Screenshots.
 - **Webdienst (`hashmark serve`, Docker/Render):**
   - Ein Prozess, ein Container: `live-server.ts` mit Option `web` liefert die Präsentation öffentlich und `/editor.html` plus Datei-API nur mit HTTP-Basic-Passwort (`EDITOR_PASSWORD`, ohne Passwort gibt es keinen Editor). `/healthz` für Render.
   - Die Datei-API prüft im Webbetrieb weiter den Header `X-Hashmark-Editor` und dass `Origin` zum `Host` passt (Basic-Zugangsdaten gehen sonst auch von fremden Seiten mit). `/__hashmark/app` bleibt localhost-only.

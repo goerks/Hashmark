@@ -3,6 +3,7 @@
 // nur Pfade innerhalb des Deck-Ordners und nur erlaubte Dateitypen.
 
 import fs from 'node:fs/promises'
+import os from 'node:os'
 import path from 'node:path'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Connect } from 'vite'
@@ -73,7 +74,7 @@ async function addToManifest(deckDir: string, rel: string) {
   return true
 }
 
-const APP_ACTIONS = new Set(['present', 'presenter', 'pdf', 'position', 'close'])
+const APP_ACTIONS = new Set(['present', 'presenter', 'pdf', 'pptx', 'position', 'close'])
 
 /**
  * Desktop-App: `POST /__hashmark/app` mit `{ action, … }` → an die App weiterreichen.
@@ -157,6 +158,24 @@ export function editorApi(deckDir: string, options: EditorApiOptions = {}): Conn
         const old = await fs.readFile(abs, 'utf8').catch(() => null)
         if (old !== text) await fs.writeFile(abs, text)
         return send(200, { ok: true })
+      }
+      if (route === '/pptx' && req.method === 'GET') {
+        // Export im Browser-Editor: der Server rendert seine eigene Druckansicht mit Edge/Chrome und liefert die Datei
+        const query = url.searchParams.get('query') ?? '?print'
+        if (!/^\?print[\w=&.-]*$/.test(query)) throw new HttpError(400, 'Ungültige Optionen')
+        const tmp = path.join(os.tmpdir(), `hashmark-${process.pid}-${Date.now()}.pptx`)
+        try {
+          const { printUrlToPptx } = await import('../cli/pptx.ts')
+          await printUrlToPptx(`http://localhost:${req.socket.localPort}/${query}`, tmp)
+          const data = await fs.readFile(tmp)
+          res.statusCode = 200
+          res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.presentationml.presentation')
+          res.setHeader('Content-Disposition', `attachment; filename="${path.basename(deckDir).replace(/[^\w.-]+/g, '-')}.pptx"`)
+          res.setHeader('Cache-Control', 'no-store')
+          return res.end(data)
+        } finally {
+          await fs.rm(tmp, { force: true })
+        }
       }
       if (route === '/new' && req.method === 'POST') {
         const abs = inside(deckDir, rel)

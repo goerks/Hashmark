@@ -8,6 +8,7 @@ import { PROJECT_ROOT, config } from './config.ts'
 import { exportSingleFile } from './export.ts'
 import { checkDeck, formatFinding } from './check.ts'
 import { exportPdf } from './pdf.ts'
+import { exportPptx } from './pptx.ts'
 import { serve } from './serve.ts'
 import { printQuery } from '../core/print.ts'
 
@@ -102,6 +103,20 @@ cli
     const out = path.resolve(opts.out ?? path.join('export', `${name}.pdf`))
     const query = printQuery({ depth: opts.depth ? Number(opts.depth) : undefined, steps: opts.steps, notes: opts.notes, footer: opts.footer, plan: opts.plan === 'path' || opts.plan === 'grouped' ? opts.plan : undefined })
     await exportPdf(config(deck), { out, query, browser: opts.browser })
+  })
+
+cli
+  .command('pptx [deck]', 'PowerPoint-Datei (.pptx) erzeugen: Text, Listen, Code und Tabellen bleiben bearbeitbar (nutzt Edge/Chrome, offline)')
+  .option('--out <file>', 'Zieldatei (Standard: export/<deck>.pptx)')
+  .option('--depth <n>', 'nur bis Ebene n (1 = Hauptpfad)')
+  .option('--steps', 'jeder Schritt eine eigene Folie')
+  .option('--plan <modus>', 'Reihenfolge nach dem Vortragsplan: path (nur Pfad) oder grouped (Pfad, Optionales, Anhang)')
+  .option('--footer', 'mit Breadcrumb und Seitenzahl')
+  .option('--browser <path>', 'Pfad zu Edge/Chrome (sonst automatisch, oder HASHMARK_BROWSER)')
+  .action(async (deck = '.', opts: { out?: string; depth?: string; steps?: boolean; plan?: string; footer?: boolean; browser?: string }) => {
+    const out = path.resolve(opts.out ?? path.join('export', `${path.basename(path.resolve(deck))}.pptx`))
+    const query = printQuery({ depth: opts.depth ? Number(opts.depth) : undefined, steps: opts.steps, footer: !!opts.footer, plan: opts.plan === 'path' || opts.plan === 'grouped' ? opts.plan : undefined })
+    await exportPptx(config(deck), { out, query, browser: opts.browser })
   })
 
 cli

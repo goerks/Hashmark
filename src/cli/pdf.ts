@@ -116,13 +116,13 @@ export interface PdfOptions {
 
 export interface PrintResult { pages: number; bytes: number; warnings: string[] }
 
-type Cdp = Awaited<ReturnType<typeof connect>>
+export type Cdp = Awaited<ReturnType<typeof connect>>
 
 /**
  * Seite unter `url` (Druckansicht) in Edge/Chrome headless öffnen, auf das Signal `printReady` warten und `fn` ausführen.
  * Räumt Browser und Profil danach auf. Basis für den PDF-Export und `hashmark check`.
  */
-export async function withPrintView<T>(url: string, browserPath: string | undefined, fn: (cdp: Cdp) => Promise<T>): Promise<T> {
+export async function withPrintView<T>(url: string, browserPath: string | undefined, fn: (cdp: Cdp) => Promise<T>, setup?: (cdp: Cdp) => Promise<void>): Promise<T> {
   const browser = findBrowser(browserPath)
   const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'hashmark-print-'))
   let proc: ChildProcess | undefined
@@ -135,6 +135,7 @@ export async function withPrintView<T>(url: string, browserPath: string | undefi
     try {
       await cdp.send('Runtime.enable')
       await cdp.send('Page.enable')
+      await setup?.(cdp)
       await cdp.send('Page.navigate', { url })
 
       const deadline = Date.now() + 90_000

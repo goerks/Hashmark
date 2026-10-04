@@ -36,7 +36,7 @@ APP_TARGETS := windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/amd64 
 GIT_TAG := $(patsubst v%,%,$(shell git describe --tags --abbrev=0 2>nul || echo 0.0.0))
 VERSION ?= $(GIT_TAG).$(shell git rev-parse --short HEAD)
 
-.PHONY: help setup node install app app-cross app-exe app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf check build-examples docker-examples docker docker-run test new clean distclean
+.PHONY: help setup node install app app-cross app-exe app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf pptx check build-examples docker-examples docker docker-run test new clean distclean
 
 help:
 	@echo Hashmark - Maechtige Praesentationen aus reinem Markdown
@@ -46,7 +46,7 @@ help:
 	@echo   make app-cross     Desktop-Huelle fuer Windows/Linux/macOS (amd64, arm64) nach dist-go/
 	@echo   make app-package   Portables Programm: dist-app/Hashmark/Hashmark.exe
 	@echo   make app-test      E2E-Test der Desktop-App, headless (ohne sichtbare Fenster)
-	@echo   make sidecar-smoke Selbsttest des Node-Sidecars (Deck, PDF, HTML) nach export/sidecar-smoke
+	@echo   make sidecar-smoke Selbsttest des Node-Sidecars (Deck, PDF, PPTX, HTML) nach export/sidecar-smoke
 	@echo   make edit          Editor: links Markdown, rechts Live-Vorschau (DECK=...)
 	@echo   make serve         Webdienst lokal (Praesentation oeffentlich, Editor mit Passwort EDITOR_PASSWORD)
 	@echo   make image         Docker-Image des Webdienstes bauen (Dockerfile im Root, Name: $(SERVER_IMAGE))
@@ -58,6 +58,7 @@ help:
 	@echo   make preview       Gebautes Deck lokal ausliefern
 	@echo   make preview-lan   Gebautes Deck im Netzwerk ausliefern
 	@echo   make export        Eine HTML-Datei, laeuft offline per Doppelklick (export/)
+	@echo   make pptx          PowerPoint nach export/ (DEPTH=1, STEPS=1, PLAN=path|grouped, PPTX=pfad.pptx)
 	@echo   make pdf           PDF nach export/ (DEPTH=1 Hauptpfad, STEPS=1 je Schritt, NOTES=1 Handout, PLAN=path|grouped nach Vortragsplan)
 	@echo   make check         Deck pruefen: Layouts, Bilder, Theme, Ueberlauf (NOOVERFLOW=1 ohne Browser, STRICT=1)
 	@echo   make docker        Build + Docker-Image mit nginx  (IMAGE=$(IMAGE))
@@ -143,6 +144,10 @@ export: node_modules
 # Optionen: DEPTH=n, STEPS=1, NOTES=1, PLAN=path|grouped, PDF=pfad.pdf, BROWSER=pfad-zu-edge-oder-chrome
 pdf: node_modules
 	$(HASHMARK) pdf "$(DECK)" $(if $(DEPTH),--depth $(DEPTH)) $(if $(STEPS),--steps) $(if $(NOTES),--notes) $(if $(PLAN),--plan $(PLAN)) $(if $(PDF),--out "$(PDF)") $(if $(BROWSER),--browser "$(BROWSER)")
+
+# PowerPoint (.pptx): Text, Listen, Code, Tabellen bearbeitbar; Diagramme/Dekoration als Bild. Optionen: DEPTH=n, STEPS=1, PLAN=path|grouped, PPTX=pfad.pptx, BROWSER=…
+pptx: node_modules
+	$(HASHMARK) pptx "$(DECK)" $(if $(DEPTH),--depth $(DEPTH)) $(if $(STEPS),--steps) $(if $(PLAN),--plan $(PLAN)) $(if $(PPTX),--out "$(PPTX)") $(if $(BROWSER),--browser "$(BROWSER)")
 
 # Deck prüfen (Layouts, Attribute, Bilder, Theme, Überlauf); NOOVERFLOW=1 = ohne Browser, STRICT=1 = Hinweise sind Fehler
 check: node_modules

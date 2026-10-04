@@ -82,6 +82,8 @@ try {
   check('PDF vom laufenden Server', pdf.ok && pdf.result.pages > 1, pdf.ok ? `${pdf.result.pages} Seiten, ${((Date.now() - t0) / 1000).toFixed(0)} s` : pdf.error)
   const handout = await call('pdf', { query: '?print&notes=1', out: path.join(out, 'handout.pdf') })
   check('Handout', handout.ok && handout.result.pages > 1, handout.ok ? `${handout.result.pages} Seiten` : handout.error)
+  const pptx = await call('pptx', { query: '?print&footer=0', out: path.join(out, 'deck.pptx') })
+  check('PowerPoint-Export', pptx.ok && pptx.result.slides > 1 && fs.statSync(path.join(out, 'deck.pptx')).size > 10_000, pptx.ok ? `${pptx.result.slides} Folien` : pptx.error)
   const exp = await call('html', { out: path.join(out, 'deck.html') })
   check('HTML-Export', exp.ok && fs.statSync(path.join(out, 'deck.html')).size > 1_000_000, exp.error ?? '')
 

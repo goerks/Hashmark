@@ -281,6 +281,29 @@
     else window.open('./' + printQuery({}, { autoprint: '1' }), '_blank')
   }
 
+  // PowerPoint: in der App speichert die Hülle (Dialog), im Browser rendert der Server und liefert die Datei
+  let pptxBusy = $state(false)
+  async function exportPptx(options: { depth?: number; steps?: boolean } = {}) {
+    const query = printQuery({ ...options, footer: false })
+    if (desktop) return void desktopAction({ action: 'pptx', query })
+    if (pptxBusy) return
+    pptxBusy = true
+    flash('PowerPoint wird erstellt … (das dauert etwas)')
+    try {
+      const blob = await api.pptx(query)
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `${deck?.title || 'praesentation'}.pptx`.replace(/[\\/:*?"<>|]+/g, '-')
+      a.click()
+      setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
+      flash('PowerPoint-Datei erstellt')
+    } catch (e) {
+      flash(`PPTX fehlgeschlagen: ${(e as Error).message}`)
+    } finally {
+      pptxBusy = false
+    }
+  }
+
   function present() {
     const hash = previewPos ? formatHash(previewPos) : ''
     if (desktop) void desktopAction({ action: 'present', hash })
@@ -300,6 +323,9 @@
       { group: 'Aktionen', title: 'Präsentieren', detail: 'Ab der aktuellen Folie', run: present },
       ...(canPresentOptions ? [{ group: 'Aktionen', title: 'Präsentieren: Optionen …', detail: 'Presenter-View und Bildschirme', run: () => { presentOptions = true } }] : []),
       { group: 'Aktionen', title: 'PDF / Druckansicht', run: exportPdf },
+      { group: 'Aktionen', title: 'PowerPoint (PPTX) exportieren', detail: 'Text, Listen, Code und Tabellen bleiben bearbeitbar', run: () => exportPptx() },
+      { group: 'Aktionen', title: 'PowerPoint (PPTX): nur Hauptpfad', run: () => exportPptx({ depth: 1 }) },
+      { group: 'Aktionen', title: 'PowerPoint (PPTX): jeder Schritt eine Folie', run: () => exportPptx({ steps: true }) },
       { group: 'Aktionen', title: 'Ansicht: Schreiben', run: () => setMode('write') },
       { group: 'Aktionen', title: 'Ansicht: Geteilt', run: () => setMode('split') },
       { group: 'Aktionen', title: 'Ansicht: Vorschau', run: () => setMode('preview') },
@@ -466,6 +492,7 @@
       <span>Suchen</span><kbd>Strg K</kbd>
     </button>
     <button class="ed-pdf" onclick={exportPdf} title="Druckansicht öffnen: drucken oder als PDF speichern">PDF</button>
+    <button class="ed-pdf" onclick={() => exportPptx()} disabled={pptxBusy} title="Als PowerPoint-Datei exportieren (Text, Listen, Code und Tabellen bleiben bearbeitbar)">{pptxBusy ? 'PPTX …' : 'PPTX'}</button>
     <span class="ed-presentgroup">
       <button class="ed-present" onclick={present} title="Präsentation öffnen">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z" fill="currentColor" stroke="none" /></svg>Präsentieren

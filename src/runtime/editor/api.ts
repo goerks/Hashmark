@@ -22,6 +22,8 @@ export const api = {
   read: (path: string) => call('GET', '/file', { path }).then((r) => r.text()),
   write: (path: string, text: string) => call('PUT', '/file', { path }, text),
   create: (path: string): Promise<{ path: string; mounted: boolean }> => call('POST', '/new', { path }).then((r) => r.json()),
+  /** PowerPoint-Datei vom Server rendern lassen (braucht Edge/Chrome auf dem Server) */
+  pptx: (query: string) => call('GET', '/pptx', { query }).then((r) => r.blob()),
   upload: (file: File): Promise<{ path: string }> => call('POST', '/upload', { name: file.name || 'bild.png' }, file).then((r) => r.json()),
 }
 

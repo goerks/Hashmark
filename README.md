@@ -30,6 +30,7 @@ make dev DECK=decks/mein-vortrag
 | `make dev-lan` / `make preview-lan` | Wie `dev` / `preview`, aber im Netzwerk (LAN/VPN) erreichbar |
 | `make export` | Eine einzelne HTML-Datei nach `export/<deck>.html`, läuft offline per Doppelklick |
 | `make pdf` | PDF nach `export/<deck>.pdf` (Optionen siehe „PDF und Druck“) |
+| `make pptx` | PowerPoint nach `export/<deck>.pptx` (siehe „PowerPoint-Export“) |
 | `make check` | Deck prüfen wie ein Linter (`DECK=…`): unbekannte Layouts/Attribute, fehlende Bilder, Theme-Fehler und Überlauf der Folien. `NOOVERFLOW=1` ohne Browser, `STRICT=1` Hinweise als Fehler. Exit-Code 1 bei Fehlern, geeignet für CI |
 | `make docker` / `make docker-run` | Build und Docker-Image mit nginx (`IMAGE=…`), starten auf `DOCKER_PORT` (8080) |
 | `make build-examples` / `make docker-examples` | Alle Beispiele unter `examples/` mit Auswahlseite (`dist/index.html` + `dist/<deck>/`), bzw. als nginx-Image `hashmark/beispiele` |
@@ -62,7 +63,7 @@ Die App ist eine schlanke Go-Hülle (ohne CGO, ca. 7 MB) um die Webview des Syst
   - **Mit Presenter-View** zeigt die Präsentation keine Bedienhilfen: kein Steuerkreuz, keine Schrittpunkte und Folienzähler, kein „↓ n Details“, keine Plan-Hinweise. Sie stehen im Presenter. Ohne Presenter bleibt alles sichtbar. Das gilt auch, wenn du den Presenter mit S öffnest.
   - Mit nur einem Bildschirm öffnet S die Presenter-View als eigenes Fenster.
   - Beenden: Ctrl+W, der Knopf ✕ Beenden (oben rechts in der Präsentation, erscheint mit der Maus; im Presenter mit Rückfrage) oder Menü Präsentieren › Präsentation beenden. Alt+F4 geht ebenfalls.
-- **Export** (Menü Datei): Als HTML-Datei (Ctrl+Shift+E), PDF mit allen Folien (Ctrl+Shift+P), nur Hauptpfad, jeder Schritt eine Seite, Handout mit Notizen. Das PDF entsteht wie bei `make pdf` über Edge headless, direkt vom laufenden Deck, ohne neuen Build.
+- **Export** (Menü Datei): Als HTML-Datei (Ctrl+Shift+E), PDF mit allen Folien (Ctrl+Shift+P), nur Hauptpfad, jeder Schritt eine Seite, Handout mit Notizen, PowerPoint (Ctrl+Shift+X, siehe „PowerPoint-Export“). Das PDF entsteht wie bei `make pdf` über Edge headless, direkt vom laufenden Deck, ohne neuen Build.
 - **Ansicht:** Editor (Ctrl+1), Präsentation im Fenster (Ctrl+2), Neu laden (Ctrl+R), Vollbild (F11), Entwicklertools (F12). Die Tastenkürzel des Menüs sind Skripte in den Seiten, weil WebView2 Tasten selbst verarbeitet.
 - **Sicherheit:**
   - Die internen Server lauschen nur auf 127.0.0.1 mit zufälligem Port.
@@ -191,6 +192,27 @@ make pdf DECK=decks/x PDF=vortrag.pdf
 - **Ctrl+P** (oder Menü „Drucken“) direkt in der Präsentation druckt **alle Folien**, eine pro Seite. Im Druckdialog lässt sich unter „Seiten“ ein Bereich wählen, z. B. `5-12`. Die Seitenzahlen stehen unten rechts auf jeder Folie.
 - **P** in der Präsentation, der Button **PDF** im Editor oder die URL `?print` öffnen die **Druckansicht mit Optionen** (Tiefe, Reihenfolge nach Vortragsplan, jeder Schritt eine Seite, Handout, Fußzeile) und danach den Druckdialog.
 - Die Folien passen sich jedem Papierformat an (16:9 ist Standard, A4/Letter werden auf die Breite skaliert). Das funktioniert auch im Single-File-Export.
+
+### PowerPoint-Export
+
+`make pptx` (Editor: Button **PPTX** oder Ctrl+K › „PowerPoint“, Desktop-App: Datei › PowerPoint) erzeugt eine `.pptx`-Datei, die sich in PowerPoint weiterbearbeiten lässt.
+
+```sh
+make pptx                         # alle Folien → export/<deck>.pptx
+make pptx DEPTH=1                 # nur Hauptpfad
+make pptx STEPS=1                 # jeder Schritt eine eigene Folie (Aufbau wie in der Präsentation)
+make pptx PLAN=path               # Reihenfolge nach dem Vortragsplan (path | grouped)
+```
+
+Was dabei entsteht:
+
+- **Bearbeitbar:** Überschriften, Absätze, Listen (mit Aufzählungsfarbe und Ebenen), Code (Consolas, Syntaxfarben), Tabellen (echte PowerPoint-Tabellen), Fett/Kursiv/Links und Inline-Code. Querverweise werden zu Sprungmarken auf die Zielfolie.
+- **Als Bild:** Mermaid-Diagramme, SVG, QR-Codes, Figuren mit Beschriftungen, runde oder zugeschnittene Bilder. Normale PNG/JPG/GIF-Bilder bleiben echte Bilder (mit Alternativtext).
+- **Dekoration** (Kacheln, Rahmen, Verläufe, Hintergrundbilder, Logos des Themes) liegt als Hintergrundbild unter dem Text. Folien mit einfarbigem Hintergrund bekommen stattdessen eine echte Hintergrundfarbe.
+- **Sprechernotizen** stehen in den Notizen der Folie, die obersten Kapitel werden PowerPoint-Abschnitte.
+- Es braucht wie das PDF Edge oder Chrome (`BROWSER=…`), sonst nichts, und läuft offline. Im Browser-Editor rendert der Server die Datei; im Webdienst (Docker) fehlt dort der Browser.
+- Schriften: Es werden die Schriftnamen des Themes verwendet (Segoe UI, Consolas, bei Code-Schriften ohne Consolas bleibt der Name). Fehlt eine Schrift auf dem Zielrechner, ersetzt PowerPoint sie.
+- Schritte sind in PowerPoint keine Animationen: Mit `STEPS=1` entsteht pro Schritt eine Folie. Übergänge werden nicht exportiert.
 
 Das PDF hat:
 - **Format:** eine Folie pro Seite im Format 16:9 (13,33 × 7,5 Zoll wie PowerPoint), bzw. A4 hoch beim Handout

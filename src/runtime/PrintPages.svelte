@@ -53,7 +53,8 @@
 
 <div class="print-pages" bind:this={root}>
   {#each pages as page, i (`${page.node.id}:${page.slide}:${page.step}`)}
-    <article class="print-page" id={page.first ? page.node.id : undefined} data-node={page.node.id} data-sub={page.slide}>
+    <article class="print-page" id={page.first ? page.node.id : undefined} data-node={page.node.id} data-sub={page.slide} data-step={page.step}
+      data-title={page.node.title} data-depth={page.node.depth} data-section={page.trail[0]?.title ?? page.node.title}>
       <div class="print-slide">
         <div class="print-stage">
           <Slide node={page.node} slide={page.slide} step={page.step} layout={layoutOf(page.node)} titleTag={titleTag(page.node, page.first)} />
@@ -64,6 +65,8 @@
           {/if}
         </div>
       </div>
+      <!-- für den PPTX-Export (Sprechernotizen), nie sichtbar -->
+      {#if page.node.slides[page.slide].notes}<div class="pptx-notes" hidden>{@html page.node.slides[page.slide].notes}</div>{/if}
       {#if options.notes}
         <div class="print-notes">
           {#if page.slideFirst && page.node.slides[page.slide].notes}{@html page.node.slides[page.slide].notes}{:else if page.slideFirst}<p class="print-empty">Keine Notizen</p>{/if}

@@ -144,6 +144,15 @@ export function createSidecar({ dataDir, emit, log = () => {} }: SidecarOptions)
       log(`[hashmark] PDF in ${ms(t0)}: ${res.pages} Seiten`)
       return { pages: res.pages, bytes: res.bytes }
     },
+    async pptx(r) {
+      if (!baseUrl) throw new Error('Kein Deck geöffnet')
+      const query = typeof r.query === 'string' && r.query.startsWith('?print') ? r.query : '?print'
+      const t0 = performance.now()
+      const { printUrlToPptx } = await import('../cli/pptx.ts')
+      const res = await printUrlToPptx(baseUrl + query, str(r.out, 'out'))
+      log(`[hashmark] PPTX in ${ms(t0)}: ${res.slides} Folien, ${res.rasters} Bilder`)
+      return { slides: res.slides, bytes: res.bytes }
+    },
     async html(r) {
       if (!deckDir) throw new Error('Kein Deck geöffnet')
       const out = str(r.out, 'out')

@@ -11,7 +11,7 @@ Stand: 29.09.2026 · Ergebnis des Brainstormings nach dem MVP. Ergänzt das [Kon
 | Layouts | `title`, `section`, `default`, `two-col`, `::: grid` | wenig Auswahl, keine Vorgaben je Ebene, Titel-Bug auf Ebene ≥ 2 |
 | Diagramme | Mermaid inkl. Schritte | keine weiteren Sprachen, keine Plugin-Schnittstelle nach außen |
 | Notizen | `::: notes`, `<!-- notes -->` | nur im Handout sichtbar, pro Knoten zusammengefügt |
-| Druck | `make pdf`, Ctrl+P, Handout, Lesezeichen, Links | nur 1 Folie pro Seite, kein PPTX |
+| Druck | `make pdf`, Ctrl+P, Handout, Lesezeichen, Links, ✅ PPTX-Export | nur 1 Folie pro Seite |
 | Editor | Gliederung (Klick springt), Sync, Bausteine | Gliederung nur lesend, kein Inspector |
 
 ## Themen im Einzelnen
@@ -78,7 +78,7 @@ Voraussetzung: Renderer-Schnittstelle `render(code, ctx) → { svg, steps }` mit
 
 ### Druck
 
-Großteils umgesetzt. Ergänzungen: Handout 2/3/6 pro Seite, Titelseite mit Baum und Inhaltsverzeichnis, Gliederung als Textdokument, `{print=false}`, PPTX-Export (`pptxgenjs`).
+Großteils umgesetzt. Ergänzungen: Handout 2/3/6 pro Seite, Titelseite mit Baum und Inhaltsverzeichnis, Gliederung als Textdokument, `{print=false}`. ✅ PPTX-Export (03.10.2026, siehe unten).
 
 ### Editor
 
@@ -113,13 +113,13 @@ Suche Ctrl+K, Includes (`!include`, Code aus dem Repo mit Zeilenbereich), `hidde
 | **3 · Inhalte** | Graphviz (WASM), D2 (WASM), KaTeX, PlantUML nur als JS-Version, Includes, Vega-Lite, Markmap, Handout n pro Seite |
 | **4 · Animation** | Schritt-Effekte, Zoom aus Kachel, View Transitions, Magic Move, Mermaid-Morph |
 | **5 · Editor-Outliner** | Drag & Drop, Ebene höher/tiefer, dateiübergreifend verschieben |
-| **6 · Desktop & Verteilung** | Desktop-App ✅ (Go-Hülle, Node als Sidecar; Linux/macOS ungetestet), später ohne Node, PPTX-Export, Publikum folgt live |
+| **6 · Desktop & Verteilung** | Desktop-App ✅ (Go-Hülle, Node als Sidecar; Linux/macOS ungetestet), PPTX-Export ✅, später ohne Node, Publikum folgt live |
 
 Begründung: Stufe 1 macht Hashmark für echte Vorträge fertig und nutzt, was der Parser schon liefert. Stufe 2 vor Diagrammen, Themes und App, weil sonst jede neue Sprache und später die Desktop-App die heutigen Kopplungen (Vite-Middleware, feste Renderer) umbauen müsste.
 
 ## Entscheidungen
 
-- **Zielgruppe (29.09.2026):** vorerst nur eigene Vorträge. Corporate-Theme und PPTX-Export bleiben hinten.
+- **Zielgruppe (29.09.2026):** vorerst nur eigene Vorträge. Corporate-Theme bleibt hinten. Der PPTX-Export wurde am 03.10.2026 vorgezogen, weil Firmen oft eine bearbeitbare Datei brauchen.
 - **Diagrammsprachen (29.09.2026):** nur Engines, die als Bibliothek im Browser bzw. im Build laufen (JS/WASM), ohne externe Installation (kein Java, kein Graphviz-Binary, kein Server). Ohne solche Bibliothek wird die Sprache nicht unterstützt. Damit entfallen Kroki und PlantUML per JAR/Server. PlantUML nur, falls sich die JS-Version (TeaVM) offline bündeln lässt.
 
 - **Desktop (29.09.2026):** erst Tauri (am 01.10.2026 durch Go ersetzt, siehe unten). Eine Electron-Version wurde gebaut und wieder verworfen: Sie war zu groß (Electron allein ~160 MB im Repo, Programm ~510 MB). Große Binärdateien kommen nicht ins Repo.
@@ -131,6 +131,25 @@ Begründung: Stufe 1 macht Hashmark für echte Vorträge fertig und nutzt, was d
   - Offen: Linux (GTK 3) und macOS (Objective-C per purego) haben Menü, Vollbild und Monitorwahl (`native_linux.go`, `native_darwin.go`), sind aber nur kompiliert und nie gelaufen. Annahmen: `Window()` liefert GtkWindow bzw. NSWindow, die Webview sitzt direkt im GTK-Fenster, Struktur-Rückgaben per purego (macOS Intel über `objc_msgSend_stret`). Unter Linux nutzen die Dialoge `zenity`/`kdialog`.
   - Offen: Das Paket (`make app-package`) gibt es nur für Windows. Für Linux/macOS braucht es je System ein eigenes Node und die nativen npm-Pakete (der Vendor-Cache enthält nur Windows-Binärdateien).
   - Bekannte Lücken: ein Fenster je Prozess, `go-webview` ist ein junges Projekt (März 2025). Externe Links fängt ein Skript in den Seiten ab (`externalLinksJS`, app.go).
+
+## Backlog: Wettbewerbsvergleich (03.10.2026)
+
+Vergleich mit reveal.js, Marp, Slidev und Quarto. Das Alleinstellungsmerkmal ist der navigierbare Baum mit Vortragsplan, offline und ohne Installer. In der Breite liegen die anderen vorn. Reihenfolge nach Hebel:
+
+1. ✅ **PPTX-Export** mit bearbeitbarem Text, Listen, Code und Tabellen (`make pptx`, Button PPTX im Editor, Desktop-Menü). Aufbau: Druckansicht in Edge/Chrome → `src/pptx/extract.ts` (im Browser) → `src/pptx/build.ts` (pptxgenjs). Diagramme und Dekoration als Bild. Offen:
+   - Schritte als echte PowerPoint-Animationen (heute: eine Folie je Schritt mit `STEPS=1`).
+   - Übergänge exportieren, Folienmaster und Layouts aus dem Theme erzeugen (heute ein einziges Layout mit Titel-Platzhalter).
+   - Kacheln, Karten und Rahmen als echte Formen statt im Hintergrundbild; SVG als Vektor (PowerPoint 365).
+   - Fehlende Schriften auf dem Zielrechner (Cascadia → Consolas ist abgedeckt, Web-Fonts gibt es nicht).
+   - PPTX-Import (wurde gebaut und verworfen, siehe Memory), Export als Google-Slides-tauglich prüfen.
+2. **Plugin-API** (Stufe 2): Komponenten mit Logik, eigene Container und Diagrammsprachen, damit ein Ökosystem entsteht.
+3. **Formeln (KaTeX), PlantUML/D2, Diagramme aus Daten** (CSV, Vega-Lite): kleine, klar abgegrenzte Lücken.
+4. **Animationen:** Auto-Animate und Magic Move für Code und Elemente, Klick-Animationen.
+5. **Linux und macOS wirklich testen**, mit CI-Läufen auf allen drei Systemen.
+6. **Sichtbarkeit:** Git-Remote, Doku-Seite als Hashmark-Deck, Beispielgalerie, mehr Themes (Corporate-Import).
+7. **Live-Funktionen:** Annotieren, Handy als Fernbedienung, Umfragen, Aufnahme, Kamera-Overlay.
+8. **Barrierefreiheit** in `hashmark check`: Kontrast, Alt-Texte, Lesereihenfolge.
+9. **Baum als Erzählstruktur ausbauen:** Publikumsvarianten aus einer Quelle (10-/30-/60-Minuten-Fahrplan als Export), automatische Zeitanpassung, Handout je Fahrplan. Das kann kein anderes Tool.
 
 ## Backlog: mögliche Refactorings
 
