@@ -9,6 +9,7 @@ import { toString } from 'mdast-util-to-string'
 import { visit, SKIP } from 'unist-util-visit'
 import type { Definition, Heading, Image, Link, Root, RootContent, PhrasingContent, Text } from 'mdast'
 import { normalizeContainers, parseAttrs, splitHeadingAttrs } from './syntax.ts'
+import { protectMath } from './math.ts'
 
 export interface RawNode {
   title: string
@@ -24,7 +25,7 @@ export interface RawNode {
 const parser = unified().use(remarkParse).use(remarkGfm).use(remarkFrontmatter, ['yaml']).use(remarkDirective)
 
 export function parseMarkdown(markdown: string): Root {
-  const root = parser.parse(normalizeContainers(markdown))
+  const root = parser.parse(protectMath(normalizeContainers(markdown)))
   fixSetextBreaks(root, markdown)
   resolveReferences(root)
   return root

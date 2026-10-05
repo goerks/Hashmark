@@ -208,7 +208,7 @@ make pptx PLAN=path               # Reihenfolge nach dem Vortragsplan (path | gr
 Was dabei entsteht:
 
 - **Bearbeitbar:** Überschriften, Absätze, Listen (mit Aufzählungsfarbe und Ebenen), Code (Consolas, Syntaxfarben), Tabellen (echte PowerPoint-Tabellen), Fett/Kursiv/Links und Inline-Code. Querverweise werden zu Sprungmarken auf die Zielfolie.
-- **Als Bild:** Mermaid-Diagramme, SVG, QR-Codes, Figuren mit Beschriftungen, runde oder zugeschnittene Bilder. Normale PNG/JPG/GIF-Bilder bleiben echte Bilder (mit Alternativtext).
+- **Als Bild:** Mermaid-Diagramme, Formeln, SVG, QR-Codes, Figuren mit Beschriftungen, runde oder zugeschnittene Bilder. Normale PNG/JPG/GIF-Bilder bleiben echte Bilder (mit Alternativtext).
 - **Dekoration** (Kacheln, Rahmen, Verläufe, Hintergrundbilder, Logos des Themes) liegt als Hintergrundbild unter dem Text. Folien mit einfarbigem Hintergrund bekommen stattdessen eine echte Hintergrundfarbe.
 - **Sprechernotizen** stehen in den Notizen der Folie, die obersten Kapitel werden PowerPoint-Abschnitte.
 - Es braucht wie das PDF Edge oder Chrome (`BROWSER=…`), sonst nichts, und läuft offline. Im Browser-Editor rendert der Server die Datei; im Webdienst (Docker) fehlt dort der Browser.
@@ -396,6 +396,7 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
 - **Code:** ` ```ts {title="auth.ts" lines="3-5|8|all"} ` mit Shiki. Die Farben kommen aus den `--shiki-token-*`-Tokens des Themes.
   - `lines`: hebt Zeilen hervor und dunkelt die übrigen ab. Jeder `|`-Abschnitt ist ein Schritt: Abschnitt 1 gilt sofort, jedes → schaltet weiter. `all` bzw. ein leerer Abschnitt zeigt alles normal. Ein einzelner Abschnitt (`lines="3-5"`) hebt fest hervor, ohne Schritt.
   - `lines` und `steps` lassen sich kombinieren, beide zählen über dieselbe Schrittnummer.
+- **Formeln (KaTeX):** `$a^2 + b^2 = c^2$` im Satz, `$$ … $$` als eigener Block (auch über mehrere Zeilen) und ` ```math ` (mit `step=2` / `until=3`). Ein Teil einer Formel erscheint schrittweise mit `\htmlData{step=2}{…}`. Gesetzt wird beim Laden des Decks (kein Skript im Browser), Schriften und Stile liegen im Programm: offline, im PDF, im Single-File-Export und in der App. Wie bei Pandoc beginnt eine Formel ohne Leerzeichen nach dem `$` und endet ohne Leerzeichen davor („kostet $5 und $6“ bleibt Text), `\$` ist ein Dollarzeichen. Inline-Code, Codeblöcke und Überschriften bleiben unberührt. Fehler stehen als roter Quelltext auf der Folie und als Hinweis in `hashmark check`. Beispiele: `examples/formeln-demo`. PowerPoint: Formeln gehen als Bilder hinein (Blockformeln einzeln, Absätze mit Formel im Satz als ganzer Absatz), `\htmlData`-Teile werden Animationen.
 - **Mermaid:** ` ```mermaid `, gerendert im Browser. Die Farben kommen aus den Theme-Tokens.
 - **Schritt für Schritt:** Die Schritte einer Folie werden über ihre Nummer synchronisiert. Gleiche Nummer bedeutet gleichzeitig: Links erscheint Bullet 2, rechts Code-Teil 2. Oben rechts zeigen Punkte den Fortschritt.
   - `::: steps` um eine Liste: Jeder Listenpunkt (bzw. jeder Block) ist ein Schritt. `::: steps start=2` beginnt später.
@@ -485,7 +486,7 @@ src/runtime/editor/  Editor (editor.html): CodeMirror, Vorschau-Sync, Bild-Uploa
 src/cli/       hashmark dev | build | preview | export | pdf, gemeinsame Vite-Konfiguration, Deck-Gerüst
 src/desktop/   Node-Sidecar der Desktop-App (stdin/stdout-Protokoll), Startseite (ui/)
 desktop-go/    Desktop-App in Go (ohne CGO): Fenster, Menü, Dialoge, Bildschirmwahl
-examples/      Beispiel-Decks: hashmark-demo (Funktionen, 3 Ebenen), theme-demo (eigenes Theme) und komponenten-demo (eigene Container)
+examples/      Beispiel-Decks: hashmark-demo (Funktionen, 3 Ebenen), theme-demo (eigenes Theme), komponenten-demo (eigene Container) und formeln-demo (KaTeX)
 ```
 
 ## Noch nicht umgesetzt

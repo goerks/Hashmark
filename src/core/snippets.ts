@@ -44,6 +44,11 @@ export const SNIPPETS: Snippet[] = [
     text: '```mermaid\nflowchart LR\n  A[§Start]\n%% step\n  A --> B[Ziel]\n```\n',
   },
   {
+    label: 'Formel', kind: 'Inhalt', keywords: 'math latex katex gleichung',
+    title: 'Formel als eigener Block (LaTeX); im Satz mit $a^2$, schrittweise mit \\htmlData{step=1}{…}',
+    text: '$$\n§E = mc^2\n$$\n',
+  },
+  {
     label: 'Karten', kind: 'Inhalt', keywords: 'cards card icon kachel',
     title: 'Karten mit Icon und Titel im Raster (icon=user, star, target, …)',
     text: '::: cards cols=3\n::: card icon=user title="§Titel"\nText\n:::\n::: card icon=target title="Titel"\nText\n:::\n::: card icon=check title="Titel"\nText\n:::\n:::\n',

@@ -174,6 +174,22 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
         const el = n as Element
         const s = cs(el)
         if (s.display === 'none' || s.visibility === 'hidden' || num(s.opacity) === 0) return
+        if (el.classList.contains('katex')) {
+          // Formel im Satz: als Bild, im Text bleibt eine Lücke in Breite der Formel (geschützte Leerzeichen)
+          const w = el.getBoundingClientRect().width / k
+          const ps = el.parentElement ? cs(el.parentElement) : s
+          const px = num(ps.fontSize) * (zoomOf(el.parentElement) / k)
+          if (!el.hasAttribute('data-pr') && w >= 1) markRaster(el as HTMLElement, 'Formel')
+          g.font = `${ps.fontWeight} ${num(ps.fontSize)}px ${ps.fontFamily}`
+          const nb = g.measureText('\u00A0').width * (zoomOf(el.parentElement) / k) || px * 0.27
+          const n = Math.max(1, Math.round(w / nb))
+          out.push({
+            // Schriftgröße der Lücke so, dass n geschützte Leerzeichen genau die Breite der Formel füllen
+            run: { text: '\u00A0'.repeat(n), font: fontOf(ps.fontFamily), size: px * PT * Math.max(0.6, Math.min(1.6, w / (n * nb))), color: mix(rgba(ps.color), backdrop(el.parentElement), 1) },
+            rects: [],
+          })
+          return
+        }
         if (el.tagName === 'BR') { out.push({ br: true }); return }
         const deco = new Set(c.deco)
         for (const d of s.textDecorationLine.split(' ')) if (d && d !== 'none') deco.add(d)
@@ -276,6 +292,7 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
     function rasterReason(el: Element): boolean {
       const s = cs(el)
       const tag = el.tagName
+      if (el.classList.contains('katex-display') || el.classList.contains('katex')) return true
       if (tag === 'svg' || tag === 'CANVAS' || tag === 'VIDEO' || tag === 'IFRAME' || tag === 'OBJECT') return true
       if (el.classList.contains('mermaid-block')) return true
       if (s.transform !== 'none') {
@@ -293,15 +310,20 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
     function markRaster(el: HTMLElement | SVGElement, name?: string, overlay = false) {
       let r = rel(el.getBoundingClientRect())
       if (r.w < 1 || r.h < 1) return
-      if (overlay) {
-        // Beschriftungen, Schwänze und Schatten ragen aus der Box heraus: Nachkommen und etwas Rand einschließen
+      // Listenpunkt: das Aufzählungszeichen liegt links außerhalb der Box des Listenpunkts
+      if (el.tagName === 'LI' && el.parentElement) {
+        const gap = (el.getBoundingClientRect().left - el.parentElement.getBoundingClientRect().left) / k
+        if (gap > 0) r = { ...r, x: r.x - gap, w: r.w + gap }
+      }
+      if (overlay || el.classList.contains('katex')) {
+        // Beschriftungen, Schwänze und Schatten (bei Formeln Brüche und Indizes) ragen aus der Box heraus: Nachkommen und etwas Rand einschließen
         let x0 = r.x, y0 = r.y, x1 = r.x + r.w, y1 = r.y + r.h
         for (const d of el.querySelectorAll('*')) {
           const b = rel(d.getBoundingClientRect())
           if (b.w < 1 || b.h < 1) continue
           x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.w); y1 = Math.max(y1, b.y + b.h)
         }
-        const pad = 16
+        const pad = overlay ? 16 : 2
         x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(STAGE_W, x1 + pad); y1 = Math.min(720, y1 + pad)
         r = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
       }
@@ -314,6 +336,14 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
       el.setAttribute('data-pr', String(id))
       const alt = el.getAttribute('aria-label') ?? el.getAttribute('alt') ?? undefined
       items.push({ kind: 'raster', id, ...r, alt: alt || undefined, name, ...(overlay ? { overlay: true } : {}), ...timing(el) })
+      // Formel mit \htmlData{step=n}{…}: jeder Teil mit Schritt wird ein eigenes Bild (das Grundbild lässt ihn aus)
+      if (animate && (el.classList.contains('katex') || el.classList.contains('katex-display'))) {
+        for (const sub of el.querySelectorAll<HTMLElement>('[data-step]')) {
+          const outer = sub.parentElement?.closest('[data-step]')
+          if (outer && el.contains(outer)) continue
+          markRaster(sub, 'Formelteil')
+        }
+      }
     }
 
     async function toDataUrl(src: string): Promise<string | null> {
@@ -406,6 +436,8 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
     }
 
     function emitList(list: HTMLElement) {
+      // Listenpunkte mit Formel im Satz werden einzeln als Bild eingefügt (walk), nicht als Liste
+      if ([...list.querySelectorAll('.katex')].some((q) => !q.closest('.katex-display'))) return false
       const out: { para: Para; top: number; bottom: number; left: number; right: number; lines: number }[] = []
       if (!collectList(list, 0, out, { left: 0, from: stepOf(list).from })) return false
       if (!out.length) return true
@@ -542,6 +574,12 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
       return num(s.outlineWidth) > 0 && s.outlineStyle !== 'none'
     }
 
+    /** Absatz, Listenpunkt oder Überschrift mit einer Formel mitten im Text */
+    function hasInlineMath(el: HTMLElement): boolean {
+      if (!el.matches('p, li, h1, h2, h3, h4, h5, h6, dt, dd, figcaption, blockquote') || el.querySelector('.katex-display')) return false
+      return [...el.querySelectorAll('.katex')].some((q) => !q.closest('.katex-display'))
+    }
+
     async function walk(el: HTMLElement): Promise<void> {
       const s = cs(el)
       if (s.display === 'none' || s.visibility === 'hidden' || num(s.opacity) === 0) return
@@ -553,6 +591,7 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
       }
       if (rasterReason(el)) { markRaster(el, el.classList.contains('mermaid-block') ? 'Diagramm' : undefined); return }
       if (el.tagName === 'TABLE') { emitTable(el as HTMLTableElement); return }
+      if (hasInlineMath(el)) { markRaster(el, 'Absatz mit Formel'); return }
       if (el.tagName === 'PRE') {
         if (hasDecor(el, s)) {
           decor = true

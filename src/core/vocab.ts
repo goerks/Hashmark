@@ -62,7 +62,7 @@ export const CALLOUTS: [string, string][] = [
 ]
 
 export const CODE_LANGS: [string, string][] = [
-  ['ts', 'TypeScript'], ['js', 'JavaScript'], ['mermaid', 'Diagramm'], ['qr', 'QR-Code'], ['bash', 'Shell'], ['yaml', 'deck.yaml'],
+  ['ts', 'TypeScript'], ['js', 'JavaScript'], ['mermaid', 'Diagramm'], ['math', 'Formel'], ['qr', 'QR-Code'], ['bash', 'Shell'], ['yaml', 'deck.yaml'],
   ['json', 'JSON'], ['css', 'Theme-CSS'], ['html', 'HTML'], ['python', 'Python'], ['md', 'Markdown'],
 ]
 

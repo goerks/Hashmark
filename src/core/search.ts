@@ -18,6 +18,8 @@ export interface SearchHit extends SearchEntry {
   snippet?: string
 }
 
+/** MathML einer Formel (KaTeX): Klartext steht schon im sichtbaren Teil, das LaTeX in der Annotation soll nicht gefunden werden */
+const MATHML_TEXT = /<span class="katex-mathml">[\s\S]*?<\/math><\/span>/g
 const ENTITIES: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ' }
 
 /** HTML → Text: Tags raus, Entities auflösen, Leerraum zusammenfassen. Mermaid-Quellen und SVG zählen nicht. */
@@ -25,6 +27,7 @@ export function htmlToText(html: string): string {
   return html
     .replace(/<(script|style|svg)[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<pre class="mermaid-src"[\s\S]*?<\/pre>/gi, ' ')
+    .replace(MATHML_TEXT, ' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&(amp|lt|gt|quot|#39|nbsp);/g, (_, e: string) => ENTITIES[e])
     .replace(/\s+/g, ' ')

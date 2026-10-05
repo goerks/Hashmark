@@ -1,0 +1,12 @@
+title: Hashmark – Formeln mit KaTeX (Beispiel)
+theme: minimal
+maxDepth: 3
+duration: 15m
+footer: Formeln
+slideNumber: "{n} / {total}"
+mount:
+  - file: 01-grundlagen.md
+  - file: 02-mathematik.md
+  - file: 03-statistik.md
+  - file: 04-software.md
+  - file: 05-naturwissenschaft.md

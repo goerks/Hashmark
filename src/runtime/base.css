@@ -542,3 +542,11 @@ button.nc-next:hover { color: var(--color-accent); }
 .svg-block svg { display: block; margin: 0 auto; max-width: 100%; height: auto; max-height: var(--figure-max, 460px); }
 .svg-block { line-height: normal; }
 .d-figure:has(.svg-block) .svg-block svg { max-height: none; }
+
+/* ---------- Formeln (KaTeX; katex.css kommt aus scripts/katex-assets.ts) ---------- */
+.katex { font-size: 1.08em; }
+.katex-display { margin: 0.5em 0; }
+.math-block { margin: 0.4em 0; }
+/* Folien sind ein Layout, kein Fließtext: Formeln nie umbrechen oder abschneiden */
+.katex-display > .katex { white-space: nowrap; max-width: 100%; }
+.math-error { color: var(--color-danger); font-family: var(--font-code); font-size: 0.85em; border-bottom: 1px dashed currentColor; }

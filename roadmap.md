@@ -143,7 +143,7 @@ Vergleich mit reveal.js, Marp, Slidev und Quarto. Das Alleinstellungsmerkmal ist
    - Fehlende Schriften auf dem Zielrechner (Cascadia → Consolas ist abgedeckt, Web-Fonts gibt es nicht).
    - PPTX-Import (wurde gebaut und verworfen, siehe Memory), Export als Google-Slides-tauglich prüfen.
 2. **Plugin-API** (Stufe 2): Komponenten mit Logik, eigene Container und Diagrammsprachen, damit ein Ökosystem entsteht.
-3. **Formeln (KaTeX), PlantUML/D2, Diagramme aus Daten** (CSV, Vega-Lite): kleine, klar abgegrenzte Lücken.
+3. ✅ **Formeln (KaTeX)** (05.10.2026, `src/core/math.ts`, kein neues Paket: KaTeX kam schon mit Mermaid, nur die Version ist festgeschrieben; Beispiel `examples/formeln-demo`). Offen: PlantUML/D2 (nur als optionale Erweiterung über die Plugin-API, D2-WASM hat 59 MB), Diagramme aus Daten (CSV, Vega-Lite), `macros:` in der deck.yaml, Formeln als bearbeitbare PowerPoint-Formeln (LaTeX → OMML).
 4. **Animationen:** Auto-Animate und Magic Move für Code und Elemente, Klick-Animationen.
 5. **Linux und macOS wirklich testen**, mit CI-Läufen auf allen drei Systemen.
 6. **Sichtbarkeit:** Git-Remote, Doku-Seite als Hashmark-Deck, Beispielgalerie, mehr Themes (Corporate-Import).

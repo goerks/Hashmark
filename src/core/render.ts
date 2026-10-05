@@ -13,6 +13,7 @@ import { expandComponent, type Template } from './components.ts'
 import { drawioSteps } from './drawio.ts'
 import { excalidrawSteps } from './excalidraw.ts'
 import { ICON_NAMES, iconSvg } from './icons.ts'
+import { renderMath, renderTex } from './math.ts'
 import { nearest } from './vocab.ts'
 import { svgIdSteps } from './svg-steps.ts'
 import { parseAttrs } from './syntax.ts'
@@ -237,7 +238,18 @@ export const qrPlugin: CodeBlockPlugin = {
   },
 }
 
-const plugins: CodeBlockPlugin[] = [mermaidPlugin, qrPlugin, shikiPlugin]
+/** ```math: eine Formel als eigener Block (`step=2` blendet sie ab Schritt 2 ein) */
+export const mathPlugin: CodeBlockPlugin = {
+  langs: ['math'],
+  render(node, attrs, ctx) {
+    const where = path.relative(ctx.deckDir, ctx.file)
+    const step = /^\d+$/.test(attrs.step ?? '') ? ` data-step="${attrs.step}"` : ''
+    const until = /^\d+$/.test(attrs.until ?? '') ? ` data-until="${attrs.until}"` : ''
+    return { html: `<div class="math-block"${step}${until}>${renderTex(node.value, true, { warn: (m) => ctx.warnings?.push(`${m} (${where})`) })}</div>`, steps: [] }
+  },
+}
+
+const plugins: CodeBlockPlugin[] = [mermaidPlugin, qrPlugin, mathPlugin, shikiPlugin]
 
 function findPlugin(lang: string | null | undefined) {
   return plugins.find((p) => p.langs.includes(lang ?? '')) ?? plugins.find((p) => p.langs.includes('*'))!
@@ -690,7 +702,8 @@ async function blocksToHtml(blocks: AnyNode[], ctx: RenderContext): Promise<{ ht
   inlineDiagramSteps(root, ctx)
   applyDirectives(root, ctx)
   const hast = await toHtml.run(root)
-  const html = String(toHtml.stringify(hast)).trim()
+  const where = path.relative(ctx.deckDir, ctx.file)
+  const html = renderMath(String(toHtml.stringify(hast)).trim(), { warn: (m) => ctx.warnings?.push(`${m} (${where})`) })
 
   // Schritte der Folie = höchster `data-step` über alle Blöcke; gleiche Nummer = gleichzeitig.
   // Code mit `lines="a|b|c"` braucht Schritte bis zur Anzahl Abschnitte − 1.
