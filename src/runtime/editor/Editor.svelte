@@ -283,8 +283,9 @@
 
   // PowerPoint: in der App speichert die Hülle (Dialog), im Browser rendert der Server und liefert die Datei
   let pptxBusy = $state(false)
-  async function exportPptx(options: { depth?: number; steps?: boolean } = {}) {
-    const query = printQuery({ ...options, footer: false })
+  async function exportPptx(options: { depth?: number; steps?: boolean; animations?: boolean } = {}) {
+    const { animations = true, ...print } = options
+    const query = printQuery({ ...print, footer: false }) + (animations ? '' : '&anim=0')
     if (desktop) return void desktopAction({ action: 'pptx', query })
     if (pptxBusy) return
     pptxBusy = true
@@ -323,8 +324,9 @@
       { group: 'Aktionen', title: 'Präsentieren', detail: 'Ab der aktuellen Folie', run: present },
       ...(canPresentOptions ? [{ group: 'Aktionen', title: 'Präsentieren: Optionen …', detail: 'Presenter-View und Bildschirme', run: () => { presentOptions = true } }] : []),
       { group: 'Aktionen', title: 'PDF / Druckansicht', run: exportPdf },
-      { group: 'Aktionen', title: 'PowerPoint (PPTX) exportieren', detail: 'Text, Listen, Code und Tabellen bleiben bearbeitbar', run: () => exportPptx() },
+      { group: 'Aktionen', title: 'PowerPoint (PPTX) exportieren', detail: 'bearbeitbar, Schritte als Animationen', run: () => exportPptx() },
       { group: 'Aktionen', title: 'PowerPoint (PPTX): nur Hauptpfad', run: () => exportPptx({ depth: 1 }) },
+      { group: 'Aktionen', title: 'PowerPoint (PPTX): ohne Animationen', detail: 'Schritte nicht animieren, nur der Endzustand', run: () => exportPptx({ animations: false }) },
       { group: 'Aktionen', title: 'PowerPoint (PPTX): jeder Schritt eine Folie', run: () => exportPptx({ steps: true }) },
       { group: 'Aktionen', title: 'Ansicht: Schreiben', run: () => setMode('write') },
       { group: 'Aktionen', title: 'Ansicht: Geteilt', run: () => setMode('split') },
@@ -492,7 +494,7 @@
       <span>Suchen</span><kbd>Strg K</kbd>
     </button>
     <button class="ed-pdf" onclick={exportPdf} title="Druckansicht öffnen: drucken oder als PDF speichern">PDF</button>
-    <button class="ed-pdf" onclick={() => exportPptx()} disabled={pptxBusy} title="Als PowerPoint-Datei exportieren (Text, Listen, Code und Tabellen bleiben bearbeitbar)">{pptxBusy ? 'PPTX …' : 'PPTX'}</button>
+    <button class="ed-pdf" onclick={() => exportPptx()} disabled={pptxBusy} title="Als PowerPoint-Datei exportieren (bearbeitbar, Schritte werden zu Animationen)">{pptxBusy ? 'PPTX …' : 'PPTX'}</button>
     <span class="ed-presentgroup">
       <button class="ed-present" onclick={present} title="Präsentation öffnen">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z" fill="currentColor" stroke="none" /></svg>Präsentieren

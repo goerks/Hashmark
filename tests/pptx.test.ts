@@ -105,3 +105,46 @@ describe('PPTX-Export', () => {
     expect(names.some((n) => /^ppt\/media\/.+/.test(n))).toBe(false)
   })
 })
+
+describe('PPTX-Animationen', () => {
+  const list = (from?: number): Para[] => [
+    para([run('immer da')], { bullet: { type: 'bullet', code: '2022', level: 0, indent: 24 } }),
+    para([run('Schritt 1')], { bullet: { type: 'bullet', code: '2022', level: 0, indent: 24 }, from: 1 }),
+    para([run('Schritt 2a')], { bullet: { type: 'bullet', code: '2022', level: 0, indent: 24 }, from: 2 }),
+    para([run('Schritt 2b')], { bullet: { type: 'bullet', code: '2022', level: 0, indent: 24 }, from: 2 }),
+  ]
+
+  it('baut Listen absatzweise auf: ein Klick je Schritt, gleiche Schritte zusammen', async () => {
+    const buf = await buildPptx(data([page({ items: [{ kind: 'text', x: 40, y: 100, w: 500, h: 200, wrap: false, name: 'Liste', paras: list() }] })]))
+    const xml = await (await files(buf)).read('ppt/slides/slide1.xml')
+    expect(xml).toContain('<p:timing>')
+    // zwei Klicks (Schritt 1 und 2), Absatz 0 bleibt ohne Effekt
+    expect((xml.match(/delay="indefinite"/g) ?? []).length).toBe(2)
+    expect(xml).toContain('<p:pRg st="1" end="1"/>')
+    expect(xml).toContain('<p:pRg st="2" end="3"/>')
+    expect(xml).not.toContain('<p:pRg st="0"')
+    expect(xml).toMatch(/<p:bldP spid="\d+" grpId="0" build="p"\/>/)
+    expect((xml.match(/nodeType="clickEffect"/g) ?? []).length).toBe(2)
+  })
+
+  it('blendet Bilder und Dekoration ein und aus (until), Nachfolger laufen mit dem Klick', async () => {
+    const buf = await buildPptx(data([page({
+      items: [
+        { kind: 'raster', id: 1, x: 0, y: 0, w: 100, h: 100, name: 'Diagramm', until: 1 },
+        { kind: 'raster', id: 2, x: 0, y: 0, w: 100, h: 100, name: 'Diagramm', from: 1 },
+        { kind: 'picture', x: 200, y: 0, w: 100, h: 100, media: 'x.png', from: 1 },
+      ],
+    })]), { rasters: new Map([[1, PNG], [2, PNG]]) })
+    const xml = await (await files(buf)).read('ppt/slides/slide1.xml')
+    expect((xml.match(/delay="indefinite"/g) ?? []).length).toBe(1)
+    expect(xml).toContain('presetClass="exit"')
+    expect(xml).toContain('presetClass="entr"')
+    expect((xml.match(/nodeType="withEffect"/g) ?? []).length).toBe(2)
+    expect(xml).not.toContain('<p:bldLst>') // Bilder brauchen keinen Aufbau-Eintrag
+  })
+
+  it('schreibt nichts, wenn nichts animiert wird', async () => {
+    const buf = await buildPptx(data([page({ items: [{ kind: 'text', x: 0, y: 0, w: 100, h: 20, wrap: false, paras: [para([run('x')])] }] })]))
+    expect(await (await files(buf)).read('ppt/slides/slide1.xml')).not.toContain('<p:timing>')
+  })
+})

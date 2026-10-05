@@ -109,13 +109,14 @@ cli
   .command('pptx [deck]', 'PowerPoint-Datei (.pptx) erzeugen: Text, Listen, Code und Tabellen bleiben bearbeitbar (nutzt Edge/Chrome, offline)')
   .option('--out <file>', 'Zieldatei (Standard: export/<deck>.pptx)')
   .option('--depth <n>', 'nur bis Ebene n (1 = Hauptpfad)')
-  .option('--steps', 'jeder Schritt eine eigene Folie')
+  .option('--steps', 'jeder Schritt eine eigene Folie (statt Animationen)')
+  .option('--no-animations', 'Schritte nicht als PowerPoint-Animationen exportieren (Endzustand)')
   .option('--plan <modus>', 'Reihenfolge nach dem Vortragsplan: path (nur Pfad) oder grouped (Pfad, Optionales, Anhang)')
   .option('--footer', 'mit Breadcrumb und Seitenzahl')
   .option('--browser <path>', 'Pfad zu Edge/Chrome (sonst automatisch, oder HASHMARK_BROWSER)')
-  .action(async (deck = '.', opts: { out?: string; depth?: string; steps?: boolean; plan?: string; footer?: boolean; browser?: string }) => {
+  .action(async (deck = '.', opts: { out?: string; depth?: string; steps?: boolean; animations: boolean; plan?: string; footer?: boolean; browser?: string }) => {
     const out = path.resolve(opts.out ?? path.join('export', `${path.basename(path.resolve(deck))}.pptx`))
-    const query = printQuery({ depth: opts.depth ? Number(opts.depth) : undefined, steps: opts.steps, footer: !!opts.footer, plan: opts.plan === 'path' || opts.plan === 'grouped' ? opts.plan : undefined })
+    const query = printQuery({ depth: opts.depth ? Number(opts.depth) : undefined, steps: opts.steps, footer: !!opts.footer, plan: opts.plan === 'path' || opts.plan === 'grouped' ? opts.plan : undefined }) + (opts.animations ? '' : '&anim=0')
     await exportPptx(config(deck), { out, query, browser: opts.browser })
   })
 

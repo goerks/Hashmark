@@ -43,11 +43,16 @@ export interface Para {
   before: number
   after: number
   bullet?: Bullet
+  /** erscheint mit diesem Schritt (Klick), nur gesetzt, wenn später als das Element selbst */
+  from?: number
 }
 
 export interface Box { x: number; y: number; w: number; h: number }
 
-export interface TextItem extends Box {
+/** Animation: erscheint mit Klick `from`, verschwindet mit Klick `until` (fehlt = immer bzw. nie) */
+export interface Timing { from?: number; until?: number }
+
+export interface TextItem extends Box, Timing {
   kind: 'text'
   paras: Para[]
   /** false: einzeilig, PowerPoint soll nicht umbrechen */
@@ -58,7 +63,7 @@ export interface TextItem extends Box {
   title?: boolean
 }
 
-export interface PictureItem extends Box {
+export interface PictureItem extends Box, Timing {
   kind: 'picture'
   /** Schlüssel in `media` */
   media: string
@@ -67,7 +72,7 @@ export interface PictureItem extends Box {
 }
 
 /** Bereich, der als Bild eingefügt wird (Diagramme, SVG, runde Bilder …); das PNG liefert der Orchestrator */
-export interface RasterItem extends Box {
+export interface RasterItem extends Box, Timing {
   kind: 'raster'
   id: number
   alt?: string
@@ -88,7 +93,7 @@ export interface TableCell {
   rowspan?: number
 }
 
-export interface TableItem extends Box {
+export interface TableItem extends Box, Timing {
   kind: 'table'
   /** Spaltenbreiten und Zeilenhöhen in px */
   cols: number[]
@@ -107,6 +112,8 @@ export interface PageData {
   section: string
   depth: number
   items: Item[]
+  /** Übergang zu dieser Folie: slide | zoom | fade | none */
+  transition?: string
   notes: string
   /** Hintergrund ohne Dekoration: eine Farbe reicht, sonst kommt ein Bild unter den Text */
   solidBg: boolean

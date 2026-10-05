@@ -64,14 +64,21 @@ async function reveal(cdp: Cdp, selector: string, area?: { x: number; y: number;
   return (r.result?.value as Rect | null) ?? null
 }
 
+/** Animationen sind Standard; mit `steps=1` (jeder Schritt eine Folie) oder `anim=0` aus */
+export function wantsAnimation(url: string): boolean {
+  const q = new URL(url).searchParams
+  return q.get('steps') !== '1' && q.get('anim') !== '0'
+}
+
 export async function printUrlToPptx(url: string, out: string, browserPath?: string, onProgress?: (msg: string) => void): Promise<PptxResult> {
+  const animate = wantsAnimation(url)
   return withPrintView(url, browserPath, async (cdp) => {
     await evaluate(cdp, `(() => { const s = document.createElement('style'); s.textContent = ${JSON.stringify(CAPTURE_CSS)}; document.head.append(s); })()`)
     // eine Atempause für das neue Layout ohne Leiste
     await new Promise((r) => setTimeout(r, 300))
 
     onProgress?.('Folien auslesen …')
-    const res = await cdp.send('Runtime.evaluate', { expression: `(${extractPages.toString()})()`, awaitPromise: true, returnByValue: true })
+    const res = await cdp.send('Runtime.evaluate', { expression: `(${extractPages.toString()})({ animate: ${animate} })`, awaitPromise: true, returnByValue: true })
     if (res.exceptionDetails) throw new Error('Auslesen der Folien fehlgeschlagen: ' + (res.exceptionDetails.exception?.description ?? res.exceptionDetails.text))
     const data = res.result.value as Extracted
     if (!data.pages.length) throw new Error('Keine Folien gefunden')
@@ -109,7 +116,7 @@ export async function printUrlToPptx(url: string, out: string, browserPath?: str
 
     onProgress?.('PPTX schreiben …')
     const title = await evaluate(cdp, `document.title.replace(/ – Druckansicht$/, '')`)
-    const buf = await buildPptx(data, { title: String(title.result?.value || 'Präsentation'), backgrounds, rasters })
+    const buf = await buildPptx(data, { title: String(title.result?.value || 'Präsentation'), backgrounds, rasters, transitions: animate })
     await fsp.mkdir(path.dirname(out), { recursive: true })
     await fsp.writeFile(out, buf)
     return { slides: data.pages.length, bytes: buf.length, rasters: rasters.size, warnings: cdp.errors }

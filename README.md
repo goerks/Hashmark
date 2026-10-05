@@ -200,7 +200,8 @@ make pdf DECK=decks/x PDF=vortrag.pdf
 ```sh
 make pptx                         # alle Folien → export/<deck>.pptx
 make pptx DEPTH=1                 # nur Hauptpfad
-make pptx STEPS=1                 # jeder Schritt eine eigene Folie (Aufbau wie in der Präsentation)
+make pptx STEPS=1                 # jeder Schritt eine eigene Folie statt Animationen
+make pptx NOANIM=1                # ohne Animationen und Übergänge: nur der Endzustand
 make pptx PLAN=path               # Reihenfolge nach dem Vortragsplan (path | grouped)
 ```
 
@@ -212,7 +213,9 @@ Was dabei entsteht:
 - **Sprechernotizen** stehen in den Notizen der Folie, die obersten Kapitel werden PowerPoint-Abschnitte.
 - Es braucht wie das PDF Edge oder Chrome (`BROWSER=…`), sonst nichts, und läuft offline. Im Browser-Editor rendert der Server die Datei; im Webdienst (Docker) fehlt dort der Browser.
 - Schriften: Es werden die Schriftnamen des Themes verwendet (Segoe UI, Consolas, bei Code-Schriften ohne Consolas bleibt der Name). Fehlt eine Schrift auf dem Zielrechner, ersetzt PowerPoint sie.
-- Schritte sind in PowerPoint keine Animationen: Mit `STEPS=1` entsteht pro Schritt eine Folie. Übergänge werden nicht exportiert.
+- **Animationen:** Die Schritte der Präsentation werden zu PowerPoint-Animationen (Einblenden, ein Klick je Schritt, gleiche Schrittnummer gleichzeitig). Listenpunkte und Codezeilen bauen sich absatzweise auf. Karten, Sprechblasen, Rahmen und Pins (Dekoration samt Text), Bilder, Tabellenzeilen und die Versionen eines Mermaid-Diagramms (`%% step`, die alte Version verschwindet) erscheinen mit ihrem Schritt. Nicht möglich sind Gruppen *innerhalb* eines SVG (Excalidraw, draw.io, `{steps=ids}`), sie stehen im Endzustand, ebenso Tabellen mit Spaltenschritten und das Abdunkeln von Codezeilen (`lines=`).
+- **Übergänge:** Der Übergang zur Folie wird übernommen (Schieben, Zoom beim Abtauchen, Überblenden, `transition=`).
+- Wer lieber eine Folie je Schritt will (zum Beispiel für ein PDF-artiges Handout): `STEPS=1`. Ohne beides (`NOANIM=1`) bleibt nur der Endzustand.
 
 Das PDF hat:
 - **Format:** eine Folie pro Seite im Format 16:9 (13,33 × 7,5 Zoll wie PowerPoint), bzw. A4 hoch beim Handout

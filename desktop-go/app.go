@@ -336,7 +336,7 @@ func (a *app) exportPPTX(query, suffix string) error {
 			slides = int(p)
 		}
 	}
-	a.done(fmt.Sprintf("PowerPoint-Datei erstellt: %d Folien (Text, Listen, Code und Tabellen sind bearbeitbar)", slides), out)
+	a.done(fmt.Sprintf("PowerPoint-Datei erstellt: %d Folien (bearbeitbar, Schritte als Animationen)", slides), out)
 	return nil
 }
 
@@ -447,6 +447,7 @@ func (a *app) menu() []menuItem {
 			it("pptx-all", "PowerPoint (PPTX) – alle Folien …", "Strg+Umschalt+X", has),
 			it("pptx-main", "PowerPoint (PPTX) – nur Hauptpfad …", "", has),
 			it("pptx-steps", "PowerPoint (PPTX) – jeder Schritt eine Folie …", "", has),
+			it("pptx-static", "PowerPoint (PPTX) – ohne Animationen …", "", has),
 			sep,
 			it("reveal", "Deck-Ordner im Explorer zeigen", "", has),
 			it("close-deck", "Deck schließen", "", has),
@@ -539,6 +540,8 @@ func (a *app) onMenu(id string) {
 		err = a.exportPPTX("?print&depth=1", "-hauptpfad")
 	case id == "pptx-steps":
 		err = a.exportPPTX("?print&steps=1", "-schritte")
+	case id == "pptx-static":
+		err = a.exportPPTX("?print&anim=0", "-statisch")
 	case id == "reveal":
 		if d := a.currentDeck(); d != nil {
 			err = openPath(d.dir)

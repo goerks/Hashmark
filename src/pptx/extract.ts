@@ -9,7 +9,8 @@
 
 import type { Bullet, Extracted, Item, PageData, Para, Run, TableCell } from './model.ts'
 
-export async function extractPages(): Promise<Extracted> {
+export async function extractPages(options: { animate?: boolean } = {}): Promise<Extracted> {
+  const animate = !!options.animate
   const STAGE_W = 1280
   const PT = 0.75 // 1 px = 0,75 pt
   const media: Record<string, string> = {}
@@ -79,8 +80,30 @@ export async function extractPages(): Promise<Extracted> {
   if (!stage0) throw new Error('keine Druckseiten gefunden')
   const articles = [...document.querySelectorAll<HTMLElement>('.print-page')]
 
+  // Animation: ab welchem Klick ist ein Element sichtbar, ab welchem verschwindet es (vererbt sich vom Elternelement)
+  const stepCache = new Map<Element, { from: number; until: number }>()
+  function stepOf(el: Element | null): { from: number; until: number } {
+    if (!animate || !el || el.classList.contains('print-stage')) return { from: 0, until: Infinity }
+    let r = stepCache.get(el)
+    if (!r) {
+      const p = stepOf(el.parentElement)
+      const own = el.getAttribute('data-step')
+      const until = el.getAttribute('data-until')
+      r = { from: own !== null ? Math.max(p.from, Number(own) || 0) : p.from, until: until !== null ? Math.min(p.until, Number(until) || Infinity) : p.until }
+      stepCache.set(el, r)
+    }
+    return r
+  }
+  const isStepped = (el: Element) => { const s = stepOf(el); return s.from > 0 || Number.isFinite(s.until) }
+  const timing = (el: Element | null): { from?: number; until?: number } => {
+    const s = stepOf(el)
+    return { ...(s.from > 0 ? { from: s.from } : {}), ...(Number.isFinite(s.until) ? { until: s.until } : {}) }
+  }
+
   for (const article of articles) {
     const stage = article.querySelector<HTMLElement>('.print-stage')!
+    // Animation: alle Schritte zeigen (die Seite steht sonst im Endzustand, `until`-Elemente wären weg)
+    if (animate) for (const e of article.querySelectorAll('.step-hidden, .step-current')) e.classList.remove('step-hidden', 'step-current')
     const R = stage.getBoundingClientRect()
     const k = R.width / STAGE_W || 1
     const items: Item[] = []
@@ -240,7 +263,7 @@ export async function extractPages(): Promise<Extracted> {
       // linksbündig: der Text beginnt dort, wo die erste Zeile beginnt (Pseudo-Element davor, Einrückung)
       if (!centered) x = m.left
       if (centered) { x = Math.min(x, m.left); w = Math.max(w, m.right - x) }
-      items.push({ kind: 'text', x, y: m.top, w, h: Math.max(m.bottom - m.top, 1), paras: m.paras, wrap: m.lines > 1, name, ...(title ? { title: true } : {}) })
+      items.push({ kind: 'text', x, y: m.top, w, h: Math.max(m.bottom - m.top, 1), paras: m.paras, wrap: m.lines > 1, name, ...(title ? { title: true } : {}), ...timing(container) })
     }
 
     // ---------- Bausteine ----------
@@ -290,7 +313,7 @@ export async function extractPages(): Promise<Extracted> {
       const id = ++rasterId
       el.setAttribute('data-pr', String(id))
       const alt = el.getAttribute('aria-label') ?? el.getAttribute('alt') ?? undefined
-      items.push({ kind: 'raster', id, ...r, alt: alt || undefined, name, ...(overlay ? { overlay: true } : {}) })
+      items.push({ kind: 'raster', id, ...r, alt: alt || undefined, name, ...(overlay ? { overlay: true } : {}), ...timing(el) })
     }
 
     async function toDataUrl(src: string): Promise<string | null> {
@@ -333,7 +356,7 @@ export async function extractPages(): Promise<Extracted> {
       }
       img.setAttribute('data-pn', '')
       const link = img.closest('a')?.getAttribute('href') ?? undefined
-      items.push({ kind: 'picture', x, y, w, h, media: key, alt: img.alt || undefined, link })
+      items.push({ kind: 'picture', x, y, w, h, media: key, alt: img.alt || undefined, link, ...timing(img) })
     }
 
     function listType(s: CSSStyleDeclaration, ordered: boolean): Pick<Bullet, 'type' | 'code'> | null {
@@ -344,7 +367,7 @@ export async function extractPages(): Promise<Extracted> {
     }
 
     /** `<li>` samt verschachtelter Listen → Absätze; false, wenn der Inhalt zu verwickelt ist */
-    function collectList(list: HTMLElement, level: number, out: { para: Para; top: number; bottom: number; left: number; right: number; lines: number }[], base: { left: number }): boolean {
+    function collectList(list: HTMLElement, level: number, out: { para: Para; top: number; bottom: number; left: number; right: number; lines: number }[], base: { left: number; from?: number }): boolean {
       const ordered = list.tagName === 'OL'
       let index = (list as HTMLOListElement).start || 1
       for (const li of list.children) {
@@ -372,6 +395,8 @@ export async function extractPages(): Promise<Extracted> {
             first.bullet = { ...bt, color: mix(rgba(mk.color), backdrop(li), opacityOf(li)), level, indent: 0, start: bt.type === 'number' ? (li as HTMLLIElement).value || index : undefined }
           }
           if (m.paras.length > 1) for (const p of m.paras.slice(1)) p.bullet = undefined
+          const own = stepOf(li).from
+          if (own > (base.from ?? 0)) for (const p of m.paras) p.from = own
           for (let i = 0; i < m.paras.length; i++) out.push({ para: m.paras[i], top: m.top, bottom: m.bottom, left: m.left, right: m.right, lines: m.lines })
         }
         index++
@@ -382,7 +407,7 @@ export async function extractPages(): Promise<Extracted> {
 
     function emitList(list: HTMLElement) {
       const out: { para: Para; top: number; bottom: number; left: number; right: number; lines: number }[] = []
-      if (!collectList(list, 0, out, { left: 0 })) return false
+      if (!collectList(list, 0, out, { left: 0, from: stepOf(list).from })) return false
       if (!out.length) return true
       const box = rel(list.getBoundingClientRect())
       // Einzug: Abstand des Textes der ersten Ebene vom Listenrand
@@ -399,7 +424,7 @@ export async function extractPages(): Promise<Extracted> {
       const right = Math.max(...out.map((o) => o.right))
       const lines = out.reduce((n, o) => n + o.lines, 0)
       const multi = out.some((o) => o.lines > 1)
-      items.push({ kind: 'text', x: box.x, y: top, w: Math.max(box.w, right - box.x), h: bottom - top, paras: out.map((o) => o.para), wrap: multi, name: 'Liste' })
+      items.push({ kind: 'text', x: box.x, y: top, w: Math.max(box.w, right - box.x), h: bottom - top, paras: out.map((o) => o.para), wrap: multi, name: 'Liste', ...timing(list) })
       void lines
       return true
     }
@@ -410,6 +435,7 @@ export async function extractPages(): Promise<Extracted> {
       const box = contentBox(pre)
       const lhPx = s.lineHeight === 'normal' ? num(s.fontSize) * 1.25 : num(s.lineHeight)
       const lines: Run[][] = [[]]
+      const lineFrom: number[] = [0]
       const walkNode = (n: Node, deco: Set<string>) => {
         if (n.nodeType === Node.TEXT_NODE) {
           const parts = (n as Text).data.split('\n')
@@ -417,8 +443,11 @@ export async function extractPages(): Promise<Extracted> {
           const base = ps[0]?.run
           if (!base) return
           parts.forEach((part, i) => {
-            if (i > 0) lines.push([])
-            if (part) lines[lines.length - 1].push({ ...base, text: part.replace(/\t/g, '    ') })
+            if (i > 0) { lines.push([]); lineFrom.push(0) }
+            if (part) {
+              lines[lines.length - 1].push({ ...base, text: part.replace(/\t/g, '    ') })
+              lineFrom[lines.length - 1] = Math.max(lineFrom[lines.length - 1], stepOf((n as Text).parentElement).from)
+            }
           })
           return
         }
@@ -433,9 +462,10 @@ export async function extractPages(): Promise<Extracted> {
       while (lines.length > 1 && !lines[lines.length - 1].length) lines.pop()
       const align = 'left' as const
       const fallback: Run = { text: ' ', font: fontOf(s.fontFamily), size: num(s.fontSize) * z * PT, color: mix(rgba(s.color), backdrop(pre), 1) }
-      const paras: Para[] = lines.map((runs) => ({ runs: runs.length ? runs : [fallback], align, lineHeight: lhPx * z * PT, before: 0, after: 0 }))
+      const itemFrom = stepOf(pre).from
+      const paras: Para[] = lines.map((runs, i) => ({ runs: runs.length ? runs : [fallback], align, lineHeight: lhPx * z * PT, before: 0, after: 0, ...(lineFrom[i] > itemFrom ? { from: lineFrom[i] } : {}) }))
       if (!paras.some((p) => p.runs.some((r) => r.text.trim()))) return
-      items.push({ kind: 'text', x: box.x, y: box.y, w: box.w, h: lines.length * lhPx * z, paras, wrap: false, name: 'Code' })
+      items.push({ kind: 'text', x: box.x, y: box.y, w: box.w, h: lines.length * lhPx * z, paras, wrap: false, name: 'Code', ...timing(pre) })
     }
 
     function emitTable(table: HTMLTableElement) {
@@ -450,6 +480,7 @@ export async function extractPages(): Promise<Extracted> {
       const cols = xs.slice(1).map((v, i) => v - xs[i])
       const near = (v: number) => xs.reduce((best, e, i) => (Math.abs(e - v) < Math.abs(xs[best] - v) ? i : best), 0)
       const rowItems: { h: number; cells: TableCell[] }[] = []
+      const rowFrom: number[] = []
       rows.forEach((row, ri) => {
         const cells: TableCell[] = []
         ;[...row.cells].forEach((cell, ci) => {
@@ -474,9 +505,21 @@ export async function extractPages(): Promise<Extracted> {
           })
         })
         rowItems.push({ h: rel(row.getBoundingClientRect()).h, cells })
+        rowFrom.push(stepOf(row).from)
       })
       table.setAttribute('data-pt', '')
-      items.push({ kind: 'table', x: xs[0], y: tr.y, w: xs[xs.length - 1] - xs[0], h: tr.h, cols, rows: rowItems })
+      const until = stepOf(table).until
+      // Zeilen mit Schritt: je Schrittgruppe eine eigene Tabelle (PowerPoint kann Tabellenzeilen nicht einzeln einblenden)
+      let start = 0
+      while (start < rowItems.length) {
+        let end = start + 1
+        while (end < rowItems.length && rowFrom[end] === rowFrom[start]) end++
+        const group = rowItems.slice(start, end)
+        const y = start === 0 ? tr.y : rel(rows[start].getBoundingClientRect()).y
+        const h = group.reduce((n, r) => n + r.h, 0)
+        items.push({ kind: 'table', x: xs[0], y, w: xs[xs.length - 1] - xs[0], h, cols, rows: group, ...(rowFrom[start] > 0 ? { from: rowFrom[start] } : {}), ...(Number.isFinite(until) ? { until } : {}) })
+        start = end
+      }
     }
 
     // ---------- Baum ablaufen ----------
@@ -504,9 +547,20 @@ export async function extractPages(): Promise<Extracted> {
       if (s.display === 'none' || s.visibility === 'hidden' || num(s.opacity) === 0) return
       if (el.matches('script,style,template,.pptx-notes,.print-notes,[hidden]')) return
       if (el.tagName === 'IMG') return picture(el as HTMLImageElement)
+      if (animate && el.classList.contains('mermaid-block')) {
+        const states = [...el.querySelectorAll<HTMLElement>('.mermaid-state')]
+        if (states.length > 1) { for (const st of states) markRaster(st, 'Diagramm'); return }
+      }
       if (rasterReason(el)) { markRaster(el, el.classList.contains('mermaid-block') ? 'Diagramm' : undefined); return }
       if (el.tagName === 'TABLE') { emitTable(el as HTMLTableElement); return }
-      if (el.tagName === 'PRE') { if (hasDecor(el, s)) decor = true; emitPre(el); return }
+      if (el.tagName === 'PRE') {
+        if (hasDecor(el, s)) {
+          decor = true
+          if (isStepped(el) && !el.closest('[data-po]')) { el.setAttribute('data-po', ''); markRaster(el, 'Dekoration', true) }
+        }
+        emitPre(el)
+        return
+      }
       if (hasDecor(el, s)) {
         decor = true
         // Dekoration über einem Bild (Sprechblasen, Rahmen, Marker) läge im Hintergrundbild unter dem Bild: eigenes Bild darüber
@@ -517,7 +571,7 @@ export async function extractPages(): Promise<Extracted> {
             const b = { x: it.x * k + R.left, y: it.y * k + R.top, w: it.w * k, h: it.h * k }
             return r.left < b.x + b.w && r.right > b.x && r.top < b.y + b.h && r.bottom > b.y
           })
-          if (over && r.width < R.width * 0.9) { el.setAttribute('data-po', ''); markRaster(el, 'Dekoration', true) }
+          if (isStepped(el) || (over && r.width < R.width * 0.9)) { el.setAttribute('data-po', ''); markRaster(el, 'Dekoration', true) }
         }
       }
       if (el.tagName === 'UL' || el.tagName === 'OL') {
@@ -572,6 +626,7 @@ export async function extractPages(): Promise<Extracted> {
       step: Number(article.dataset.step ?? 0),
       title: article.dataset.title ?? '',
       section: article.dataset.section ?? '',
+      transition: article.dataset.transition,
       depth: Number(article.dataset.depth ?? 1),
       items,
       notes,

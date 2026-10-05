@@ -58,7 +58,7 @@ help:
 	@echo   make preview       Gebautes Deck lokal ausliefern
 	@echo   make preview-lan   Gebautes Deck im Netzwerk ausliefern
 	@echo   make export        Eine HTML-Datei, laeuft offline per Doppelklick (export/)
-	@echo   make pptx          PowerPoint nach export/ (DEPTH=1, STEPS=1, PLAN=path|grouped, PPTX=pfad.pptx)
+	@echo   make pptx          PowerPoint nach export/ (DEPTH=1, STEPS=1, PLAN=path|grouped, NOANIM=1, PPTX=pfad.pptx)
 	@echo   make pdf           PDF nach export/ (DEPTH=1 Hauptpfad, STEPS=1 je Schritt, NOTES=1 Handout, PLAN=path|grouped nach Vortragsplan)
 	@echo   make check         Deck pruefen: Layouts, Bilder, Theme, Ueberlauf (NOOVERFLOW=1 ohne Browser, STRICT=1)
 	@echo   make docker        Build + Docker-Image mit nginx  (IMAGE=$(IMAGE))
@@ -147,7 +147,7 @@ pdf: node_modules
 
 # PowerPoint (.pptx): Text, Listen, Code, Tabellen bearbeitbar; Diagramme/Dekoration als Bild. Optionen: DEPTH=n, STEPS=1, PLAN=path|grouped, PPTX=pfad.pptx, BROWSER=…
 pptx: node_modules
-	$(HASHMARK) pptx "$(DECK)" $(if $(DEPTH),--depth $(DEPTH)) $(if $(STEPS),--steps) $(if $(PLAN),--plan $(PLAN)) $(if $(PPTX),--out "$(PPTX)") $(if $(BROWSER),--browser "$(BROWSER)")
+	$(HASHMARK) pptx "$(DECK)" $(if $(DEPTH),--depth $(DEPTH)) $(if $(STEPS),--steps) $(if $(NOANIM),--no-animations) $(if $(PLAN),--plan $(PLAN)) $(if $(PPTX),--out "$(PPTX)") $(if $(BROWSER),--browser "$(BROWSER)")
 
 # Deck prüfen (Layouts, Attribute, Bilder, Theme, Überlauf); NOOVERFLOW=1 = ohne Browser, STRICT=1 = Hinweise sind Fehler
 check: node_modules

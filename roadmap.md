@@ -137,8 +137,8 @@ Begründung: Stufe 1 macht Hashmark für echte Vorträge fertig und nutzt, was d
 Vergleich mit reveal.js, Marp, Slidev und Quarto. Das Alleinstellungsmerkmal ist der navigierbare Baum mit Vortragsplan, offline und ohne Installer. In der Breite liegen die anderen vorn. Reihenfolge nach Hebel:
 
 1. ✅ **PPTX-Export** mit bearbeitbarem Text, Listen, Code und Tabellen (`make pptx`, Button PPTX im Editor, Desktop-Menü). Aufbau: Druckansicht in Edge/Chrome → `src/pptx/extract.ts` (im Browser) → `src/pptx/build.ts` (pptxgenjs). Diagramme und Dekoration als Bild. Offen:
-   - Schritte als echte PowerPoint-Animationen (heute: eine Folie je Schritt mit `STEPS=1`).
-   - Übergänge exportieren, Folienmaster und Layouts aus dem Theme erzeugen (heute ein einziges Layout mit Titel-Platzhalter).
+   - ✅ Schritte als PowerPoint-Animationen (Listen, Code, Karten, Bilder, Tabellenzeilen, Mermaid-Versionen) und Folienübergänge (04.10.2026). Offen: Gruppen innerhalb von SVG, Tabellenspalten, Codezeilen-Abdunkeln, andere Effekte als Einblenden.
+   - Folienmaster und Layouts aus dem Theme erzeugen (heute ein einziges Layout mit Titel-Platzhalter).
    - Kacheln, Karten und Rahmen als echte Formen statt im Hintergrundbild; SVG als Vektor (PowerPoint 365).
    - Fehlende Schriften auf dem Zielrechner (Cascadia → Consolas ist abgedeckt, Web-Fonts gibt es nicht).
    - PPTX-Import (wurde gebaut und verworfen, siehe Memory), Export als Google-Slides-tauglich prüfen.

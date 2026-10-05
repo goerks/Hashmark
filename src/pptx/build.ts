@@ -3,6 +3,7 @@
 
 import JSZip from 'jszip'
 import PptxGenJS from 'pptxgenjs'
+import { timingXml, type AnimItem } from './animate.ts'
 import type { Extracted, Para, PageData, TableCell } from './model.ts'
 
 export interface BuildOptions {
@@ -12,6 +13,8 @@ export interface BuildOptions {
   lang?: string
   /** Bild je Seite: Hintergrund mit Dekoration (fehlt bei `solidBg`) */
   backgrounds?: ({ data: Buffer; mime: 'png' | 'jpeg' } | undefined)[]
+  /** Folienübergänge (slide → Schieben, zoom, fade) mit exportieren */
+  transitions?: boolean
   /** PNG je Raster-Element (`RasterItem.id`) */
   rasters?: Map<number, Buffer>
 }
@@ -110,7 +113,10 @@ export async function buildPptx(data: Extracted, opts: BuildOptions = {}): Promi
 
   let section = ''
   let sectionTitle: string | undefined
+  const anims: AnimItem[][] = []
   data.pages.forEach((page, pi) => {
+    const anim: AnimItem[] = []
+    anims.push(anim)
     if (page.section && page.section !== section) {
       section = page.section
       pptx.addSection({ title: section })
@@ -132,34 +138,39 @@ export async function buildPptx(data: Extracted, opts: BuildOptions = {}): Promi
         const dx = first === 'center' ? -slack / 2 : first === 'right' ? -slack : 0
         // PowerPoint setzt die erste Zeile bei fester Zeilenhöhe etwas höher als der Browser
         const dy = ((item.paras[0]?.runs[0]?.size ?? 12) / 0.75) * 0.04
+        const objectName = item.title && !hasTitle ? `Titel ${n}` : `${item.name ?? 'Text'} ${n}`
         slide.addText(textRuns(item.paras, lang, link), {
           ...box, x: inch(item.x + dx), y: inch(item.y + dy), w: inch(item.w + slack),
           margin: 0, valign: 'top', wrap: item.wrap, fit: 'none', isTextBox: true,
-          objectName: item.title && !hasTitle ? `Titel ${n}` : `${item.name ?? 'Text'} ${n}`,
+          objectName,
         } as never)
         if (item.title) hasTitle = true
+        if (item.from || item.until || item.paras.some((p) => p.from)) anim.push({ name: objectName, text: true, from: item.from, until: item.until, paras: item.paras.map((p) => p.from) })
       } else if (item.kind === 'picture') {
         const url = data.media[item.media]
         if (!url) continue
         const link0 = item.link ? link(item.link) : undefined
         slide.addImage({ ...box, data: url.replace(/^data:/, ''), altText: item.alt ?? '', objectName: `Bild ${n}`, ...(link0 ? { hyperlink: link0 } : {}) } as never)
+        if (item.from || item.until) anim.push({ name: `Bild ${n}`, text: false, from: item.from, until: item.until })
       } else if (item.kind === 'raster') {
         const img = opts.rasters?.get(item.id)
         if (!img) continue
         slide.addImage({ ...box, data: png(img), altText: item.alt ?? '', objectName: `${item.name ?? 'Grafik'} ${n}` } as never)
+        if (item.from || item.until) anim.push({ name: `${item.name ?? 'Grafik'} ${n}`, text: false, from: item.from, until: item.until })
       } else if (item.kind === 'table') {
         const rows = item.rows.map((r) => r.cells.map((c) => cellOptions(c, lang, link)))
         slide.addTable(rows as never, {
           ...box, colW: item.cols.map(inch), rowH: item.rows.map((r) => inch(r.h)),
           objectName: `Tabelle ${n}`,
         } as never)
+        if (item.from || item.until) anim.push({ name: `Tabelle ${n}`, text: false, from: item.from, until: item.until })
       }
     }
     if (page.notes) slide.addNotes(page.notes)
   })
 
   const out = Buffer.from((await pptx.write({ outputType: 'nodebuffer' })) as ArrayBuffer)
-  return finish(out, data.pages)
+  return finish(out, data.pages, anims, opts.transitions ?? false)
 }
 
 /**
@@ -169,7 +180,7 @@ export async function buildPptx(data: Extracted, opts: BuildOptions = {}): Promi
  * - Der Folientitel („Titel n“) wird zum Titel-Platzhalter, ohne seine Position zu verlieren (Gliederungsansicht,
  *   Folienübersicht, Screenreader).
  */
-async function finish(file: Buffer, pages: PageData[]): Promise<Buffer> {
+async function finish(file: Buffer, pages: PageData[], anims: AnimItem[][], transitions: boolean): Promise<Buffer> {
   const zip = await JSZip.loadAsync(file)
   let changed = false
   for (let i = 0; i < pages.length; i++) {
@@ -194,6 +205,22 @@ async function finish(file: Buffer, pages: PageData[]): Promise<Buffer> {
         '$1<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph type="title"/></p:nvPr>',
       )
     }
+    // Übergang zur Folie (vor den Animationen; die Reihenfolge im XML ist festgelegt)
+    let extra = ''
+    if (transitions) {
+      const t = pages[i].transition
+      if (t === 'fade') extra = '<p:transition spd="med"><p:fade/></p:transition>'
+      else if (t === 'zoom') extra = '<p:transition spd="med"><p:zoom dir="in"/></p:transition>'
+      else if (t === 'slide') extra = '<p:transition spd="med"><p:push dir="l"/></p:transition>'
+    }
+    // Animationen: Schritte als „bei Klick“-Effekte (Namen → Form-IDs aus dem XML)
+    if (anims[i]?.length) {
+      const ids = new Map<string, string>()
+      for (const m of xml.matchAll(/<p:cNvPr id="(\d+)" name="([^"]*)"/g)) ids.set(m[2], m[1])
+      const timing = timingXml(anims[i], (n) => ids.get(n))
+      if (timing) extra += timing
+    }
+    if (extra) xml = xml.replace(/<\/p:sld>\s*$/, extra + '</p:sld>')
     zip.file(name, xml)
     changed = true
   }
