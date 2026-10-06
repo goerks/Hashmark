@@ -14,7 +14,7 @@ export interface Finding {
 
 /** Layouts, für die base.css Regeln mitbringt */
 export const BUILTIN_LAYOUTS = [
-  'title', 'section', 'default', 'two-col', 'three-col', 'statement', 'quote', 'image-left', 'image-right', 'agenda', 'comparison', 'code-focus', 'banner',
+  'title', 'section', 'default', 'two-col', 'three-col', 'statement', 'quote', 'image-left', 'image-right', 'agenda', 'comparison', 'code-focus', 'banner', 'image-full', 'split', 'diagram', 'two-col-wide',
 ]
 /** Attribute einer Überschrift `{…}`, die Hashmark kennt */
 export const KNOWN_ATTRS = ['layout', 'id', 'class', 'transition', 'duration', 'bg', 'bgdim', 'steps', 'fit', 'optional', 'appendix', 'plan', 'banner', 'bannerpos', 'bannerh', 'footer']

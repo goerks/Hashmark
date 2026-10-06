@@ -403,6 +403,10 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   | `comparison` | `::: col`-Blöcke als gleich hohe Karten nebeneinander (2 bis 4), die erste Zeile jeder Karte ist ihre Überschrift |
   | `banner` | Bildband oben (`banner=bild bannerh=210`), Titel und Inhalt darunter |
   | `code-focus` | der Codeblock füllt die Folie, Text steht klein darüber. Passt zu `lines="…"` und `steps="…"` |
+  | `image-full` | ein Bild füllt die Folie (`bg=bilder/x.jpg bgdim=0.4`), der Titel liegt unten links darüber |
+  | `split` | links eine Farbfläche mit großem Titel, rechts der Inhalt |
+  | `diagram` | kleiner Titel, ein Mermaid-Diagramm oder SVG füllt den Rest |
+  | `two-col-wide` | Text links (2/3), `::: aside` als schmale Randspalte rechts (1/3) |
   | `agenda` | Liste der Kapitel des Hauptpfads. Erledigte gedämpft, das nächste (zwischen Kapiteln) bzw. aktuelle (unter einem Kapitel) hervorgehoben. Ab 10 Kapiteln zweispaltig |
 
 - **Auto-Fit und Überlauf:** `## Titel {fit}` verkleinert den Inhalt der Folie in 5-%-Schritten bis auf 70 %, bis er passt (`{fit=off}` schaltet ab). Läuft etwas über (Inhalt höher oder breiter als die Folie, auch breiter Code), zeigt die Folie beim Schreiben ein rotes Badge „Überlauf“, im Dev-Server und in der Editor-Vorschau, auch in den Miniaturen der Übersicht. Im Vortrag, im Export und im PDF gibt es kein Badge. Besser als Verkleinern ist meist Kürzen oder `---`.
@@ -477,7 +481,7 @@ Sprechernotiz (alternativ: alles nach <!-- notes -->)
   - **Eigenes Layout:** Eine CSS-Datei mit `.layout-kpi { … }` im `layouts`-Ordner genügt, verwendet wird es mit `## Titel {layout=kpi}`. Jede Folie ist `section.slide.layout-<name>` mit `.slide-title` und `.content`.
   - Relative `url(…)` in Theme-CSS (Bilder, `woff2`/`woff`/`ttf`/`otf`) werden als Data-URI eingebettet, Build und Export bleiben autark.
   - Änderungen an Theme-Dateien laden live nach, auch außerhalb des Deck-Ordners. Fehlende Dateien und ungültige Tokens (z. B. mit `;`) erscheinen als Hinweis im Terminal.
-- **Komponenten (eigene Container):** Eine Datei `components/<name>.html` macht `::: <name>` zu einem eigenen Baustein. Hashmark bringt `timeline`, `process`, `kpis` und `person` mit (`src/runtime/components/`), eigene liegen im Theme-Ordner oder im Deck-Ordner `components/` und überschreiben bei gleichem Namen (Reihenfolge: eingebaut, Theme, Deck). Daneben liegt `components/<name>.css`. Beispiel: `examples/komponenten-demo` (`make dev DECK=examples/komponenten-demo`).
+- **Komponenten (eigene Container):** Eine Datei `components/<name>.html` macht `::: <name>` zu einem eigenen Baustein. Hashmark bringt `versus` (Vorher/Nachher mit Pfeil, `::: before`/`::: after`), `roadmap` (Phasen, `today="41%"`, `done=2`), `pyramid` (erster Punkt = Basis, `inverted` = Trichter), `matrix` (2×2 mit `x=`/`y=`, `focus=2`), `aside` (Randspalte), dazu `timeline`, `process`, `kpis` und `person` mit (`src/runtime/components/`), eigene liegen im Theme-Ordner oder im Deck-Ordner `components/` und überschreiben bei gleichem Namen (Reihenfolge: eingebaut, Theme, Deck). Daneben liegt `components/<name>.css`. Beispiel: `examples/komponenten-demo` (`make dev DECK=examples/komponenten-demo`).
   ```md
   ::: kpis steps
   ::: kpi value="87 %" label="Zufriedenheit" trend=up delta="+4 %"

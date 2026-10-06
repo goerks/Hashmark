@@ -1,0 +1,39 @@
+{{!meta
+description: Zwei Zustände nebeneinander mit Pfeil (Vorher/Nachher, Ist/Soll, Alt/Neu); der zweite kann später erscheinen
+attrs:
+  title: Überschrift über dem Vergleich
+children:
+  before:
+    description: Der erste Zustand (links)
+    attrs:
+      label: Beschriftung, z. B. "Vorher"
+      step: Schrittnummer, ab der er erscheint
+  after:
+    description: Der zweite Zustand (rechts)
+    attrs:
+      label: Beschriftung, z. B. "Nachher"
+      step: Schrittnummer, ab der er erscheint
+example: |
+  ::: versus title="Release-Prozess"
+  ::: before label="Vorher"
+  - Handarbeit, zwei Tage
+  - Fehler beim Kopieren
+  :::
+  ::: after label="Nachher" step=1
+  - Pipeline, 20 Minuten
+  - Jedes Mal gleich
+  :::
+  :::
+}}
+<div class="versus">
+  {{#if title}}<div class="versus-title">{{ title }}</div>{{/if}}
+  <div class="versus-grid">
+    {{#each children}}
+    <div class="versus-side versus-{{ kind }}"{{#if step}} data-step="{{ step }}"{{/if}}>
+      {{#if label}}<div class="versus-label">{{ label }}</div>{{/if}}
+      <div class="versus-body">{{{ body }}}</div>
+    </div>
+    {{/each}}
+  </div>
+  {{{ body }}}
+</div>

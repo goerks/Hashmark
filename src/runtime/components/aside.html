@@ -1,0 +1,13 @@
+{{!meta
+description: Randspalte mit Merksatz, Definition oder Quelle; im Layout two-col-wide steht sie rechts neben dem Text
+attrs:
+  title: Überschrift der Randspalte, z. B. "Merke"
+example: |
+  ::: aside title="Merke"
+  Space läuft dem **Vortragsplan** nach und überspringt Optionales.
+  :::
+}}
+<aside class="aside">
+  {{#if title}}<div class="aside-title">{{ title }}</div>{{/if}}
+  <div class="aside-body">{{{ body }}}</div>
+</aside>

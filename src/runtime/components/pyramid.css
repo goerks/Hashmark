@@ -1,0 +1,14 @@
+/* Komponente pyramid: Stufen von der Basis aufwärts (erster Listenpunkt = unterste Stufe); nur Theme-Tokens */
+.d-pyramid .pyramid-title { font-family: var(--font-heading); font-size: 0.8em; color: var(--color-muted); margin-bottom: 1rem; }
+.d-pyramid .pyramid-levels { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column-reverse; align-items: center; gap: 6px; }
+.d-pyramid .pyramid-level {
+  width: max(30%, calc(100% * (var(--n) - var(--i)) / var(--n))); margin: 0; padding: 0.7rem 0; text-align: center;
+  clip-path: polygon(6% 0, 94% 0, 100% 100%, 0 100%);
+  background: color-mix(in srgb, var(--color-accent) calc(100% - 32% * var(--i) / var(--n)), var(--color-surface-2));
+  color: var(--color-bg); font-weight: 700; font-size: 0.8em; transition: opacity 0.25s;
+}
+.d-pyramid .pyramid-text p { margin: 0; }
+.d-pyramid .pyramid-inverted .pyramid-level {
+  width: max(30%, calc(100% * (var(--i) + 1) / var(--n)));
+  clip-path: polygon(0 0, 100% 0, 94% 100%, 6% 100%);
+}

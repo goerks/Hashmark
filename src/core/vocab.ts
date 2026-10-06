@@ -18,6 +18,10 @@ export const LAYOUT_INFO: Record<string, string> = {
   comparison: 'Gegenüberstellung',
   'code-focus': 'Code im Mittelpunkt',
   banner: 'Bildband oben (banner=…), Titel und Inhalt darunter',
+  'image-full': 'Bild füllt die Folie (bg=…), Titel darüber',
+  split: 'Links Farbfläche mit Titel, rechts der Inhalt',
+  diagram: 'Kleiner Titel, das Diagramm füllt den Rest',
+  'two-col-wide': 'Text links, schmale Randspalte (::: aside) rechts',
 }
 
 export const CONTAINER_INFO: Record<string, { detail: string; text: string }> = {

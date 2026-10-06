@@ -473,7 +473,7 @@ describe('Editor: Vorschläge', () => {
     expect((await at('## T {'))?.title).toBe('Attribute')
     expect((await at('## T {la'))?.options[0].label).toBe('layout=')
     const layouts = await at('## T {layout=two')
-    expect(layouts?.options.map((o) => o.label)).toEqual(['two-col'])
+    expect(layouts?.options.map((o) => o.label)).toEqual(['two-col', 'two-col-wide'])
     expect(layouts?.from).toBe('## T {layout='.length)
     expect((await at('## T {layout=', { layouts: ['kpi'] }))?.options.map((o) => o.label)).toContain('kpi')
     expect(await at('## T {layout=two-col} ')).toBeNull()

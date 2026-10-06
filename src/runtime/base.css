@@ -550,3 +550,35 @@ button.nc-next:hover { color: var(--color-accent); }
 /* Folien sind ein Layout, kein Fließtext: Formeln nie umbrechen oder abschneiden */
 .katex-display > .katex { white-space: nowrap; max-width: 100%; }
 .math-error { color: var(--color-danger); font-family: var(--font-code); font-size: 0.85em; border-bottom: 1px dashed currentColor; }
+
+/* ---------- Weitere Layouts: image-full, split, diagram, two-col-wide ---------- */
+
+/* Bild füllt die Folie (`bg=bilder/x.jpg`, `bgdim=0.5`), Titel unten links darüber */
+.layout-image-full { justify-content: flex-end; color: #fff; background: linear-gradient(160deg, var(--color-surface-2), var(--color-accent)); }
+.layout-image-full.has-bg { background-size: cover !important; background-position: center !important; }
+.layout-image-full::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(0deg, rgb(0 0 0 / 0.72), rgb(0 0 0 / 0) 62%); }
+.layout-image-full > * { position: relative; z-index: 1; }
+.layout-image-full .slide-title { font-size: 72px; color: #fff; text-shadow: 0 2px 18px rgb(0 0 0 / 0.45); }
+.layout-image-full .content { flex: none; color: rgb(255 255 255 / 0.88); font-size: 30px; max-width: 920px; }
+.layout-image-full .slide-footer { color: rgb(255 255 255 / 0.75); }
+
+/* Links Farbfläche mit großem Titel, rechts der Inhalt */
+.layout-split { display: grid; grid-template-columns: 42% minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); padding: 0; gap: 0; }
+.layout-split > header { grid-column: 1; display: flex; flex-direction: column; justify-content: flex-end; padding: 72px 56px; background: linear-gradient(165deg, var(--color-accent), color-mix(in srgb, var(--color-accent) 55%, var(--color-bg))); }
+.layout-split .slide-title { font-size: 64px; line-height: 1.08; color: var(--color-bg); }
+.layout-split .content { grid-column: 2; padding: 72px 64px 76px 56px; align-self: center; min-height: 0; }
+.layout-split .slide-footer { left: calc(42% + 56px); }
+
+/* Diagramm füllt den Platz unter dem kleinen Titel */
+.layout-diagram { padding-top: 44px; padding-bottom: 60px; gap: var(--space-2); }
+.layout-diagram .slide-title { font-size: 36px; }
+.layout-diagram .content { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+.layout-diagram .mermaid-block svg, .layout-diagram .svg-block svg, .layout-diagram .content > p > img { max-height: var(--mermaid-max, 540px); }
+.layout-diagram .content > p > img { max-width: 100%; margin: 0 auto; display: block; }
+/* Mermaid setzt max-width inline auf die Eigengröße; hier soll das Diagramm die Breite nutzen */
+.layout-diagram .mermaid-block svg { width: 100%; max-width: none !important; }
+
+/* Text links, schmale Randspalte rechts (`::: aside`) */
+.layout-two-col-wide .content { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); column-gap: var(--space-4); row-gap: var(--space-2); align-content: start; align-items: start; }
+.layout-two-col-wide .content > * { grid-column: 1; }
+.layout-two-col-wide .content > .d-aside { grid-column: 2; grid-row: 1 / span 3; }

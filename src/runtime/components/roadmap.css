@@ -1,0 +1,20 @@
+/* Komponente roadmap: gleich breite Phasen, „heute“-Linie, erledigte Phasen gefüllt; nur Theme-Tokens */
+.d-roadmap .roadmap-title { font-family: var(--font-heading); font-size: 0.8em; color: var(--color-muted); margin-bottom: 1rem; }
+.d-roadmap .roadmap-track { position: relative; padding-top: 2.2rem; }
+.d-roadmap .roadmap-phases { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); gap: 6px; }
+.d-roadmap .roadmap-phase { margin: 0; padding: 0.8rem 1rem; min-height: 5em; background: var(--color-surface); border-top: 5px solid var(--color-border); font-size: 0.8em; transition: opacity 0.25s; }
+.d-roadmap .roadmap-phase p { margin: 0; }
+.d-roadmap .roadmap-phase strong { display: block; color: var(--color-muted); font-size: 1.15em; margin-bottom: 0.2rem; }
+.d-roadmap [data-done] .roadmap-phase { border-top-color: var(--color-border); }
+.d-roadmap [data-done="1"] .roadmap-phase:nth-child(-n+1), .d-roadmap [data-done="2"] .roadmap-phase:nth-child(-n+2),
+.d-roadmap [data-done="3"] .roadmap-phase:nth-child(-n+3), .d-roadmap [data-done="4"] .roadmap-phase:nth-child(-n+4),
+.d-roadmap [data-done="5"] .roadmap-phase:nth-child(-n+5), .d-roadmap [data-done="6"] .roadmap-phase:nth-child(-n+6),
+.d-roadmap [data-done="7"] .roadmap-phase:nth-child(-n+7), .d-roadmap [data-done="8"] .roadmap-phase:nth-child(-n+8) {
+  border-top-color: var(--color-accent); background: color-mix(in srgb, var(--color-accent) 14%, var(--color-surface));
+}
+.d-roadmap [data-done="1"] .roadmap-phase:nth-child(-n+1) strong, .d-roadmap [data-done="2"] .roadmap-phase:nth-child(-n+2) strong,
+.d-roadmap [data-done="3"] .roadmap-phase:nth-child(-n+3) strong, .d-roadmap [data-done="4"] .roadmap-phase:nth-child(-n+4) strong,
+.d-roadmap [data-done="5"] .roadmap-phase:nth-child(-n+5) strong, .d-roadmap [data-done="6"] .roadmap-phase:nth-child(-n+6) strong,
+.d-roadmap [data-done="7"] .roadmap-phase:nth-child(-n+7) strong, .d-roadmap [data-done="8"] .roadmap-phase:nth-child(-n+8) strong { color: var(--color-accent); }
+.d-roadmap .roadmap-today { position: absolute; left: var(--today, 0); top: 0; bottom: -0.4rem; border-left: 3px dashed var(--color-warning, var(--color-accent)); z-index: 1; pointer-events: none; }
+.d-roadmap .roadmap-today span { position: absolute; top: 0; left: 0.5rem; font-size: 0.6em; letter-spacing: 0.04em; color: var(--color-warning, var(--color-accent)); font-weight: 700; }

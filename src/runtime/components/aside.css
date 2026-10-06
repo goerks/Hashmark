@@ -1,0 +1,5 @@
+/* Komponente aside: Randnotiz mit Akzentlinie; nur Theme-Tokens */
+.d-aside .aside { border-left: 4px solid var(--color-accent); background: var(--color-surface); border-radius: 0 var(--radius) var(--radius) 0; padding: 0.8rem 1.2rem; font-size: 0.8em; color: var(--color-muted); }
+.d-aside .aside-title { font-family: var(--font-heading); font-weight: 700; color: var(--color-accent); margin-bottom: 0.3rem; }
+.d-aside .aside-body > :first-child { margin-top: 0; }
+.d-aside .aside-body > :last-child { margin-bottom: 0; }

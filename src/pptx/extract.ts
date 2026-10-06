@@ -299,8 +299,10 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
         const m = s.transform.match(/matrix\(([^)]+)\)/)
         if (!m) return true
         const v = m[1].split(',').map(Number)
-        if (Math.abs(v[1]) > 0.001 || Math.abs(v[2]) > 0.001) return true
+        if (Math.abs(v[1]) > 0.001 || Math.abs(v[2]) > 0.001 || v[0] < 0 || v[3] < 0) return true
       }
+      // senkrechte Schrift (Achsenbeschriftung) lässt sich in PowerPoint nicht sinnvoll als Text abbilden
+      if (s.writingMode && s.writingMode !== 'horizontal-tb') return true
       if (s.filter !== 'none' || s.mixBlendMode !== 'normal') return true
       if ((s.maskImage && s.maskImage !== 'none') || (s.clipPath && s.clipPath !== 'none')) return true
       if (s.getPropertyValue('-webkit-background-clip') === 'text' || s.getPropertyValue('background-clip') === 'text') return true
@@ -436,6 +438,8 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
     }
 
     function emitList(list: HTMLElement) {
+      // Listen, die als Raster oder Zeile angeordnet sind (Roadmap, Zeitleiste), sind keine Textlisten: Punkte einzeln
+      if (!/^(block|list-item)$/.test(cs(list).display)) return false
       // Listenpunkte mit Formel im Satz werden einzeln als Bild eingefügt (walk), nicht als Liste
       if ([...list.querySelectorAll('.katex')].some((q) => !q.closest('.katex-display'))) return false
       const out: { para: Para; top: number; bottom: number; left: number; right: number; lines: number }[] = []

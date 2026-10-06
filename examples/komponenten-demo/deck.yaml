@@ -5,3 +5,4 @@ maxDepth: 3
 duration: 10m
 mount:
   - file: 01-start.md
+  - file: 02-bausteine.md

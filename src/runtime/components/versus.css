@@ -1,0 +1,13 @@
+/* Komponente versus: zwei Zustände mit Pfeil; nur Theme-Tokens */
+.d-versus .versus-title { font-family: var(--font-heading); font-size: 0.8em; color: var(--color-muted); margin-bottom: 1rem; }
+.d-versus .versus-grid { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 1.4rem; align-items: stretch; }
+.d-versus .versus-grid::before { content: "→"; grid-column: 2; grid-row: 1; align-self: center; font-size: 2.2em; line-height: 1; color: var(--color-accent); }
+.d-versus .versus-side { grid-row: 1; border: 1px solid var(--color-border); border-radius: var(--radius); background: var(--color-surface); padding: 1rem 1.3rem; transition: opacity 0.25s; }
+.d-versus .versus-before { grid-column: 1; }
+.d-versus .versus-after { grid-column: 3; border-color: color-mix(in srgb, var(--color-accent) 60%, transparent); }
+.d-versus .versus-label { font-family: var(--font-heading); font-weight: 700; margin-bottom: 0.5rem; }
+.d-versus .versus-before .versus-label { color: var(--color-danger); }
+.d-versus .versus-after .versus-label { color: var(--color-accent); }
+.d-versus .versus-body { font-size: 0.85em; }
+.d-versus .versus-body > :first-child { margin-top: 0; }
+.d-versus .versus-body > :last-child { margin-bottom: 0; }

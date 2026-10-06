@@ -1,0 +1,29 @@
+{{!meta
+description: Phasen über die Zeit mit „heute“-Linie und erledigten Phasen (Roadmap, Projektplan), aus einer Liste
+attrs:
+  title: Überschrift über der Roadmap
+  today: Lage der „heute“-Linie in Prozent der Breite, z. B. "41%"
+  done: Anzahl erledigter Phasen von links (1 bis 8)
+  start: Erste Schrittnummer bei steps (Standard 1)
+flags:
+  steps: Phasen nacheinander einblenden
+example: |
+  ::: roadmap title="Roadmap 2027" today="41%" done=2
+  - **Q1** Plugin-API
+  - **Q2** Theme v2
+  - **Q3** Animationen
+  - **Q4** Outliner
+  :::
+}}
+<div class="roadmap"{{#if done}} data-done="{{ done }}"{{/if}}{{#if today}} style="--today: {{ today }}"{{/if}}>
+  {{#if title}}<div class="roadmap-title">{{ title }}</div>{{/if}}
+  <div class="roadmap-track">
+    {{#if today}}<div class="roadmap-today"><span>heute</span></div>{{/if}}
+    <ol class="roadmap-phases" style="--n: {{ count }}">
+      {{#each items}}
+      <li class="roadmap-phase"{{#if step}} data-step="{{ step }}"{{/if}}>{{{ html }}}</li>
+      {{/each}}
+    </ol>
+  </div>
+  {{{ body }}}
+</div>

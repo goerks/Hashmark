@@ -1,0 +1,29 @@
+{{!meta
+description: Vierfelder-Matrix mit Achsenbeschriftung (Aufwand/Nutzen, Eisenhower, Risiko/Eintritt); Felder aus einer Liste
+attrs:
+  title: Überschrift über der Matrix
+  x: Beschriftung der waagerechten Achse, z. B. "Aufwand"
+  y: Beschriftung der senkrechten Achse, z. B. "Nutzen"
+  focus: Nummer des hervorgehobenen Feldes (1 bis 4)
+  start: Erste Schrittnummer bei steps (Standard 1)
+flags:
+  steps: Felder nacheinander einblenden
+example: |
+  ::: matrix x="Aufwand" y="Nutzen" focus=2
+  - **Planen** groß, später
+  - **Zuerst** Quick Wins
+  - **Vermeiden** teuer und wenig Nutzen
+  - **Nebenbei** klein, bei Gelegenheit
+  :::
+}}
+<div class="matrix"{{#if focus}} data-focus="{{ focus }}"{{/if}}>
+  {{#if title}}<div class="matrix-title">{{ title }}</div>{{/if}}
+  <div class="matrix-grid">
+    {{#if y}}<span class="matrix-y">{{ y }} →</span>{{/if}}
+    {{#each items}}
+    <div class="matrix-cell"{{#if step}} data-step="{{ step }}"{{/if}}>{{{ html }}}</div>
+    {{/each}}
+    {{#if x}}<span class="matrix-x">{{ x }} →</span>{{/if}}
+  </div>
+  {{{ body }}}
+</div>

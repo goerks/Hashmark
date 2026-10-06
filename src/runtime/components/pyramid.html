@@ -1,0 +1,27 @@
+{{!meta
+description: Schichten als Pyramide, von der Basis aufwärts aus einer Liste (Architektur, Reifegrade, Bedürfnisse)
+attrs:
+  title: Überschrift über der Pyramide
+  start: Erste Schrittnummer bei steps (Standard 1)
+flags:
+  steps: Stufen nacheinander einblenden, von der Basis aus
+  inverted: Trichter statt Pyramide (oben am breitesten)
+example: |
+  ::: pyramid steps
+  - Infrastruktur
+  - Plattform
+  - Dienste
+  - Oberfläche
+  :::
+}}
+<div class="pyramid{{#if inverted}} pyramid-inverted{{/if}}" style="--n: {{ count }}">
+  {{#if title}}<div class="pyramid-title">{{ title }}</div>{{/if}}
+  <ol class="pyramid-levels">
+    {{#each items}}
+    <li class="pyramid-level" style="--i: {{ index }}"{{#if step}} data-step="{{ step }}"{{/if}}>
+      <div class="pyramid-text">{{{ html }}}</div>
+    </li>
+    {{/each}}
+  </ol>
+  {{{ body }}}
+</div>

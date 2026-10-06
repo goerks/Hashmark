@@ -49,7 +49,7 @@ function pick(from: number, to: number, title: string, all: Suggestion[], query:
   const hits = all.filter((s) => fold(`${s.label} ${s.detail}`).includes(q) || s.keywords?.includes(q))
   if (!hits.length) return null
   hits.sort((a, b) => Number(fold(b.label).startsWith(q)) - Number(fold(a.label).startsWith(q)))
-  return { from, to, title, options: hits.slice(0, 16) }
+  return { from, to, title, options: hits.slice(0, 24) }
 }
 
 const bausteine = (): Suggestion[] =>
