@@ -188,13 +188,20 @@ build-image:
 # Dokumentation auf GitLab Pages: Startseite, Handbuch (docs/, ein Hashmark-Deck mit Lesemodus) und Beispiel-Decks.
 # Lokal dasselbe: make docs-serve. Pakete aus dem Lockfile online (der Vendor-Cache enthält nur Windows-Binärdateien).
 # Einmalig: Settings → General → Visibility → Pages; die Adresse steht danach unter Deploy → Pages.
+#
+# Die Startseite verweist auf den neuesten Release (letzter Tag, Direktlinks in die Package Registry). Deshalb läuft der Job
+# auch bei einem Tag, erst nach `release`: dann existieren die Pakete, und die Seite zeigt sofort die neue Version.
 pages:
   stage: deploy
   image: node:24-bookworm
-  needs: []
+  needs:
+    - job: release
+      optional: true
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG
   variables:
+    GIT_DEPTH: "0" # volle Historie samt Tags für den neuesten Release
     npm_config_cache: "$CI_PROJECT_DIR/.npm-ci-cache"
   cache:
     key: { files: [package-lock.json] }

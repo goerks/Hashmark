@@ -16,7 +16,19 @@ import { listExamples } from '../src/cli/examples.ts'
 import { loadDeck } from '../src/core/deck.ts'
 import type { DeckNode } from '../src/core/types.ts'
 import { indexPage } from './build-examples.ts'
-import { landingPage, type LandingDemo } from './docs-landing.ts'
+import { landingPage, type LandingDemo, type LandingRelease } from './docs-landing.ts'
+import { execFileSync } from 'node:child_process'
+
+/** Letzter Tag und die zugehörige Paketversion (wie `version` in der Pipeline); null ohne Tags (flacher Klon, neues Repo) */
+function latestRelease(): LandingRelease | null {
+  const git = (...a: string[]) => execFileSync('git', a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+  try {
+    const tag = process.env.HASHMARK_RELEASE_TAG || git('describe', '--tags', '--abbrev=0')
+    const version = `${tag.replace(/^v/, '')}.${git('rev-parse', '--short', `${tag}^{commit}`)}`
+    const api = process.env.CI_API_V4_URL, id = process.env.CI_PROJECT_ID
+    return { tag, version, packageBase: api && id ? `${api}/projects/${id}/packages/generic/hashmark` : '' }
+  } catch { return null }
+}
 
 const root = path.resolve(import.meta.dirname, '..')
 export const docsDir = path.join(root, 'docs')
@@ -84,7 +96,7 @@ export async function buildDocs(out: string) {
   fs.writeFileSync(path.join(out, 'beispiele', 'index.html'), indexPage(examples))
 
   const projectUrl = process.env.CI_PROJECT_URL ?? ''
-  fs.writeFileSync(path.join(out, 'index.html'), landingPage({ title: 'Hashmark – Mächtige Präsentationen aus reinem Markdown', demos: await demosFromHandbook(), projectUrl }))
+  fs.writeFileSync(path.join(out, 'index.html'), landingPage({ title: 'Hashmark – Mächtige Präsentationen aus reinem Markdown', demos: await demosFromHandbook(), projectUrl, release: latestRelease() }))
   // GitLab Pages liefert .html ohne Endung nicht aus; eine Datei 404.html für unbekannte Adressen
   fs.writeFileSync(path.join(out, '404.html'), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./"><title>Hashmark</title><a href="./">Zur Startseite</a>')
   console.log(`[hashmark] Dokumentation: ${out} (index.html, handbuch/, beispiele/)`)

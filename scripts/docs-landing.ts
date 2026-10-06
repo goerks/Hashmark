@@ -16,17 +16,34 @@ export interface LandingDemo {
   hint: string
 }
 
+/** Aktueller Release (letzter Tag): Name, Paket-Version und Basisadresse der Paket-Registry */
+export interface LandingRelease {
+  /** z. B. v0.2.0 */
+  tag: string
+  /** Paketversion wie in der Pipeline: <Tag ohne v>.<Kurz-Hash> */
+  version: string
+  /** Adresse der Generic Package Registry, leer = nur Link auf die Release-Seite */
+  packageBase: string
+}
+
 export interface LandingOptions {
   title: string
   demos: LandingDemo[]
   /** Projektadresse (GitLab), leer = Platzhalter */
   projectUrl: string
+  /** letzter Release, falls bekannt */
+  release?: LandingRelease | null
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
 export function landingPage(o: LandingOptions): string {
-  const releases = o.projectUrl ? `${o.projectUrl}/-/releases` : '#'
+  const r = o.release ?? null
+  // Ohne bekannten Tag zeigt GitLab mit „permalink/latest“ trotzdem den neuesten Release
+  const releases = !o.projectUrl ? '#' : r ? `${o.projectUrl}/-/releases/${r.tag}` : `${o.projectUrl}/-/releases/permalink/latest`
+  const pkg = (ext: string, target: string) => (r?.packageBase ? `${r.packageBase}/${r.version}/hashmark-${r.version}-${target}.${ext}` : releases)
+  const link = (label: string, href: string, primary = false) => `<a class="btn${primary ? '' : ' ghost'}" href="${esc(href)}">${label}</a>`
+  const latest = r ? `<p class="lead">Aktuelle Version: <strong>${esc(r.tag)}</strong> · <a href="${esc(releases)}">Release-Notizen</a></p>` : ''
   const demos = JSON.stringify(o.demos.map((d) => ({ tab: d.tab, id: d.id, steps: d.steps, file: d.file, source: d.source, hint: d.hint })))
   return `<!doctype html>
 <html lang="de">
@@ -81,6 +98,7 @@ export function landingPage(o: LandingOptions): string {
   .card p { margin: 0; color: var(--muted); font-size: 14.5px; line-height: 1.55; }
   .dl { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .dl .card { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+  .dl-btns { display: flex; flex-wrap: wrap; gap: 8px; }
   /* Beispiel: Quelltext | Ergebnis */
   .demo { border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--bg); }
   .demo-head { display: flex; align-items: center; gap: 4px; padding: 8px 10px; background: var(--surface); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
@@ -177,11 +195,13 @@ export function landingPage(o: LandingOptions): string {
 <section class="block" id="download">
   <h2>Download</h2>
   <p class="lead">Die Pakete stehen in den GitLab-Releases: eine portable Datei je Plattform, ohne Installer.</p>
+  ${latest}
   <div class="dl">
-    <div class="card"><h3>Windows</h3><p>x64, entpacken und <code>Hashmark.exe</code> starten</p><a class="btn" href="${esc(releases)}">Zu den Releases</a></div>
-    <div class="card"><h3>macOS</h3><p>Apple Silicon und Intel (noch wenig erprobt)</p><a class="btn ghost" href="${esc(releases)}">Zu den Releases</a></div>
-    <div class="card"><h3>Linux</h3><p>amd64 und arm64 (noch wenig erprobt)</p><a class="btn ghost" href="${esc(releases)}">Zu den Releases</a></div>
+    <div class="card"><h3>Windows</h3><p>Entpacken und <code>Hashmark.exe</code> starten</p><div class="dl-btns">${link('x64', pkg('zip', 'windows-amd64'), true)}${link('ARM64', pkg('zip', 'windows-arm64'))}</div></div>
+    <div class="card"><h3>macOS</h3><p>Apple Silicon und Intel (noch wenig erprobt)</p><div class="dl-btns">${link('Apple Silicon', pkg('tar.gz', 'darwin-arm64'))}${link('Intel', pkg('tar.gz', 'darwin-amd64'))}</div></div>
+    <div class="card"><h3>Linux</h3><p>amd64 und arm64 (noch wenig erprobt)</p><div class="dl-btns">${link('x64', pkg('tar.gz', 'linux-amd64'))}${link('ARM64', pkg('tar.gz', 'linux-arm64'))}</div></div>
   </div>
+  <p class="lead" style="margin-top:14px"><a href="${esc(o.projectUrl ? `${o.projectUrl}/-/releases` : '#')}">Alle Releases</a></p>
 </section>
 
 <footer>Hashmark · Dokumentation${o.projectUrl ? ` · <a href="${esc(o.projectUrl)}">Quellcode</a>` : ''}</footer>
