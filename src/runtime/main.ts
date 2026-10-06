@@ -8,8 +8,15 @@ import { parsePrintOptions } from '../core/print.ts'
 const target = document.getElementById('app')!
 const params = new URLSearchParams(location.search)
 
-// ?print → Druckansicht (PDF), ?presenter → Presenter-View (zweites Fenster), sonst Präsentation
-if (params.has('print')) {
+// ?print → Druckansicht (PDF), ?presenter → Presenter-View (zweites Fenster), ?reader → Lesemodus (Handbuch),
+// ?card → eine einzelne Folie zum Einbetten, sonst Präsentation
+if (params.has('reader')) {
+  const { default: ReaderView } = await import('./ReaderView.svelte')
+  mount(ReaderView, { target })
+} else if (params.has('card')) {
+  const { default: CardView } = await import('./CardView.svelte')
+  mount(CardView, { target })
+} else if (params.has('print')) {
   const { default: PrintView } = await import('./PrintView.svelte')
   mount(PrintView, { target, props: { options: parsePrintOptions(params), autoprint: params.has('autoprint') } })
 } else if (params.has('presenter')) {

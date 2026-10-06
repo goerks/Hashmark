@@ -10,7 +10,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
 | `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen (mit Datei: Logo zuschneiden und ersetzen) |
-| `make test` | Vitest (`tests/*.test.ts`, 170 Tests, Kern-Logik ohne DOM) |
+| `make test` | Vitest (`tests/*.test.ts`, 176 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-cross` / `make app-package` | Desktop-App (Go): bauen + starten (`DECK=…` optional) / Hülle für Windows, Linux, macOS (amd64, arm64) nach `dist-go/` / portables `dist-app/Hashmark/` (windows-amd64). Andere Ziele samt Archiv: `node scripts/package-app.ts <ziel> --version=… --archive` (online, lädt Node und die Pakete des Ziels) |
 | `hashmark --version` | Version `<letzter Tag ohne v>.<Kurz-Hash>`, per `-ldflags "-X main.version=…"` eingebettet (`make` über `git describe`, in der Pipeline der Job `version`); `VERSION=…` überschreibt |
 | Go | liegt **nicht** im Repo (ab 1.26, im `PATH`). Mehr braucht die Desktop-Hülle nicht: kein CGO, kein C-Compiler, kein Rust |
@@ -21,6 +21,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/hashmark-demo`, 3030). `make dev` ohne ausdrückliches `DECK=` startet mit `--examples`: Plugin-Option `examples` (plugin.ts, `/__hashmark/examples` GET/POST wechselt das Deck) + `src/runtime/example-switcher.ts` (nur `import.meta.env.DEV`) |
 | `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless (`PLAN=path` oder `PLAN=grouped`: Reihenfolge nach Vortragsplan) |
 | `make pptx` | PowerPoint-Export (`hashmark pptx`, `DEPTH=1 STEPS=1 PLAN=… PPTX=…`): `src/pptx/` (extract.ts läuft im Browser, build.ts nutzt pptxgenjs + jszip), Orchestrierung `src/cli/pptx.ts` über dieselbe Druckansicht wie das PDF; Editor-Button, Desktop-Menü (Aktion `pptx`), `GET /__hashmark/pptx` |
+| `make docs` / `make docs-serve` | Dokumentation wie auf GitLab Pages nach `public/` (`DOCS_OUT`, `DOCS_PORT`, Standard 4000): `scripts/build-docs.ts` baut das Handbuch (`docs/`, ein Deck) nach `handbuch/`, alle Beispiele nach `beispiele/` und schreibt die Startseite (`scripts/docs-landing.ts`, Live-Beispiele lesen ihren Quelltext aus dem Handbuch). CI-Job `pages` |
 | `make check` | `hashmark check`: `src/core/check.ts` (statisch: Layouts, Attribute, Übergänge, Hinweise des Ladens), `src/cli/check.ts` (Überlauf: Build + Druckansicht per Edge/Chrome, liest `data-overflow` der `.print-page[data-node][data-sub]`); Exit 1 bei Fehlern; `pdf.ts`: `withPrintView`/`serveBuild` geteilt mit dem PDF-Export |
 | `make deps-update` | neue Pakete online holen, landen im Cache `vendor/npm-cache` |
 
@@ -98,6 +99,7 @@ src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print
   PlanPanel.svelte  Vortragsplan bearbeiten (Presenter-View, Taste P): Rolle je Knoten, Vorlagen, Fahrpläne, Zeitsumme;
                     plan-store.ts lädt/speichert (Server-Datei, sonst localStorage)
   NavControls/NavOverview/KeyHelp/PrintView/PrintPages, transitions.ts, mermaid.ts
+  ReaderView.svelte + Lazy.svelte + reader.css   ?reader = Lesemodus (Handbuch): Baum als Inhaltsverzeichnis, Notizen als Fließtext, Folien als Karten (ScaledSlide, erst im Sichtbereich gerendert); CardView.svelte: ?card#id:folie&step=n = eine Folie, per postMessage `{type:'hashmark:card', id, slide, step}` umschaltbar (Einbettung in die Startseite). Beide in main.ts
   base.css, print.css, themes/*.css (nur Design-Tokens: --color-*, --font-*, --shiki-*, …)
   editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*): codemirror.ts (Setup, API), hashmark-lang.ts (Decorations für ::: und {…}, Highlight-Klassen .tok-*/.st-*),
                     assist.ts (Autocomplete, Linter, Formatleiste), Palette.svelte (Strg+K), KeyBar.svelte (Tablet), Editor.svelte; Layout A „Fokus“, unter 900 px Schublade + gestapelt
@@ -200,6 +202,7 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
   - Formeln: `.katex-display` und Absätze/Listenpunkte mit Formel im Satz (`hasInlineMath`) werden Bilder (die Lücke einer Formel im Text per geschützten Leerzeichen zu treffen, war unzuverlässig); in Tabellenzellen bleibt eine Lücke mit gemessener Breite. Rasterbox einer Formel = Vereinigung der Nachkommen (Brüche ragen aus der Box). `\htmlData{step=n}` im Formelbild wird ein eigenes Bild mit Schritt.
   - Animationen (`animate.ts`): `extractPages({ animate })` zeigt alle Schritte (`step-hidden`/`step-current` entfernt) und liest `data-step`/`data-until` über `stepOf` (vererbt sich nach unten). Elemente bekommen `from`/`until` (Klick), Listen- und Codeabsätze `Para.from`. Dekoration mit Schritt wird ein `overlay`-Bild (Text unsichtbar, Pseudo-Elemente mit Farbe), Mermaid-Versionen (`.mermaid-state`) und Tabellenzeilen-Gruppen eigene Formen. `timingXml` schreibt `<p:timing>` (Einblenden `presetID=10`, Absatzbereiche `pRg`, `bldP build="p"`), `finish` setzt es nach Namen → Form-IDs ein; davor `<p:transition>`. Aus bei `steps=1` oder `anim=0` (`wantsAnimation`).
   - Prüfen: PowerPoint ist hier installiert, `Presentations.Open` + `Export(dir,'PNG',1280,720)` per COM und Vergleich mit Browser-Screenshots. Animationen: `Slide.TimeLine.MainSequence` (Effekte, `Exit`, `Paragraph`) und `SlideShowTransition.EntryEffect` lesen. **Keinen Bildschirm abfotografieren** (`CopyFromScreen` zeigt den echten Desktop des Nutzers) und PowerPoint nie per `taskkill` beenden (könnte das des Nutzers sein): `$app.Quit()` des selbst gestarteten Objekts genügt.
+- **Folien mit `step=Infinity`** (Lesemodus, Miniaturen): `applySteps` behandelt `until` ohne Wert als unendlich (`until === Infinity ||`), sonst wäre `Infinity < Infinity` falsch und alle Schritt-Inhalte blieben verborgen.
 - **Webdienst (`hashmark serve`, Docker/Render):**
   - Ein Prozess, ein Container: `live-server.ts` mit Option `web` liefert die Präsentation öffentlich und `/editor.html` plus Datei-API nur mit HTTP-Basic-Passwort (`EDITOR_PASSWORD`, ohne Passwort gibt es keinen Editor). `/healthz` für Render.
   - Die Datei-API prüft im Webbetrieb weiter den Header `X-Hashmark-Editor` und dass `Origin` zum `Host` passt (Basic-Zugangsdaten gehen sonst auch von fremden Seiten mit). `/__hashmark/app` bleibt localhost-only.

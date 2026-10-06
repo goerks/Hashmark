@@ -16,6 +16,7 @@
 # Die Registry-Anmeldung (CI_REGISTRY_*) und CI_JOB_TOKEN stellt GitLab selbst bereit.
 
 stages: [.pre, test, build, package, publish, release, deploy]
+# Dokumentation: Job `pages` (siehe unten) baut Startseite, Handbuch und Beispiele nach public/ (GitLab Pages)
 
 workflow:
   rules:
@@ -183,6 +184,27 @@ build-image:
         DESTINATIONS="--no-push"
       fi
     - /kaniko/executor --context "$CI_PROJECT_DIR" --dockerfile "$CI_PROJECT_DIR/Dockerfile" $DESTINATIONS
+
+# Dokumentation auf GitLab Pages: Startseite, Handbuch (docs/, ein Hashmark-Deck mit Lesemodus) und Beispiel-Decks.
+# Lokal dasselbe: make docs-serve. Pakete aus dem Lockfile online (der Vendor-Cache enthält nur Windows-Binärdateien).
+# Einmalig: Settings → General → Visibility → Pages; die Adresse steht danach unter Deploy → Pages.
+pages:
+  stage: deploy
+  image: node:24-bookworm
+  needs: []
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  variables:
+    npm_config_cache: "$CI_PROJECT_DIR/.npm-ci-cache"
+  cache:
+    key: { files: [package-lock.json] }
+    paths: [.npm-ci-cache]
+  script:
+    - npm ci --no-audit --no-fund --cache "$npm_config_cache" --prefer-offline=false
+    - node scripts/build-docs.ts --out public
+  artifacts:
+    paths: [public]
+    expire_in: 1 week
 
 # Render zieht das neue Image (Tag = Commit) über den Deploy-Hook. Nur auf dem Standard-Branch.
 deploy:

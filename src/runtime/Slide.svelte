@@ -35,7 +35,7 @@
     for (const item of root.querySelectorAll<HTMLElement>('[data-step]')) {
       const from = Number(item.dataset.step)
       const until = item.dataset.until ? Number(item.dataset.until) : Infinity
-      const visible = current >= from && current < until
+      const visible = current >= from && (until === Infinity || current < until)
       item.classList.toggle('step-hidden', !visible)
       item.classList.toggle('step-current', visible && from === current && from > 0)
     }

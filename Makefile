@@ -16,6 +16,8 @@ DECK         ?= examples/hashmark-demo
 PORT         ?= 3030
 OUT          ?= dist
 DOCKER_PORT  ?= 8080
+DOCS_OUT     ?= public
+DOCS_PORT    ?= 4000
 IMAGE        ?= hashmark/$(notdir $(DECK))
 EXAMPLES_IMAGE ?= hashmark/beispiele
 SERVER_IMAGE ?= hashmark/server
@@ -36,7 +38,7 @@ APP_TARGETS := windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/amd64 
 GIT_TAG := $(patsubst v%,%,$(shell git describe --tags --abbrev=0 2>nul || echo 0.0.0))
 VERSION ?= $(GIT_TAG).$(shell git rev-parse --short HEAD)
 
-.PHONY: help setup node install app app-cross app-exe app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf pptx check build-examples docker-examples docker docker-run test new clean distclean
+.PHONY: docs docs-serve help setup node install app app-cross app-exe app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf pptx check build-examples docker-examples docker docker-run test new clean distclean
 
 help:
 	@echo Hashmark - Maechtige Praesentationen aus reinem Markdown
@@ -60,6 +62,8 @@ help:
 	@echo   make export        Eine HTML-Datei, laeuft offline per Doppelklick (export/)
 	@echo   make pptx          PowerPoint nach export/ (DEPTH=1, STEPS=1, PLAN=path|grouped, NOANIM=1, PPTX=pfad.pptx)
 	@echo   make pdf           PDF nach export/ (DEPTH=1 Hauptpfad, STEPS=1 je Schritt, NOTES=1 Handout, PLAN=path|grouped nach Vortragsplan)
+	@echo   make docs          Dokumentation bauen wie auf GitLab Pages (public/: Startseite, Handbuch, Beispiele)
+	@echo   make docs-serve    Dokumentation bauen und lokal zeigen (http://localhost:$(DOCS_PORT), DOCS_PORT=...)
 	@echo   make check         Deck pruefen: Layouts, Bilder, Theme, Ueberlauf (NOOVERFLOW=1 ohne Browser, STRICT=1)
 	@echo   make docker        Build + Docker-Image mit nginx  (IMAGE=$(IMAGE))
 	@echo   make docker-run    Image starten                (DOCKER_PORT=$(DOCKER_PORT))
@@ -113,6 +117,13 @@ app-test: node_modules
 
 sidecar-smoke: node_modules
 	$(NODE) scripts\sidecar-smoke.ts
+
+# Dokumentation wie auf GitLab Pages: Startseite, Handbuch (docs/) und Beispiele nach $(DOCS_OUT)/; docs-serve zeigt sie auf http://localhost:$(DOCS_PORT)
+docs: node_modules
+	$(NODE) scripts\build-docs.ts --out "$(DOCS_OUT)"
+
+docs-serve: node_modules
+	$(NODE) scripts\build-docs.ts --out "$(DOCS_OUT)" --serve $(DOCS_PORT)
 
 edit: node_modules
 	$(HASHMARK) edit "$(DECK)" --port $(PORT)

@@ -80,6 +80,23 @@ Die App ist eine schlanke Go-Hülle (ohne CGO, ca. 7 MB) um die Webview des Syst
 - `make sidecar-smoke` – Node-Teil so, wie die App ihn anspricht (Deck öffnen, Datei-API, App-Aktionen, PDF, Handout, HTML). `SIDECAR_BUNDLE=1` prüft das Bündel.
 - `make app-test` – die ganze App: Startseite, Deck öffnen, Editor, Rechte, Präsentation, Presenter, Tasten, Ctrl+W, dazu die Zeiten. Nutzt das gepackte Programm bzw. `export/hashmark.exe` (`make app`). `VISIBLE=1` zeigt die Fenster, `node scripts/app-e2e.ts <exe>` testet eine beliebige EXE.
 
+## Dokumentation (GitLab Pages)
+
+Die Dokumentation ist selbst mit Hashmark gebaut und besteht aus drei Teilen:
+
+- **Startseite** (`scripts/docs-landing.ts`): Slogan, animierter Baum, Merkmale und Live-Beispiele. Links steht der Markdown-Quelltext einer Folie, rechts die echte, gerenderte Folie (mit Schritten zum Ausprobieren). Der Quelltext wird beim Bauen aus dem Handbuch gelesen und kann deshalb nicht von der Folie abweichen.
+- **Handbuch** (`docs/`): ein normales Hashmark-Deck. Als Präsentation unter `handbuch/`, als **Lesemodus** unter `handbuch/?reader`: der Baum als Inhaltsverzeichnis, die Sprechernotizen als Fließtext, die Folien als Karten dazwischen (Klick = Präsentation ab dort, „Details“ blendet alle ↓-Abschnitte aus). Den Erklärtext schreibst du also in `::: notes`.
+- **Beispiele** (`beispiele/`): alle Decks aus `examples/` mit Auswahlseite.
+
+```sh
+make docs-serve        # bauen und ansehen: http://localhost:4000 (DOCS_PORT=… ändert den Port)
+make docs              # nur bauen, nach public/ (DOCS_OUT=…)
+```
+
+Auf GitLab baut der Job `pages` (`.gitlab-ci.yml`) bei jedem Push auf den Standard-Branch dasselbe nach `public/`. Einmalig: Pages im Projekt aktivieren (Deploy → Pages), die Adresse steht danach dort; alle Links sind relativ und funktionieren auch unter `https://<gruppe>.gitlab.io/<projekt>/`. Die Download-Karten verweisen auf `$CI_PROJECT_URL/-/releases`.
+
+**Lesemodus und Einzelkarte gelten für jedes Deck**, nicht nur für das Handbuch: Hänge `?reader` an die Adresse eines gebauten Decks (`make dev`, `make build`, Export) für den Lesemodus, `?card#id` zeigt nur eine Folie ohne Bedienelemente (`&step=n` für einen Schritt), etwa zum Einbetten per `<iframe>`.
+
 ## Alle Abhängigkeiten liegen im Projekt
 
 Es muss nichts global installiert werden:
