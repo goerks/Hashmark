@@ -114,6 +114,18 @@ try {
   check('Seiten vom Deck-Server dürfen keine App-Befehle', denied !== 'ERLAUBT', denied)
   check('vorgebaute Runtime (Live-Server)', (await ed.eval('window.__HASHMARK_LIVE__ === true && window.__HASHMARK_DESKTOP__ === true')) === true)
 
+  // Regression: der Pfeil neben „Präsentieren“ (Optionen) rief eine Bindung mit error-Rückgabe auf und beendete die App
+  check('Optionen fürs Präsentieren: Pfeil vorhanden', (await ed.eval(`!!document.querySelector('.ed-present-opt')`)) === true)
+  await ed.eval(`document.querySelector('.ed-present-opt').click()`)
+  check('Optionen-Dialog öffnet sich mit Bildschirmen', await until(() => ed.eval(`!!document.querySelector('.po .po-screen')`), 10_000))
+  await ed.eval(`document.querySelectorAll('.po input[type=radio]')[2].click()`) // Presenter „Nie“ speichern …
+  await sleep(500)
+  check('Optionen speichern ohne Fehler', (await ed.eval(`!document.querySelector('.po [role=alert]')`)) === true)
+  await ed.eval(`document.querySelectorAll('.po input[type=radio]')[0].click()`) // … und zurück auf „Automatisch“
+  await sleep(500)
+  await ed.eval(`document.querySelector('.po-done').click()`)
+  check('App läuft nach dem Optionen-Dialog weiter', app.exitCode === null)
+
   const present = Date.now()
   await ed.eval(`document.querySelector('.ed-present').click()`)
   const prT = await waitTarget((u) => u.includes('127.0.0.1') && !u.includes('editor.html') && !u.includes('presenter'), 30_000)

@@ -9,17 +9,23 @@
 
   let opts = $state<PresentOptions | null>(null)
   let failed = $state(false)
+  /** Fehlertext der App (gelesen oder gespeichert); leer = alles gut */
+  let error = $state('')
 
   onMount(async () => {
-    opts = await loadPresentOptions()
-    failed = !opts
+    if (typeof window.hmPresentOptions !== 'function') { failed = true; return }
+    const r = await loadPresentOptions()
+    opts = r.options ?? null
+    error = r.error ?? ''
   })
 
   /** Auswahl speichern und mit dem Stand der Hülle abgleichen (sie prüft gegen die angeschlossenen Bildschirme) */
   async function change(patch: Partial<Pick<PresentOptions, 'presenter' | 'presentation' | 'presenterScreen'>>) {
     if (!opts) return
-    await savePresentOptions({ presenter: opts.presenter, presentation: opts.presentation, presenterScreen: opts.presenterScreen, ...patch })
-    opts = (await loadPresentOptions()) ?? opts
+    error = (await savePresentOptions({ presenter: opts.presenter, presentation: opts.presentation, presenterScreen: opts.presenterScreen, ...patch })) ?? ''
+    const r = await loadPresentOptions()
+    opts = r.options ?? opts
+    if (r.error && !error) error = r.error
   }
 
   const PRESENTER = [
@@ -121,6 +127,11 @@
       </fieldset>
 
       <p class="po-note">Beenden: <kbd>Strg W</kbd>, ✕ oben rechts in der Präsentation oder im Presenter. Die Änderungen gelten ab dem nächsten Start.</p>
+      {#if error}
+        <p class="po-note warn" role="alert">Speichern fehlgeschlagen: {error}<br>Details: Menü Hilfe › Protokoll öffnen.</p>
+      {/if}
+    {:else if error}
+      <p class="po-note warn" role="alert">Die Optionen konnten nicht gelesen werden: {error}<br>Der Fehler steht im Protokoll (Menü Hilfe › Protokoll öffnen, hashmark.log).</p>
     {:else if failed}
       <p class="po-note warn">Die Optionen sind nur in der Desktop-App verfügbar.</p>
     {:else}

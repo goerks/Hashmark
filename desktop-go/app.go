@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/abemedia/go-webview"
 	"github.com/ncruces/zenity"
@@ -35,6 +36,10 @@ type app struct {
 	deck     *deck
 	recent   []string
 	children map[string]*exec.Cmd // "presentation", "presenter"
+
+	// zuletzt gestartete Präsentation: ein doppelt ausgelöstes „Präsentieren“ soll kein zweites Fenster öffnen
+	lastPresent     time.Time
+	lastPresentHash string
 }
 
 const (
@@ -165,12 +170,18 @@ func (a *app) spawn(label, url, title, mode string, screen int) error {
 	logLine("%s gestartet (pid %d, %s)", label, cmd.Process.Pid, mode)
 	safeGo("Fenster überwachen", func() {
 		err := cmd.Wait()
-		logLine("%s-Prozess %d beendet: Exit-Code %d, %v", label, cmd.Process.Pid, cmd.ProcessState.ExitCode(), err)
+		code := cmd.ProcessState.ExitCode()
+		logLine("%s-Prozess %d beendet: Exit-Code %d, %v", label, cmd.Process.Pid, code, err)
 		a.mu.Lock()
-		if a.children[label] == cmd {
+		// noch eingetragen = nicht von uns beendet (kill entfernt den Eintrag vorher)
+		unexpected := a.children[label] == cmd
+		if unexpected {
 			delete(a.children, label)
 		}
 		a.mu.Unlock()
+		if unexpected && code != 0 {
+			a.reportCrash(label)
+		}
 		// Präsentation zu → Presenter-View ebenfalls
 		if label == "presentation" {
 			a.kill("presenter")
@@ -218,6 +229,14 @@ func (a *app) present(hash *string) error {
 		}
 		h, _ = p.(string)
 	}
+	a.mu.Lock()
+	if h == a.lastPresentHash && time.Since(a.lastPresent) < 2*time.Second {
+		a.mu.Unlock()
+		logLine("Präsentieren doppelt ausgelöst (%q), zweiter Aufruf ignoriert", h)
+		return nil
+	}
+	a.lastPresent, a.lastPresentHash = time.Now(), h
+	a.mu.Unlock()
 	a.closePresentation()
 	all := monitors()
 	s := a.presentSettings()
@@ -259,10 +278,10 @@ func (a *app) presentOptions() (string, error) {
 }
 
 // setPresentOptions übernimmt die Wahl aus dem Dialog (prüft sie gegen die angeschlossenen Bildschirme) und speichert sie
-func (a *app) setPresentOptions(js string) error {
+func (a *app) setPresentOptions(js string) (string, error) {
 	s := defaultPresentSettings()
 	if err := json.Unmarshal([]byte(js), &s); err != nil {
-		return err
+		return "", err
 	}
 	s = s.normalized(monitors())
 	a.mu.Lock()
@@ -270,7 +289,29 @@ func (a *app) setPresentOptions(js string) error {
 	a.mu.Unlock()
 	err := savePresentSettings(a.data, s)
 	safeGo("Menü aktualisieren", a.refreshMenu)
-	return err
+	return "{}", err
+}
+
+// reportCrash: ein Fenster-Prozess ist mit Fehler beendet worden. Liegt ein Absturzprotokoll vor, zeigt ein Dialog die
+// Fehlerzeile und den Pfad der Datei (nicht im Headless-Test).
+func (a *app) reportCrash(label string) {
+	summary, when, kept := takeCrashReport()
+	if summary == "" {
+		logLine("%s-Fenster mit Fehler beendet, aber ohne Absturzprotokoll (vermutlich ein Fehler der Webview)", label)
+		return
+	}
+	showCrash(summary, when, kept)
+}
+
+// showCrash fragt, ob das Protokoll geöffnet werden soll
+func showCrash(summary string, when time.Time, kept string) {
+	if headless() {
+		return
+	}
+	err := zenity.Question(crashMessage(summary, when, kept), zenity.Title("Hashmark"), zenity.OKLabel("Protokoll öffnen"), zenity.CancelLabel("Schließen"), zenity.ErrorIcon)
+	if err == nil {
+		_ = openPath(kept)
+	}
 }
 
 // ---------- Export ----------
@@ -474,6 +515,7 @@ func (a *app) menu() []menuItem {
 		{Label: "Hilfe", Sub: []menuItem{
 			it("readme", "Anleitung (README)", "", true),
 			it("data-dir", "Datenordner öffnen (Einstellungen, Logs)", "", true),
+			it("open-log", "Protokoll öffnen (hashmark.log)", "", true),
 			sep,
 			it("about", "Hashmark "+version+" · Go "+goVersion, "", false),
 		}},
@@ -587,6 +629,8 @@ func (a *app) onMenu(id string) {
 		err = openPath(filepath.Join(a.root, "README.md"))
 	case id == "data-dir":
 		err = openPath(a.data)
+	case id == "open-log":
+		err = openPath(filepath.Join(a.data, "hashmark.log"))
 	}
 	a.report("Hashmark", err)
 }

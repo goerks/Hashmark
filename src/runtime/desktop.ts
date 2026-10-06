@@ -36,7 +36,9 @@ export function desktopAction(a: DesktopAction): Promise<boolean> {
 declare global {
   interface Window {
     hmPresentOptions?: () => Promise<string>
-    hmSetPresentOptions?: (json: string) => Promise<void>
+    hmSetPresentOptions?: (json: string) => Promise<string>
+    /** Meldung ins Protokoll der App (hashmark.log) */
+    hmLog?: (message: string) => Promise<void>
   }
 }
 
@@ -57,14 +59,34 @@ export interface PresentOptions {
 /** Gibt es die Optionen? Nur im Hauptfenster der Desktop-App (dort bindet die Hülle die Funktionen). */
 export const hasPresentOptions = () => typeof window.hmPresentOptions === 'function'
 
-export async function loadPresentOptions(): Promise<PresentOptions | null> {
+/**
+ * Fehler einer Hülle-Funktion: lesbarer Text für die Seite und eine Zeile im Protokoll der App (hashmark.log),
+ * damit sich der Fehler später zurückverfolgen lässt.
+ */
+function failure(what: string, e: unknown): string {
+  const message = e instanceof Error ? e.message : String(e)
+  try { void window.hmLog?.(`Fehler (${what}): ${message}`) } catch { /* ohne Protokoll weiter */ }
+  return message
+}
+
+/** Die Hülle antwortet mit JSON; bei einem Fehler steht darin `{ "error": "…" }` */
+async function callShell(what: string, fn: () => Promise<string>): Promise<{ data?: unknown; error?: string }> {
   try {
-    return JSON.parse(await window.hmPresentOptions!()) as PresentOptions
-  } catch {
-    return null
+    const data = JSON.parse(await fn()) as { error?: unknown }
+    if (data && typeof data === 'object' && typeof data.error === 'string') return { error: failure(what, data.error) }
+    return { data }
+  } catch (e) {
+    return { error: failure(what, e) }
   }
 }
 
-export async function savePresentOptions(o: Pick<PresentOptions, 'presenter' | 'presentation' | 'presenterScreen'>): Promise<void> {
-  await window.hmSetPresentOptions!(JSON.stringify({ presenter: o.presenter, presentation: o.presentation, presenterScreen: o.presenterScreen }))
+export async function loadPresentOptions(): Promise<{ options?: PresentOptions; error?: string }> {
+  const r = await callShell('Optionen lesen', () => window.hmPresentOptions!())
+  return r.error ? { error: r.error } : { options: r.data as PresentOptions }
+}
+
+/** Speichert die Wahl; liefert den Fehlertext oder `null` */
+export async function savePresentOptions(o: Pick<PresentOptions, 'presenter' | 'presentation' | 'presenterScreen'>): Promise<string | null> {
+  const r = await callShell('Optionen speichern', () => window.hmSetPresentOptions!(JSON.stringify({ presenter: o.presenter, presentation: o.presentation, presenterScreen: o.presenterScreen })))
+  return r.error ?? null
 }

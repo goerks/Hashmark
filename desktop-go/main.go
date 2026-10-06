@@ -15,6 +15,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/abemedia/go-webview"
 	_ "github.com/abemedia/go-webview/embedded" // native Webview-Bibliothek einbetten
@@ -137,6 +138,7 @@ func main() {
 	mode := flag.String("mode", "presentation", "presentation | presenter (mit --window)")
 	screen := flag.Int("screen", -1, "Bildschirm für das Fenster (Position in der Liste des Systems, -1 = automatisch; mit --window)")
 	showVersion := flag.Bool("version", false, "Version ausgeben und beenden")
+	crashTest := flag.Bool("crash-test", false, "Absturz auslösen, um das Absturzprotokoll zu prüfen (crash.log im Datenordner)")
 	selftest := flag.Bool("selftest", false, "Sidecar starten, Beispiel-Deck öffnen, URL ausgeben, beenden")
 	flag.Parse()
 	if *showVersion {
@@ -144,10 +146,23 @@ func main() {
 		fmt.Println("Hashmark " + version)
 		return
 	}
+	if *crashTest {
+		initCrashLog()
+		go func() { panic("Absturztest (--crash-test)") }() // unbehandelte Panik in einer Goroutine, wie bei go-webview
+		time.Sleep(5 * time.Second)
+		return
+	}
 	if *win != "" {
+		initCrashLog()
 		runChild(*win, *title, *mode, *screen)
 		return
 	}
+
+	// Absturz beim letzten Lauf? Meldung mit Fehlerzeile und Pfad des Protokolls, danach das Absturzprotokoll neu beginnen
+	if summary, when, kept := takeCrashReport(); summary != "" {
+		showCrash(summary, when, kept)
+	}
+	initCrashLog()
 
 	node, root := locate()
 	if node == "" || root == "" {
@@ -205,8 +220,9 @@ func main() {
 	v.Init(errorsJS)
 	logLine("Hashmark %s gestartet (Go %s)", version, goVersion)
 	// Optionen fürs Präsentieren: die Editor-Seite fragt Stand und Bildschirme ab und setzt sie
-	_ = v.Bind("hmPresentOptions", a.presentOptions)
-	_ = v.Bind("hmSetPresentOptions", a.setPresentOptions)
+	// Nur Funktionen ohne `error`-Rückgabe binden: go-webview stürzt sonst ab (siehe crash.go). Fehler gehen als JSON an die Seite.
+	_ = v.Bind("hmPresentOptions", func() string { return callGuard("hmPresentOptions", a.presentOptions) })
+	_ = v.Bind("hmSetPresentOptions", func(js string) string { return callGuard("hmSetPresentOptions", func() (string, error) { return a.setPresentOptions(js) }) })
 	v.Init(externalLinksJS)
 	if headless() {
 		hideWindow(a.hwnd)

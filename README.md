@@ -64,6 +64,7 @@ Die App ist eine schlanke Go-Hülle (ohne CGO, ca. 7 MB) um die Webview des Syst
   - Mit nur einem Bildschirm öffnet S die Presenter-View als eigenes Fenster.
   - Beenden: Ctrl+W, der Knopf ✕ Beenden (oben rechts in der Präsentation, erscheint mit der Maus; im Presenter mit Rückfrage) oder Menü Präsentieren › Präsentation beenden. Alt+F4 geht ebenfalls.
 - **Export** (Menü Datei): Als HTML-Datei (Ctrl+Shift+E), PDF mit allen Folien (Ctrl+Shift+P), nur Hauptpfad, jeder Schritt eine Seite, Handout mit Notizen, PowerPoint (Ctrl+Shift+X, siehe „PowerPoint-Export“). Das PDF entsteht wie bei `make pdf` über Edge headless, direkt vom laufenden Deck, ohne neuen Build.
+- **Diagnose:** Menü Hilfe › „Protokoll öffnen“ zeigt `hashmark.log` im Datenordner (`%APPDATA%\app.hashmark.desktop`): Start und Ende der Fenster, Fehler der Seiten und der App. Stürzt die App ab, schreibt sie den Stack nach `crash.log` und zeigt beim nächsten Start eine Meldung mit der Fehlerzeile und dem Pfad der Datei (`crash-<Zeit>.log`, die letzten fünf bleiben erhalten). Bitte diese Datei mitschicken, wenn du einen Fehler meldest. `Hashmark.exe --crash-test` löst zur Probe einen Absturz aus.
 - **Ansicht:** Editor (Ctrl+1), Präsentation im Fenster (Ctrl+2), Neu laden (Ctrl+R), Vollbild (F11), Entwicklertools (F12). Die Tastenkürzel des Menüs sind Skripte in den Seiten, weil WebView2 Tasten selbst verarbeitet.
 - **Sicherheit:**
   - Die internen Server lauschen nur auf 127.0.0.1 mit zufälligem Port.
