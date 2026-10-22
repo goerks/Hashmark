@@ -38,3 +38,37 @@ Die **Desktop-App** besteht aus einer kleinen Hülle in Go und Node.js im Paket:
 
 Der **Webdienst** (`hashmark serve`, als Docker-Image) liefert die Präsentation öffentlich und den Editor unter `/editor.html` mit Passwort. Er lässt sich auf Render oder in jeder Container-Umgebung betreiben.
 :::
+
+## Webdienst betreiben {id=webdienst}
+
+| Variable | Bedeutung |
+| --- | --- |
+| `EDITOR_PASSWORD` | schaltet den Editor frei, ohne gibt es nur die Präsentation |
+| `EDITOR_USER` | Benutzername, Standard `editor` |
+| `PORT` | Standard 10000, Render setzt ihn selbst |
+| `DECK_DIR` | Deck-Ordner, Standard `/data/deck` |
+| `DECK_SEED` | wird beim ersten Start in einen leeren `DECK_DIR` kopiert |
+
+::: notes
+Ein einziger Container liefert die Präsentation (`/`, öffentlich) und den Editor (`/editor.html`, mit Passwort). Beide arbeiten auf demselben Deck-Ordner: Änderungen im Editor erscheinen sofort in der Präsentation, es braucht also nur **eine Bereitstellung**. Lokal startest du ihn mit `make serve` (Passwort „geheim“) oder als Image mit `make image` und `make image-run`.
+
+Das Image läuft auf jedem Container-Dienst: Port aus `PORT`, Health Check `/healthz`, eine Festplatte auf `/data` und `EDITOR_PASSWORD` gesetzt. Die Zugangsdaten gehen per HTTP Basic, deshalb nur über HTTPS betreiben (Render beendet TLS selbst).
+
+**Wichtig:** Ohne Festplatte ist das Dateisystem bei Render flüchtig, Änderungen aus dem Editor gehen bei jedem Neustart verloren (kostenlose Dienste haben keine Festplatte). Mit der Festplatte auf `/data` bleiben sie erhalten.
+:::
+
+## Weitergeben {id=weitergeben}
+
+| Situation | Weg |
+| --- | --- |
+| Am eigenen Laptop, noch am Schreiben | App oder `make dev` (Hot Reload) |
+| Auf einem fremden Rechner oder per Mail | **Eine HTML-Datei** (`make export`), per Doppelklick, ohne Server |
+| Kollegen im selben Netz oder VPN | `make dev-lan` oder `make preview-lan` |
+| Dauerhaft im Netz, mit Editor | **Webdienst** (Docker) |
+| Beliebiges statisches Hosting | `make build`, Inhalt von `dist/` hochladen |
+
+::: notes
+Die HTML-Datei ist etwa 5 MB groß und enthält alles. Für den LAN-Weg fragt Windows beim ersten Start, ob `node.exe` im Netzwerk lauschen darf. `make build` funktioniert auch in Unterverzeichnissen, etwa auf GitHub Pages oder S3.
+
+**Vertraulichkeit:** Build und Export enthalten den ganzen Inhalt samt Sprechernotizen im Klartext. Für interne Vorträge nur intern hosten. **Remote-Vortrag** (Teams, Zoom): nur das Präsentationsfenster teilen, die Presenter-View (S) bleibt privat.
+:::

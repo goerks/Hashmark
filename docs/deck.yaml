@@ -8,8 +8,10 @@ slideNumber: "{n} / {total}"
 # Die Erklärtexte stehen in den Sprechernotizen (::: notes), der Lesemodus zeigt sie als Fließtext neben den Folien.
 mount:
   - file: 01-idee.md
-  - file: 02-schreiben.md
-  - file: 03-ablauf.md
-  - file: 04-gestaltung.md
-  - file: 05-ausgabe.md
-  - file: 06-referenz.md
+  - file: 02-erste-schritte.md
+  - file: 03-schreiben.md
+  - file: 04-ablauf.md
+  - file: 05-gestaltung.md
+  - file: 06-ausgabe.md
+  - file: 07-referenz.md
+  - file: 08-faq.md

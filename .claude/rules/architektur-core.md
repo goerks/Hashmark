@@ -1,0 +1,80 @@
+---
+paths:
+  - "src/core/**"
+  - "tests/**"
+---
+
+# Kern (`src/core/`) und Syntax
+
+Framework-unabhängig, in Node und im Browser nutzbar, getestet. Neue Kern-Logik bekommt Tests in `tests/core.test.ts`; temporäre Decks entstehen dort über `tempDeck()`.
+
+```
+types.ts      DeckNode/Slide/Step/Deck/Manifest – das zentrale Datenmodell
+syntax.ts     Pandoc-Container (::: name, gleich viele Doppelpunkte) → remark-directive (außen mehr ':'),
+              Überschriften-Attribute {layout=… id=… .klasse}, parseAttrs
+parse.ts      Markdown → mdast → RawNode-Baum; maxDepth; Setext-Fix; Referenz-Bilder dateiweit
+render.ts     Blöcke → HTML je Sub-Slide: Shiki (CSS-Variablen-Theme, lines=/steps=), Mermaid-Platzhalter, Direktiven,
+              ::: steps, Hinweiskästen > [!NOTE], cols=, Bilder (deck-assets/ bzw. Base64), Notizen pro Sub-Slide
+              (::: notes step=k → [data-note-step]), image-left/right → .media/.body;
+              zählt data-step und data-hl-count − 1 → slide.steps
+theme.ts      Theme v2: `theme:` (String | Objekt `extends/tokens/layouts/css`) → ein CSS-Text (Basis, layouts/*.css, css, zuletzt Tokens),
+              Theme-Ordner (`theme.css` + `layouts/`), relative `url()` als Data-URI, Dateiliste fürs Watchen, Hinweise
+components.ts Komponenten: logikfreie HTML-Vorlagen für eigene Container (`components/<name>.html` im Theme- oder Deck-Ordner): parseTemplate, expandComponent (Rumpf/Listenpunkte bleiben mdast, Platzhalter `{{{ body }}}`/`{{{ html }}}`), Filter `image`; von `resolveTheme` geladen (eingebaut aus `src/runtime/components/`, dann Theme-Ordner, dann Deck-Ordner; `--hm-components` im Theme-CSS trägt URL-kodiertes JSON mit Name → Kopf `{{!meta}}` für den Editor), Kind-Container per `{{#each children}}`, von `applyDirectives` angewendet
+deck.ts       deck.yaml/Ordner → Mounts (under + automatisches Verschieben der Ebenen) → Deck + Theme-CSS (`themeCss`, `themeFiles`) + Warnungen;
+              löst das Layout auf (Attribut > layouts[Ebene] > layout), bg=, duration=, erzeugt Agenda-HTML
+timing.ts     parseDuration (5m, 1h30m, 1:30), formatClock, pace – Zeitplan der Presenter-View
+search.ts     Suchindex (Titel, Pfad, Text je Sub-Slide), Wort-Suche + unscharfe Titel-Suche, Umlaute gefaltet
+navigator.ts  reine State-Machine: next/prev/down/up (Pfeile, frei im Baum), forward/backward (Space = dem Vortragsplan nach),
+              Schritte, relocate (Hot Reload), progress, Deep-Link-Hash (#id:2); Plan-Zustand je Knoten (state/onPath),
+              Ausflug-Stapel (trip, begin/jumpTo/sync), with() für Kopien mit neuem Plan
+plan.ts       Vortragsplan: PlanState (path|optional|appendix), authorPlan (Flags), PlanFile (.hashmark/plan.json, tolerant gelesen),
+              Vorlagen (presetAll/Depth/Budget), setSubtree/resetSubtree, summarize (Zeitschätzung), planGroups (Reihenfolge fürs PDF)
+print.ts      Seitenlogik für Druck/PDF (Tiefe, Schritte, Handout, Fußzeile, Reihenfolge nach Plan: tree|path|grouped) + URL-Optionen
+sourcemap.ts  Editor-Sync: Zeile ↔ Knoten/Sub-Slide über DeckNode.source, pathToNode (Brotkrumen)
+snippets.ts   Bausteine (`§` = Cursor, `expand` markiert das Platzhalterwort dahinter)
+vocab.ts      Wortschatz für Editor: Layouts/Container/Attribute mit Beschreibung (Quelle: check.ts), fold, nearest („Meinst du …?“)
+complete.ts   `completionAt(text, pos)`: Vorschläge je Kontext (`/`, `::: `, ```` ```x ````, `> [!`, `{…}`, `layout=`); rein, getestet
+lint.ts       `lintText(text)`: unbekannte Layouts/Attribute/Container, offene `:::`/Codeblöcke, mit Offsets und Korrektur; rein, getestet
+icons.ts      eingebaute Linien-Icons für `::: card icon=…` (eigene Zeichnungen, `iconSvg`)
+math.ts       Formeln (KaTeX): `protectMath` ersetzt `$…$`/`$$…$$` VOR dem Parsen durch Platzhalter (Markdown würde `\,` `\{` `\\` zerstören; Zeilenzahl bleibt gleich), `renderMath`/`renderTex` setzen sie im fertigen HTML in Node; ` ```math ` ist ein Code-Plugin in render.ts. Schriften/CSS: `src/runtime/katex.css` + `katex-fonts/` (nur woff2) erzeugt `scripts/katex-assets.ts`, nach einem katex-Update neu ausführen. Nur in Node importieren (nie aus `search.ts`/Runtime), sonst landet KaTeX im Client-Bündel
+svg-steps.ts  beliebiges SVG: Elemente mit `id="step-N"` → `data-step` (`![](x.svg){steps=ids}`)
+excalidraw.ts Excalidraw-SVG: Szene aus `<metadata>` (zlib/bstring) → Gruppen per Reihenfolge den Top-Level-`<g>` zuordnen → `data-step`; drawio.ts analog mit Ebenen
+check.ts      Quelle für `hashmark check` (statisch: Layouts, Attribute, Übergänge, Hinweise des Ladens)
+```
+
+Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fertigem HTML je Slide → Client. Mermaid rendert erst im Client, mit den Farben aus den Theme-Tokens.
+
+## Syntax (Kurzfassung)
+
+- **Überschriften:** `#`…`######` sind Knoten. Die oberste Ebene einer Datei wird auf Tiefe 1 bzw. unter das `under`-Ziel gelegt. Überschriften tiefer als `maxDepth` werden Abschnitte innerhalb der Folie.
+- **`---`** teilt einen Knoten in Sub-Slides. Auch direkt unter Text ist es ein Trenner (Setext-Fix nach dem Parsen, damit die Zeilennummern stimmen).
+- **Container:** `::: col`, `::: columns`, `::: grid cols=… gap=…`, `::: steps [start=N]`, `::: notes`, `::: children`. Notizen auch per `<!-- notes -->`.
+- **Gestaltung** (render.ts, `applyDesignContainer`; CSS am Ende von base.css): `::: figure` + `bubble`/`frame`/`pin` (Position `at="x,y"` in %, `step=n`), `::: cards` + `card icon= title=`, `::: table widths= steps=rows|cols hl="r2c3"`, `::: reveal step=2`, Bild-Attribute `fit pos ratio step until`, Codeblock ` ```qr `, Mermaid-Attribute `height look=hand align`, Überschrift `banner= bannerh= bannerpos=` (Layout `banner`, in deck.ts per `resolveImage` aufgelöst), `deck.yaml` `footer`/`slideNumber` (`applyFooter` in deck.ts nummeriert in Baumreihenfolge: `DeckNode.slideNo`/`footer`, Anzeige in Slide.svelte). `step`/`until` gelten an jedem Container außer `note-step`.
+- **Schritte** synchronisieren sich über die Nummer:
+  - Listenpunkte in `::: steps` bzw. automatisch per `## Titel {steps}` (`markAutoSteps` in render.ts; `{steps}` ist das einzige Überschriften-Flag ohne `=`/`.`/`#`, siehe `splitHeadingAttrs`; `::: steps` in der Folie hat Vorrang);
+  - Code ` ```ts {steps="1,6|2-3||4"} ` (Zeilen ohne Schritt bilden das Gerüst);
+  - Mermaid `%% step` (kumulative Versionen übereinander).
+- **Layouts:** `image-full` (Bild + Titel darüber), `split` (Farbfläche links), `diagram`, `two-col-wide` (mit `::: aside`), `title`, `section` (Kacheln der Kinder), `default`, `two-col`, `three-col`, `statement`, `quote`, `image-left`, `image-right`, `agenda`, `comparison`, `code-focus`. Je Ebene über `layouts: { 1: section }`.
+- **Themes:** `minimal`, `dark-tech`. Die Tokens enthalten auch `--color-success`, `--color-warning` und `--color-important` für Hinweiskästen. **Theme v2:** `theme:` darf ein Objekt sein (`extends`, `tokens`, `layouts`, `css`), Beispiel und Doku auf Folien in `examples/theme-demo`. Eigene Layouts = `.layout-<name>` in einer CSS-Datei. Das Theme-CSS ist kein Dateipfad mehr, sondern ein virtuelles Modul (`\0hashmark-theme.css`) bzw. `/__hashmark/theme.css` aus `themeCss`.
+- **Auto-Fit/Überlauf:** `{fit}` (bares Flag, wie `{steps}`). `src/runtime/fit.ts` misst `scrollHeight/Width` der Folie, `.content` und `pre` (Layout-Maße ohne Skalierung) und setzt bei `fit` `zoom` am `.content` (Schritt 0,05, Minimum 0,7). `Slide.svelte` misst nach dem Rendern, nach Mermaid und `document.fonts.ready`, setzt `data-overflow`/`data-fit` und zeigt das Badge nur bei `import.meta.env.DEV` oder in einem Iframe (Editor-Vorschau).
+- **Vortragsplan:** `{optional}` / `{appendix}` (bare Flags, wie `{steps}`) und `{plan=path|optional|appendix}` setzen den Standard des Autors; die Rolle erbt der Unterbaum.
+  - Space (`forward`) läuft nur über Pfad-Knoten; Optionales/Anhang werden übersprungen. Ohne Flags und Plan verhält es sich wie die frühere Tiefensuche.
+  - Wirksamer Zustand (`Navigator.state`): nächste Überschreibung des Vortragenden auf dem Weg nach oben, sonst nächster Autor-Standard, sonst `path`. `all` (Taste T) ignoriert den Plan.
+  - ↓ (`down`) geht ins erste Kind abseits des Pfads und beginnt dann einen Ausflug (Rückkehrmarke); gibt es keins, ist es wie früher das erste Kind. Space führt am Ende des Ausflugs zur Abzweigung zurück. Ein Sprung (`jumpTo`: Suche, Übersicht, Presenter-Baum) auf einen Knoten abseits des Pfads ist ein Ausflug mit einer Folie.
+  - Arrow-Tasten (`next/prev/up`) ignorieren den Plan; `sync(pos)` beendet Ausflüge, in denen die Position nicht mehr liegt.
+- **Knoten-Attribute:** `layout`, `id`, `transition`, `.klasse`, `duration=5m`, `bg=…` (Farbe/Verlauf bleibt CSS, sonst Bild → `url(…)`), `bgdim=0.5`.
+- **Code:** `lines="2-3|5|all"`: Abschnitt k gilt ab Schritt k (Abschnitt 0 sofort), `all` bzw. leer = nichts abdunkeln.
+- **Hinweiskästen:** `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION] [eigener Titel]`.
+- **Bilder:**
+  - `![](pfad){width=60% .klasse}`;
+  - Dateien außerhalb des Decks bzw. mit `embedImages: true` werden als Base64 eingebettet;
+  - Referenz-Bilder `![a][ref]` + `[ref]: data:…`.
+
+## Fallstricke
+
+- **Bild-Attribute:** `{ratio=16:9}` geht nicht (`:9` zerreißt den Text-Knoten, das Attribut-Muster greift nicht), deshalb `16/9`.
+- **Slugs behalten Umlaute** (github-slugger): `# Präsentieren` → Id `präsentieren`, im Hash `#pr%C3%A4sentieren`. In CDP-Tests die Ids kodieren.
+- **Folien mit `step=Infinity`** (Lesemodus, Miniaturen): `applySteps` behandelt `until` ohne Wert als unendlich (`until === Infinity ||`), sonst wäre `Infinity < Infinity` falsch und alle Schritt-Inhalte blieben verborgen.
+- **Hinweise statt stiller Fehler:** Gestaltungs-Container, Bild- und Mermaid-/QR-Attribute melden ungültige Angaben als Ladehinweis (`ctx.warnings`, in `hashmark check` sichtbar). Neue Attribute immer in `DESIGN_ATTRS` (render.ts) eintragen, sonst gelten sie als unbekannt.
+- **Komponenten** (`components.ts`): Vorlage bleibt logikfrei (kein JS, keine Ausdrücke), das ist die bewusste Grenze zur späteren Plugin-API. Eingebaute Container-Namen (`CONTAINERS` in vocab.ts) gewinnen immer. Dateiwächter brauchen `.html` (Vite-Plugin, live-server). Der Kopf `{{!meta}}` (YAML) beschreibt Attribute/Flags/Kinder für Hinweise, Linter und Vorschläge (`lint.ts`/`complete.ts` bekommen `components: Record<string, ComponentMeta>`). Eingebaut: timeline, process, kpis, person, versus, roadmap, pyramid, matrix, aside. Beispiel: `examples/komponenten-demo`. Dateien in `src/runtime/components/` werden mit `src/` gepackt, kein eigener Schritt nötig.
+- **Fußzeile im PDF:** Hat ein Knoten eine Deck-Fußzeile (`node.footer`), entfällt die Druck-Fußzeile (Brotkrumen und `i / n` in `PrintPages.svelte`), sonst liegen beide übereinander.

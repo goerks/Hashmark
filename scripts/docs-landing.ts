@@ -1,5 +1,6 @@
 // Startseite der Dokumentation (statische Seiten): Slogan, animierter Baum, Merkmale, Live-Beispiele mit Quelltext und
-// Ergebnis, das Handbuch im Lesemodus und Downloads. Eine einzige HTML-Datei ohne externe Ressourcen.
+// Ergebnis, das Handbuch im Lesemodus und Downloads. Eine einzige HTML-Datei ohne externe Ressourcen; nur die Bilder
+// (`screenshots/`, erzeugt von scripts/make-screenshots.ts) liegen daneben.
 // Die Folien stammen aus dem Handbuch-Deck (docs/): `handbuch/?card#id` zeigt eine Folie, `handbuch/?reader` den Lesemodus.
 
 export interface LandingDemo {
@@ -31,6 +32,8 @@ export interface LandingOptions {
   projectUrl: string
   /** letzter Release, falls bekannt */
   release?: LandingRelease | null
+  /** Adresse der Live-Instanz (Webdienst), leer = ohne Verweis */
+  liveUrl?: string
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -90,6 +93,19 @@ export function landingPage(o: LandingOptions): string {
   section.block h2 { margin: 0 0 6px; font-size: 32px; letter-spacing: -0.02em; }
   section.block .lead { color: var(--muted); margin: 0 0 26px; font-size: 18px; max-width: 720px; }
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .vs .card.after { border-color: var(--accent); background: var(--soft); }
+  .vs .tag { font: 700 12px var(--font); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+  .vs .card.after .tag { color: var(--accent); }
+  .vs ul { margin: 8px 0 0; padding-left: 18px; color: var(--muted); font-size: 14.5px; }
+  .shot { margin: 0; }
+  .shot img { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 12px 40px rgb(0 0 0 / .1); }
+  .shot figcaption { margin-top: 8px; font-size: 13.5px; color: var(--muted); text-align: center; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 18px; }
+  .shots .shot img { box-shadow: none; }
+  .steps3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; counter-reset: s; }
+  .steps3 .card { position: relative; padding-top: 46px; }
+  .steps3 .card::before { counter-increment: s; content: counter(s); position: absolute; top: 14px; left: 18px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-fg); font: 700 13px/24px var(--font); text-align: center; }
   .card { border: 1px solid var(--border); background: var(--surface); border-radius: 14px; padding: 18px 20px; }
   .card h3 { margin: 0 0 4px; font-size: 17px; display: flex; gap: 8px; align-items: center; }
   .card h3 .ic { color: var(--accent); font-size: 19px; }
@@ -119,7 +135,7 @@ export function landingPage(o: LandingOptions): string {
   .reader-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
   .reader-cta { display: flex; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
   footer { margin-top: 80px; border-top: 1px solid var(--border); padding: 26px 24px; text-align: center; color: var(--muted); font-size: 14px; }
-  @media (max-width: 900px) { .grid, .dl { grid-template-columns: 1fr; } .demo-body { grid-template-columns: 1fr; } .demo-src { border-right: 0; border-bottom: 1px solid var(--border); } .reader-frame { height: 420px; } }
+  @media (max-width: 900px) { .grid, .dl, .vs, .shots, .steps3 { grid-template-columns: 1fr; } .demo-body { grid-template-columns: 1fr; } .demo-src { border-right: 0; border-bottom: 1px solid var(--border); } .reader-frame { height: 420px; } }
 </style>
 </head>
 <body>
@@ -128,7 +144,8 @@ export function landingPage(o: LandingOptions): string {
   <a class="tab" href="handbuch/?reader">Handbuch</a>
   <a class="tab" href="handbuch/">Präsentation</a>
   <a class="tab" href="#beispiel">Beispiele</a>
-  <a class="tab" href="beispiele/">Beispiel-Decks</a>
+  <a class="tab" href="beispiele/">Beispiel-Decks</a>${o.liveUrl ? `
+  <a class="tab" href="${esc(o.liveUrl)}">Live ausprobieren</a>` : ''}
   <span class="spacer"></span>
   <a class="btn" href="#download">Download</a>
 </header>
@@ -136,7 +153,7 @@ export function landingPage(o: LandingOptions): string {
 <section class="hero">
   <h1>Mächtige Präsentationen aus <em>reinem Markdown</em></h1>
   <p class="sub">Ein Baum statt einer Folienliste: → erzählt auf dem Hauptpfad weiter, ↓ taucht ins Detail. Offline, ohne Installer, mit PDF- und PowerPoint-Export.</p>
-  <div class="cta"><a class="btn" href="#download">Hashmark laden</a><a class="btn ghost" href="handbuch/?reader">Handbuch lesen</a></div>
+  <div class="cta"><a class="btn" href="#download">Hashmark laden</a>${o.liveUrl ? `<a class="btn ghost" href="${esc(o.liveUrl)}">Live ausprobieren</a>` : ''}<a class="btn ghost" href="handbuch/?reader">Handbuch lesen</a></div>
   <div class="treebox">
     <div class="tbar"><span>Der Baum einer Präsentation – so läuft ein Vortrag</span><span id="keys"><kbd>→</kbd> weiter · <kbd>↓</kbd> Detail · <kbd>↑</kbd> zurück</span></div>
     <svg viewBox="0 0 900 250" role="img" aria-label="Baum mit Hauptpfad und Details">
@@ -155,6 +172,15 @@ export function landingPage(o: LandingOptions): string {
 </section>
 
 <section class="block">
+  <h2>Ein Vortrag ist nicht linear</h2>
+  <p class="lead">Fragen kommen, die Zeit wird knapp, und manche Details sind mal gefragt und mal nicht.</p>
+  <div class="vs">
+    <div class="card"><div class="tag">Eine Folienliste</div><h3>Alles in einer Reihe</h3><p>Details wandern als Backup-Folien ans Ende. Bei einer Frage heißt es blättern und suchen, bei knapper Zeit streichen.</p><ul><li>40 Folien, eine Reihenfolge</li><li>Backup am Ende, unter Druck schwer zu finden</li><li>Kürzere Fassung = zweite Datei</li></ul></div>
+    <div class="card after"><div class="tag">Ein Baum</div><h3>Pfad und Details</h3><p>Die Überschriften sind die Struktur. Du erzählst den Hauptpfad und tauchst bei Bedarf ins Detail. Von dort führt ein Tastendruck zurück.</p><ul><li><kbd>→</kbd> weiter, <kbd>↓</kbd> Detail, <kbd>↑</kbd> zurück</li><li>Optionales überspringt die Leertaste von selbst</li><li>Kurz- und Langfassung aus derselben Quelle</li></ul></div>
+  </div>
+</section>
+
+<section class="block">
   <h2>Warum Hashmark?</h2>
   <p class="lead">Präsentationen sind nicht linear. Hashmark macht die Struktur zum Prinzip.</p>
   <div class="grid">
@@ -164,6 +190,35 @@ export function landingPage(o: LandingOptions): string {
     <div class="card"><h3><span class="ic">∑</span>Formeln und Diagramme</h3><p>KaTeX, Mermaid, Code mit Zeilen-Schritten, QR-Codes. Alles ohne CDN.</p></div>
     <div class="card"><h3><span class="ic">▤</span>PDF und PowerPoint</h3><p>Bearbeitbare PPTX mit Animationen, dazu PDF, Handout und eine einzelne HTML-Datei.</p></div>
     <div class="card"><h3><span class="ic">▣</span>Offline, ohne Installer</h3><p>Standalone-App für Windows, Linux und macOS. Deine Dateien bleiben bei dir.</p></div>
+  </div>
+</section>
+
+<section class="block" id="bilder">
+  <h2>Im Vortrag</h2>
+  <p class="lead">Die Presenter-View zeigt auf dem eigenen Bildschirm den Baum, die nächste Folie, die Notizen und die Zeit. Das Publikum sieht nur die Folie.</p>
+  <figure class="shot"><img src="screenshots/presenter.jpg" alt="Presenter-View mit Baum, aktueller Folie, nächstem Schritt, Notizen und Timer" loading="lazy"><figcaption>Presenter-View: Baum, aktuelle und nächste Folie, Notizen, Timer und Zeitplan</figcaption></figure>
+  <div class="shots">
+    <figure class="shot"><img src="screenshots/baum.jpg" alt="Folie mit einem Mermaid-Diagramm des Baums" loading="lazy"><figcaption>Diagramme (Mermaid) mit den Farben des Themes</figcaption></figure>
+    <figure class="shot"><img src="screenshots/karten.jpg" alt="Folie mit vier Karten mit Icons" loading="lazy"><figcaption>Karten, Spalten, Figuren und eigene Komponenten</figcaption></figure>
+  </div>
+</section>
+
+<section class="block" id="fuer-wen">
+  <h2>Für wen?</h2>
+  <p class="lead">Für alle, die ihre Präsentation lieber schreiben als zeichnen.</p>
+  <div class="grid">
+    <div class="card"><h3><span class="ic">⌨</span>Entwickler und Architekten</h3><p>Vorträge als Text pflegen, mit Code, Diagrammen und Formeln. Diff, Review und Git inklusive.</p></div>
+    <div class="card"><h3><span class="ic">✎</span>Trainer und Dozenten</h3><p>Ein Kurs in mehreren Längen aus einer Quelle: Zeitbudget, Pfad und Anhang statt vier Dateien.</p></div>
+    <div class="card"><h3><span class="ic">⚇</span>Teams</h3><p>Gemeinsam an einer Präsentation schreiben, in Git oder im Webdienst mit Editor.</p></div>
+  </div>
+</section>
+
+<section class="block" id="start">
+  <h2>In drei Minuten zur ersten Präsentation</h2>
+  <div class="steps3">
+    <div class="card"><h3>Laden</h3><p>Paket entpacken, <code>Hashmark.exe</code> starten. Kein Installer, kein Konto.</p></div>
+    <div class="card"><h3>Schreiben</h3><p>Neues Deck anlegen und Überschriften schreiben. Der Editor zeigt die Vorschau live.</p></div>
+    <div class="card"><h3>Präsentieren</h3><p><kbd>F5</kbd> startet den Vortrag, <kbd>S</kbd> die Presenter-View, im Menü liegen PDF und PowerPoint.</p></div>
   </div>
 </section>
 
@@ -199,10 +254,16 @@ export function landingPage(o: LandingOptions): string {
     <div class="card"><h3>macOS</h3><p>Apple Silicon und Intel (noch wenig erprobt)</p><div class="dl-btns">${link('Apple Silicon', pkg('tar.gz', 'darwin-arm64'))}${link('Intel', pkg('tar.gz', 'darwin-amd64'))}</div></div>
     <div class="card"><h3>Linux</h3><p>amd64 und arm64 (noch wenig erprobt)</p><div class="dl-btns">${link('x64', pkg('tar.gz', 'linux-amd64'))}${link('ARM64', pkg('tar.gz', 'linux-arm64'))}</div></div>
   </div>
-  <p class="lead" style="margin-top:14px"><a href="${esc(o.projectUrl ? `${o.projectUrl}/releases` : '#')}">Alle Releases</a></p>
-</section>
+  <p class="lead" style="margin-top:14px"><a href="${esc(o.projectUrl ? `${o.projectUrl}/releases` : '#')}">Alle Releases</a> · Frei nutzbar, nicht für kommerzielle Zwecke (PolyForm Noncommercial).</p>
+</section>${o.liveUrl ? `
 
-<footer>Hashmark · Dokumentation${o.projectUrl ? ` · <a href="${esc(o.projectUrl)}">Quellcode</a>` : ''}</footer>
+<section class="block" id="live">
+  <h2>Selbst betreiben</h2>
+  <p class="lead">Hashmark läuft auch als Webdienst: Die Präsentation ist öffentlich, der Editor liegt hinter einem Passwort. Ein Docker-Image, ein Prozess.</p>
+  <div class="reader-cta" style="margin-top:0"><a class="btn" href="${esc(o.liveUrl)}">Live-Instanz ansehen</a><a class="btn ghost" href="handbuch/?reader">Betrieb im Handbuch</a></div>
+</section>` : ''}
+
+<footer>Hashmark · Dokumentation${o.projectUrl ? ` · <a href="${esc(o.projectUrl)}">Quellcode</a> · <a href="${esc(o.projectUrl)}/blob/main/roadmap.md">Roadmap</a> · <a href="${esc(o.projectUrl)}/blob/main/LICENSE">Lizenz</a>` : ''}</footer>
 
 <script>
 const DEMOS = ${demos.replace(/</g, '\\u003c')}
