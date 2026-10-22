@@ -82,18 +82,3 @@ Knoten mit dem Flag `{optional}` sind für „bei Zeit oder Fragen“ gedacht. S
 
 Dieser Abschnitt ist selbst optional: Im Vortrag mit Space wird er übersprungen, im Lesemodus siehst du ihn mit dem Kennzeichen „Optional“.
 :::
-
-# Schnellstart {id=schnellstart}
-
-```sh
-make setup                     # einmalig: Pakete aus dem Projekt-Cache
-make dev                       # Beispiel-Deck auf http://localhost:3030
-make new DECK=decks/vortrag    # eigenes Deck anlegen
-make edit DECK=decks/vortrag   # Editor mit Live-Vorschau
-```
-
-::: notes
-Hashmark bringt alles mit, auch Node.js. `make setup` installiert die Pakete aus dem Cache im Projekt, es ist kein Internet nötig. `make dev` startet den Entwicklungsserver mit Hot Reload: Du speicherst die Markdown-Datei, die Folie bleibt stehen und der Inhalt aktualisiert sich.
-
-Wer keine Konsole mag: Die **Desktop-App** (`make app`) öffnet Decks per Dialog, hat Editor, Präsentation und Presenter-View und läuft ohne Installer. Siehe Kapitel „App und Webdienst“.
-:::

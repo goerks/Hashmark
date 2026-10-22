@@ -95,7 +95,10 @@ export async function buildDocs(out: string) {
   fs.writeFileSync(path.join(out, 'beispiele', 'index.html'), indexPage(examples))
 
   const projectUrl = (process.env.HASHMARK_PROJECT_URL ?? '').replace(/\/+$/, '')
-  fs.writeFileSync(path.join(out, 'index.html'), landingPage({ title: 'Hashmark – Mächtige Präsentationen aus reinem Markdown', demos: await demosFromHandbook(), projectUrl, release: latestRelease() }))
+  fs.writeFileSync(path.join(out, 'index.html'), landingPage({ title: 'Hashmark – Mächtige Präsentationen aus reinem Markdown', demos: await demosFromHandbook(), projectUrl, release: latestRelease(), liveUrl: (process.env.HASHMARK_LIVE_URL ?? 'https://hashmark.onrender.com').replace(/\/+$/, '') }))
+  // Bilder der Startseite (kleine JPEGs, scripts/make-screenshots.ts)
+  const shots = path.join(root, 'assets', 'screenshots')
+  if (fs.existsSync(shots)) fs.cpSync(shots, path.join(out, 'screenshots'), { recursive: true })
   // Manche Hoster liefern .html ohne Endung nicht aus; eine Datei 404.html für unbekannte Adressen
   fs.writeFileSync(path.join(out, '404.html'), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./"><title>Hashmark</title><a href="./">Zur Startseite</a>')
   console.log(`[hashmark] Dokumentation: ${out} (index.html, handbuch/, beispiele/)`)

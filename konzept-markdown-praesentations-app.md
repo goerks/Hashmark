@@ -2,6 +2,8 @@
 
 Stand: 27.09.2026
 
+> Dies ist das ursprüngliche Konzept (Vision und Architektur). Was heute umgesetzt ist, steht im [Handbuch](https://goerks.github.io/Hashmark/handbuch/?reader), die weitere Planung in der [Roadmap](roadmap.md).
+
 ## Vision & Ziele
 
 Arbeitstitel **Hashmark**: Eine Präsentations-App, die aus 1..n Markdown-Dateien eine *navigierbare Wissenslandschaft* statt einer linearen Foliensequenz macht. Die Überschriften-Hierarchie ist die Struktur: Man präsentiert auf der Hauptebene und taucht bei Bedarf in Details ab – live, je nach Publikum und Fragen.

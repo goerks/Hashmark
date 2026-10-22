@@ -1,30 +1,51 @@
 # CLAUDE.md – Hashmark
 
-Slogan: „Mächtige Präsentationen aus reinem Markdown.“ Präsentations-App: 1..n Markdown-Dateien werden zu einer Slideshow als **navigierbarem Baum**. → erzählt auf dem Hauptpfad weiter, ↓ taucht ins Detail ab. Das Konzept steht in `konzept-markdown-praesentations-app.md`, die Bedienung für Anwender im `README.md`.
+Slogan: „Mächtige Präsentationen aus reinem Markdown.“ Präsentations-App: 1..n Markdown-Dateien werden zu einer Slideshow als **navigierbarem Baum**. → erzählt auf dem Hauptpfad weiter, ↓ taucht ins Detail ab.
 
 Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. Bezeichner im Code sind englisch.
+
+## Wo steht was
+
+| Für wen | Wo |
+| --- | --- |
+| Anwender | Handbuch `docs/` (ein Hashmark-Deck, veröffentlicht auf GitHub Pages), Schaufenster `README.md` |
+| Entwickler | `CONTRIBUTING.md` (Einrichten, Befehle, Workflow) |
+| Claude / Details je Bereich | `.claude/rules/*.md`, werden bei passenden Pfaden automatisch geladen |
+| Konzept und Ausbau | `konzept-markdown-praesentations-app.md`, `roadmap.md` |
+
+Regeln je Bereich:
+
+- `git-workflow.md` – **immer**: Feature-Branch + Pull Request, nie auf `main`
+- `architektur-core.md` – `src/core/**`, `tests/**`: Datenmodell, Parser, Navigator, Plan, Syntax, Komponenten
+- `runtime-editor.md` – `src/runtime/**`, `src/vite/**`, `src/cli/**`: Svelte-App, Editor, Druck, Presenter-Link, Fahrpläne
+- `desktop-go.md` – `desktop-go/**`, `src/desktop/**`: Go-Hülle, Sidecar, Abstürze, Kaltstart
+- `pptx-export.md` – `src/pptx/**`: PowerPoint-Export
+- `webdienst.md` – `hashmark serve`, Docker, Render
+- `pipeline-release.md` – `.github/**`, Release-Notizen, Dokumentations-Seiten
+
+## Workflow
+
+Jede Änderung auf einem **Feature-Branch** (`/feature <thema>`), per **Pull Request** nach `main` (`/pr`), PR-Titel = Changelog-Zeile. Nie direkt auf `main` (ein Hook blockiert das). Details: `.claude/rules/git-workflow.md`.
 
 ## Befehle (immer über `make`, Node liegt im Projekt)
 
 | Befehl | Zweck |
 | --- | --- |
 | `make setup` | Node nach `vendor/node` (falls fehlend, online von nodejs.org) + `npm ci` (nutzt `vendor/npm-cache`, holt Fehlendes online) |
-| `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen (mit Datei: Logo zuschneiden und ersetzen) |
-| `make test` | Vitest (`tests/*.test.ts`, 179 Tests, Kern-Logik ohne DOM) |
-| `make app` / `make app-cross` / `make app-package` | Desktop-App (Go): bauen + starten (`DECK=…` optional) / Hülle für Windows, Linux, macOS (amd64, arm64) nach `dist-go/` / portables `dist-app/Hashmark/` (windows-amd64). Andere Ziele samt Archiv: `node scripts/package-app.ts <ziel> --version=… --archive` (online, lädt Node und die Pakete des Ziels) |
-| `hashmark --version` | Version `<letzter Tag ohne v>.<Kurz-Hash>`, per `-ldflags "-X main.version=…"` eingebettet (`make` über `git describe`); `VERSION=…` überschreibt |
-| Go | liegt **nicht** im Repo (ab 1.26, im `PATH`). Mehr braucht die Desktop-Hülle nicht: kein CGO, kein C-Compiler, kein Rust |
-| `make sidecar-smoke` | Node-Sidecar wie aus der App ansprechen: Deck, Datei-API, Aktionen, PDF, Handout, PPTX, HTML (`SIDECAR_BUNDLE=1`: das Bündel) |
-| `make build-examples` / `make docker-examples` | alle `examples/*` als statische Seiten mit Auswahlseite (`scripts/build-examples.ts`, `src/cli/examples.ts` teilt die Liste mit der Desktop-Startseite); Docker-Image `hashmark/beispiele` |
-| `make app-test` | E2E der Desktop-App **headless** (`HASHMARK_HEADLESS=1`, Fenster unsichtbar) über WebView2-CDP, nutzt `dist-app/Hashmark` bzw. `export/hashmark.exe` (`make app`); `VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json` mit Zeiten |
-| `make serve` / `make image` / `make image-run` | Webdienst lokal (`hashmark serve`, `EDITOR_PASSWORD`, Standard „geheim“) / Docker-Image des Webdienstes (`Dockerfile` im Root) bauen / starten |
+| `make test` | Vitest (`tests/*.test.ts`, Kern-Logik ohne DOM) |
 | `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/hashmark-demo`, 3030). `make dev` ohne ausdrückliches `DECK=` startet mit `--examples`: Plugin-Option `examples` (plugin.ts, `/__hashmark/examples` GET/POST wechselt das Deck) + `src/runtime/example-switcher.ts` (nur `import.meta.env.DEV`) |
-| `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless (`PLAN=path` oder `PLAN=grouped`: Reihenfolge nach Vortragsplan) |
-| `make pptx` | PowerPoint-Export (`hashmark pptx`, `DEPTH=1 STEPS=1 PLAN=… PPTX=…`): `src/pptx/` (extract.ts läuft im Browser, build.ts nutzt pptxgenjs + jszip), Orchestrierung `src/cli/pptx.ts` über dieselbe Druckansicht wie das PDF; Editor-Button, Desktop-Menü (Aktion `pptx`), `GET /__hashmark/pptx` |
-| `make docs` / `make docs-serve` | Dokumentation als statische Seiten nach `public/` (`DOCS_OUT`, `DOCS_PORT`, Standard 4000): `scripts/build-docs.ts` baut das Handbuch (`docs/`, ein Deck) nach `handbuch/`, alle Beispiele nach `beispiele/` und schreibt die Startseite (`scripts/docs-landing.ts`, Live-Beispiele lesen ihren Quelltext aus dem Handbuch). `HASHMARK_PROJECT_URL` setzt die Projektadresse der Download-Karten |
-| `make check` | `hashmark check`: `src/core/check.ts` (statisch: Layouts, Attribute, Übergänge, Hinweise des Ladens), `src/cli/check.ts` (Überlauf: Build + Druckansicht per Edge/Chrome, liest `data-overflow` der `.print-page[data-node][data-sub]`); Exit 1 bei Fehlern; `pdf.ts`: `withPrintView`/`serveBuild` geteilt mit dem PDF-Export |
+| `make check` | `hashmark check`: statisch (Layouts, Attribute, Übergänge, Hinweise) + Überlauf per Edge/Chrome; Exit 1 bei Fehlern |
+| `make build` / `make export` / `make pdf` / `make pptx` | statisches HTML / Single-File-HTML / PDF (`PLAN=path` oder `PLAN=grouped`) / PowerPoint (`DEPTH=1 STEPS=1 PLAN=… PPTX=…`) |
+| `make app` / `make app-cross` / `make app-package` | Desktop-App (Go): bauen + starten (`DECK=…` optional) / Hülle für Windows, Linux, macOS (amd64, arm64) nach `dist-go/` / portables `dist-app/Hashmark/` (windows-amd64). Andere Ziele samt Archiv: `node scripts/package-app.ts <ziel> --version=… --archive` (online) |
+| `make app-test` / `make sidecar-smoke` | E2E der Desktop-App **headless** über WebView2-CDP (`VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json`) / Node-Sidecar wie aus der App angesprochen (`SIDECAR_BUNDLE=1`: das Bündel) |
+| `make docs` / `make docs-serve` | Dokumentation als statische Seiten nach `public/` (`DOCS_OUT`, `DOCS_PORT`, Standard 4000): Handbuch `handbuch/`, Beispiele `beispiele/`, Startseite (`scripts/docs-landing.ts`). `HASHMARK_PROJECT_URL` setzt die Projektadresse der Download-Karten |
+| `make build-examples` / `make docker-examples` | alle `examples/*` als statische Seiten mit Auswahlseite / Docker-Image `hashmark/beispiele` |
+| `make serve` / `make image` / `make image-run` | Webdienst lokal (`EDITOR_PASSWORD`, Standard „geheim“) / Docker-Image des Webdienstes (`Dockerfile` im Root) bauen / starten |
 | `make deps-update` | neue Pakete online holen, landen im lokalen Cache `vendor/npm-cache` |
+| `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen |
+| `hashmark --version` | Version `<letzter Tag ohne v>.<Kurz-Hash>`, per `-ldflags "-X main.version=…"` eingebettet (`VERSION=…` überschreibt) |
 
+- Go liegt **nicht** im Repo (ab 1.26, im `PATH`). Mehr braucht die Desktop-Hülle nicht: kein CGO, kein C-Compiler, kein Rust.
 - Das Makefile nutzt `SHELL := cmd.exe`. Rezepte müssen in cmd funktionieren und stellen `vendor\node` vor den `PATH`.
 - Node direkt aufrufen, z. B. für Skripte: `export PATH="$PWD/vendor/node:$PATH"` (Git Bash). Global ist **kein** Node installiert.
 - Neue npm-Pakete mit `vendor/node/npm.cmd install <pkg>` installieren. Wegen `.npmrc` (`cache=./vendor/npm-cache`, `save-exact`) liegen sie danach im lokalen Cache; `package.json` und `package-lock.json` mitcommitten.
@@ -32,106 +53,28 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 ## Harte Regeln
 
 - **Keine externen Laufzeit-Abhängigkeiten:** kein CDN, keine Web-Fonts, alles gebündelt und offline lauffähig. Neue Pakete nur über `package.json`/`package-lock.json`.
-- **`vendor/` ist nicht im Repo** (`.gitignore`): portables Node 24 (`make setup` lädt es per `scripts/get-node.ps1`) und npm-Cache. Aus der Historie entfernt; die CI installiert online per `npm ci`.
+- **`vendor/` ist nicht im Repo** (`.gitignore`): portables Node 24 (`make setup` lädt es per `scripts/get-node.ps1`) und npm-Cache. Die CI installiert online per `npm ci`.
 - **TypeScript läuft ohne Build-Schritt** über Node-Type-Stripping (CLI, Plugin, Kern). Deshalb:
   - nur „erasable syntax“: keine Parameter-Properties (`constructor(readonly x)`), keine Enums, keine Namespaces;
   - relative Imports **mit `.ts`-Endung**; reine Typen per `import type`.
 - **Svelte 5 mit Runes.** Typ-Exports einer Komponente gehören in `<script module>`.
+- **Keine großen Binärdateien ins Repo**, auch keine Build-Ergebnisse (`dist-go/`, `export/` sind ignoriert). Es werden **nie Installer** erzeugt, die App ist immer standalone.
 
-## Architektur
+## Architektur in Kürze
 
 ```
-src/core/     framework-unabhängig, in Node und im Browser nutzbar, getestet
-  types.ts      DeckNode/Slide/Step/Deck/Manifest – das zentrale Datenmodell
-  syntax.ts     Pandoc-Container (::: name, gleich viele Doppelpunkte) → remark-directive (außen mehr ':'),
-                Überschriften-Attribute {layout=… id=… .klasse}, parseAttrs
-  parse.ts      Markdown → mdast → RawNode-Baum; maxDepth; Setext-Fix; Referenz-Bilder dateiweit
-  render.ts     Blöcke → HTML je Sub-Slide: Shiki (CSS-Variablen-Theme, lines=/steps=), Mermaid-Platzhalter, Direktiven,
-                ::: steps, Hinweiskästen > [!NOTE], cols=, Bilder (deck-assets/ bzw. Base64), Notizen pro Sub-Slide
-                (::: notes step=k → [data-note-step]), image-left/right → .media/.body;
-                zählt data-step und data-hl-count − 1 → slide.steps
-  theme.ts      Theme v2: `theme:` (String | Objekt `extends/tokens/layouts/css`) → ein CSS-Text (Basis, layouts/*.css, css, zuletzt Tokens),
-                Theme-Ordner (`theme.css` + `layouts/`), relative `url()` als Data-URI, Dateiliste fürs Watchen, Hinweise
-  components.ts Komponenten: logikfreie HTML-Vorlagen für eigene Container (`components/<name>.html` im Theme- oder Deck-Ordner): parseTemplate, expandComponent (Rumpf/Listenpunkte bleiben mdast, Platzhalter `{{{ body }}}`/`{{{ html }}}`), Filter `image`; von `resolveTheme` geladen (eingebaut aus `src/runtime/components/`, dann Theme-Ordner, dann Deck-Ordner; `--hm-components` im Theme-CSS trägt URL-kodiertes JSON mit Name → Kopf `{{!meta}}` für den Editor), Kind-Container per `{{#each children}}`, von `applyDirectives` angewendet
-  deck.ts       deck.yaml/Ordner → Mounts (under + automatisches Verschieben der Ebenen) → Deck + Theme-CSS (`themeCss`, `themeFiles`) + Warnungen;
-                löst das Layout auf (Attribut > layouts[Ebene] > layout), bg=, duration=, erzeugt Agenda-HTML
-  timing.ts     parseDuration (5m, 1h30m, 1:30), formatClock, pace – Zeitplan der Presenter-View
-  search.ts     Suchindex (Titel, Pfad, Text je Sub-Slide), Wort-Suche + unscharfe Titel-Suche, Umlaute gefaltet
-  navigator.ts  reine State-Machine: next/prev/down/up (Pfeile, frei im Baum), forward/backward (Space = dem Vortragsplan nach),
-                Schritte, relocate (Hot Reload), progress, Deep-Link-Hash (#id:2); Plan-Zustand je Knoten (state/onPath),
-                Ausflug-Stapel (trip, begin/jumpTo/sync), with() für Kopien mit neuem Plan
-  plan.ts       Vortragsplan: PlanState (path|optional|appendix), authorPlan (Flags), PlanFile (.hashmark/plan.json, tolerant gelesen),
-                Vorlagen (presetAll/Depth/Budget), setSubtree/resetSubtree, summarize (Zeitschätzung), planGroups (Reihenfolge fürs PDF)
-  print.ts      Seitenlogik für Druck/PDF (Tiefe, Schritte, Handout, Fußzeile, Reihenfolge nach Plan: tree|path|grouped) + URL-Optionen
-  sourcemap.ts  Editor-Sync: Zeile ↔ Knoten/Sub-Slide über DeckNode.source, pathToNode (Brotkrumen)
-  snippets.ts   Bausteine (`§` = Cursor, `expand` markiert das Platzhalterwort dahinter)
-  vocab.ts      Wortschatz für Editor: Layouts/Container/Attribute mit Beschreibung (Quelle: check.ts), fold, nearest („Meinst du …?“)
-  complete.ts   `completionAt(text, pos)`: Vorschläge je Kontext (`/`, `::: `, ```` ```x ````, `> [!`, `{…}`, `layout=`); rein, getestet
-  lint.ts       `lintText(text)`: unbekannte Layouts/Attribute/Container, offene `:::`/Codeblöcke, mit Offsets und Korrektur; rein, getestet
-  icons.ts      eingebaute Linien-Icons für `::: card icon=…` (eigene Zeichnungen, `iconSvg`)
-  math.ts       Formeln (KaTeX): `protectMath` ersetzt `$…$`/`$$…$$` VOR dem Parsen durch Platzhalter (Markdown würde `\,` `\{` `\\` zerstören; Zeilenzahl bleibt gleich), `renderMath`/`renderTex` setzen sie im fertigen HTML in Node; ` ```math ` ist ein Code-Plugin in render.ts. Schriften/CSS: `src/runtime/katex.css` + `katex-fonts/` (nur woff2) erzeugt `scripts/katex-assets.ts`, nach einem katex-Update neu ausführen. Nur in Node importieren (nie aus `search.ts`/Runtime), sonst landet KaTeX im Client-Bündel
-  svg-steps.ts  beliebiges SVG: Elemente mit `id="step-N"` → `data-step` (`![](x.svg){steps=ids}`)
-  excalidraw.ts Excalidraw-SVG: Szene aus `<metadata>` (zlib/bstring) → Gruppen per Reihenfolge den Top-Level-`<g>` zuordnen → `data-step`; drawio.ts analog mit Ebenen
-src/desktop/  Node-Sidecar der Desktop-App: sidecar.ts (stdin JSON-Zeilen → stdout `@@hashmark {…}`; open/isDeck/scaffold/examples/
-              recent/forget/pdf/html/position/close; Ereignis `action` aus den Seiten), settings.ts, ui/ (Startseite, `fetch` an `api/<befehl>` der Hülle)
-  live-server.ts   statt Vite-Dev-Server: runtime-dist/ statisch, /__hashmark/deck.json, /__hashmark/theme.css,
-                   /__hashmark/events (SSE: deck | reload), deck-assets/, Datei-API + App-Aktionen; fs.watch rekursiv
-  paths.ts (src/cli) PROJECT_ROOT/realPath ohne Abhängigkeiten – der Sidecar importiert nur Leichtes beim Start, alles Schwere per import()
-  bundle-sidecar (scripts/) sidecar.ts → sidecar.bundle.mjs + bundle-*.mjs (Vite SSR-Build, Vite/Svelte/Shiki extern); nur im Paket
-  runtime-build.ts vorgebaute Runtime (liveConfig + src/vite/live-plugin.ts), Stempel = Inhalts-Hash der Quellen
-src/runtime/deck-source.ts  onDeckUpdate(): Vite-HMR ('hashmark:deck') bzw. EventSource in der App (window.__HASHMARK_LIVE__)
-desktop-go/   Desktop-Hülle in Go ohne CGO (go-webview per purego, zenity für Dialoge): main.go (Ablauf, `locate`, Kindprozess `--window`), app.go (Decks, Export,
-              Menü, Präsentation/Presenter als eigene Prozesse, Tastenkürzel-JS), api.go (Server der Startseite, `api/<befehl>` mit Header X-Hashmark-App),
-              sidecar.go (JSON-Zeilen), native_windows.go (Win32-Menü, Vollbild/Monitore, Symbol), native_linux.go (GTK 3 per purego), native_darwin.go (Objective-C-Laufzeit per purego), native_unix.go; Linux/macOS sind ungetestet und schalten sich bei fehlenden Symbolen ab;
-              gepackt `node/` + `app/` neben der EXE, sonst das Repository (`locate`)
-src/vite/     plugin.ts: virtual:hashmark/deck (JSON), virtual:hashmark/theme.css, File-Watcher → HMR-Event
-              'hashmark:deck', Bild-Middleware, Asset-Emit (auch `.hashmark/plan.json` als `__hashmark/plan`);
-              editor-api.ts: Datei-API nur für `hashmark edit`, `planApi` (GET/PUT /__hashmark/plan → .hashmark/plan.json) immer
-src/cli/      index.ts (cac: dev | edit | serve | build | preview | export | pdf | check), serve.ts (Webdienst: Seed, Runtime, Live-Server mit `web`-Option), config.ts (gemeinsame Vite-Konfiguration),
-              export.ts (Single-File), pdf.ts (CDP), scaffold.ts (Deck-Gerüst für make new)
-src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print)
-  App.svelte        Präsentation, Tasten (navKey), Hash-Sync, HMR, Editor-Messages, Presenter-Link, Suche,
-                    Notiz-Overlay (N), unsichtbare Druckseiten
-  Slide.svelte      eine Folie: Layout, Schritte (data-step/data-until → .step-hidden), Zeilen-Hervorhebung (.hl), bg, Mermaid
-  PresenterView.svelte  ?presenter: zweites Fenster, per postMessage gekoppelt (presenter-link.ts); eigener Navigator
-                    nur für die Vorschau (peek), bekommt Ausflüge und T-Zustand aus der Präsentation. Dazu ScaledSlide.svelte,
-                    Notes.svelte, Search.svelte, presenter.css
-  PlanPanel.svelte  Vortragsplan bearbeiten (Presenter-View, Taste P): Rolle je Knoten, Vorlagen, Fahrpläne, Zeitsumme;
-                    plan-store.ts lädt/speichert (Server-Datei, sonst localStorage)
-  NavControls/NavOverview/KeyHelp/PrintView/PrintPages, transitions.ts, mermaid.ts
-  ReaderView.svelte + Lazy.svelte + reader.css   ?reader = Lesemodus (Handbuch): Baum als Inhaltsverzeichnis, Notizen als Fließtext, Folien als Karten (ScaledSlide, erst im Sichtbereich gerendert); CardView.svelte: ?card#id:folie&step=n = eine Folie, per postMessage `{type:'hashmark:card', id, slide, step}` umschaltbar (Einbettung in die Startseite). Beide in main.ts
-  base.css, print.css, themes/*.css (nur Design-Tokens: --color-*, --font-*, --shiki-*, …)
-  editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*): codemirror.ts (Setup, API), hashmark-lang.ts (Decorations für ::: und {…}, Highlight-Klassen .tok-*/.st-*),
-                    assist.ts (Autocomplete, Linter, Formatleiste), Palette.svelte (Strg+K), KeyBar.svelte (Tablet), Editor.svelte; Layout A „Fokus“, unter 900 px Schublade + gestapelt
+src/core/      framework-unabhängig (Node + Browser), getestet: Parser, Deck-Baum, Render, Navigator, Vortragsplan, Themes, Komponenten
+src/vite/      Vite-Plugin: Deck als virtuelles Modul, File-Watcher, Hot Reload, Editor-API
+src/cli/       hashmark dev | edit | serve | build | preview | export | pdf | pptx | check
+src/runtime/   Svelte-App: Präsentation, Presenter-View, Lesemodus, Druckansicht, Editor (CodeMirror 6)
+src/pptx/      PowerPoint-Export
+src/desktop/   Node-Sidecar der Desktop-App
+desktop-go/    Desktop-Hülle in Go (ohne CGO)
+docs/          Handbuch (ein Hashmark-Deck);  scripts/docs-landing.ts = Startseite
+examples/      Beispiel-Decks; local/ = ignorierte, firmeninterne Decks
 ```
 
-Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fertigem HTML je Slide → Client. Mermaid rendert erst im Client, mit den Farben aus den Theme-Tokens.
-
-## Syntax (Kurzfassung)
-
-- **Überschriften:** `#`…`######` sind Knoten. Die oberste Ebene einer Datei wird auf Tiefe 1 bzw. unter das `under`-Ziel gelegt. Überschriften tiefer als `maxDepth` werden Abschnitte innerhalb der Folie.
-- **`---`** teilt einen Knoten in Sub-Slides. Auch direkt unter Text ist es ein Trenner (Setext-Fix nach dem Parsen, damit die Zeilennummern stimmen).
-- **Container:** `::: col`, `::: columns`, `::: grid cols=… gap=…`, `::: steps [start=N]`, `::: notes`, `::: children`. Notizen auch per `<!-- notes -->`.
-- **Gestaltung** (render.ts, `applyDesignContainer`; CSS am Ende von base.css): `::: figure` + `bubble`/`frame`/`pin` (Position `at="x,y"` in %, `step=n`), `::: cards` + `card icon= title=`, `::: table widths= steps=rows|cols hl="r2c3"`, `::: reveal step=2`, Bild-Attribute `fit pos ratio step until`, Codeblock ` ```qr `, Mermaid-Attribute `height look=hand align`, Überschrift `banner= bannerh= bannerpos=` (Layout `banner`, in deck.ts per `resolveImage` aufgelöst), `deck.yaml` `footer`/`slideNumber` (`applyFooter` in deck.ts nummeriert in Baumreihenfolge: `DeckNode.slideNo`/`footer`, Anzeige in Slide.svelte). `step`/`until` gelten an jedem Container außer `note-step`.
-- **Schritte** synchronisieren sich über die Nummer:
-  - Listenpunkte in `::: steps` bzw. automatisch per `## Titel {steps}` (`markAutoSteps` in render.ts; `{steps}` ist das einzige Überschriften-Flag ohne `=`/`.`/`#`, siehe `splitHeadingAttrs`; `::: steps` in der Folie hat Vorrang);
-  - Code ` ```ts {steps="1,6|2-3||4"} ` (Zeilen ohne Schritt bilden das Gerüst);
-  - Mermaid `%% step` (kumulative Versionen übereinander).
-- **Layouts:** `image-full` (Bild + Titel darüber), `split` (Farbfläche links), `diagram`, `two-col-wide` (mit `::: aside`), `title`, `section` (Kacheln der Kinder), `default`, `two-col`, `three-col`, `statement`, `quote`, `image-left`, `image-right`, `agenda`, `comparison`, `code-focus`. Je Ebene über `layouts: { 1: section }`.
-- **Themes:** `minimal`, `dark-tech`. Die Tokens enthalten auch `--color-success`, `--color-warning` und `--color-important` für Hinweiskästen. **Theme v2:** `theme:` darf ein Objekt sein (`extends`, `tokens`, `layouts`, `css`), Beispiel und Doku auf Folien in `examples/theme-demo`. Eigene Layouts = `.layout-<name>` in einer CSS-Datei. Das Theme-CSS ist kein Dateipfad mehr, sondern ein virtuelles Modul (`\0hashmark-theme.css`) bzw. `/__hashmark/theme.css` aus `themeCss`.
-- **Auto-Fit/Überlauf:** `{fit}` (bares Flag, wie `{steps}`). `src/runtime/fit.ts` misst `scrollHeight/Width` der Folie, `.content` und `pre` (Layout-Maße ohne Skalierung) und setzt bei `fit` `zoom` am `.content` (Schritt 0,05, Minimum 0,7). `Slide.svelte` misst nach dem Rendern, nach Mermaid und `document.fonts.ready`, setzt `data-overflow`/`data-fit` und zeigt das Badge nur bei `import.meta.env.DEV` oder in einem Iframe (Editor-Vorschau).
-- **Vortragsplan:** `{optional}` / `{appendix}` (bare Flags, wie `{steps}`) und `{plan=path|optional|appendix}` setzen den Standard des Autors; die Rolle erbt der Unterbaum.
-  - Space (`forward`) läuft nur über Pfad-Knoten; Optionales/Anhang werden übersprungen. Ohne Flags und Plan verhält es sich wie die frühere Tiefensuche.
-  - Wirksamer Zustand (`Navigator.state`): nächste Überschreibung des Vortragenden auf dem Weg nach oben, sonst nächster Autor-Standard, sonst `path`. `all` (Taste T) ignoriert den Plan.
-  - ↓ (`down`) geht ins erste Kind abseits des Pfads und beginnt dann einen Ausflug (Rückkehrmarke); gibt es keins, ist es wie früher das erste Kind. Space führt am Ende des Ausflugs zur Abzweigung zurück. Ein Sprung (`jumpTo`: Suche, Übersicht, Presenter-Baum) auf einen Knoten abseits des Pfads ist ein Ausflug mit einer Folie.
-  - Arrow-Tasten (`next/prev/up`) ignorieren den Plan; `sync(pos)` beendet Ausflüge, in denen die Position nicht mehr liegt.
-- **Knoten-Attribute:** `layout`, `id`, `transition`, `.klasse`, `duration=5m`, `bg=…` (Farbe/Verlauf bleibt CSS, sonst Bild → `url(…)`), `bgdim=0.5`.
-- **Code:** `lines="2-3|5|all"`: Abschnitt k gilt ab Schritt k (Abschnitt 0 sofort), `all` bzw. leer = nichts abdunkeln.
-- **Hinweiskästen:** `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION] [eigener Titel]`.
-- **Bilder:**
-  - `![](pfad){width=60% .klasse}`;
-  - Dateien außerhalb des Decks bzw. mit `embedImages: true` werden als Base64 eingebettet;
-  - Referenz-Bilder `![a][ref]` + `[ref]: data:…`.
+Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fertigem HTML je Slide → Client. Mermaid rendert erst im Client, mit den Farben aus den Theme-Tokens. Die Einzelheiten stehen in den Regeln je Bereich.
 
 ## Tests und Verifikation
 
@@ -141,98 +84,11 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Stolperstein:** Synthetische Keyboard-Events auf `document.body` dispatchen, nicht auf `window`, weil `e.target.closest` verwendet wird.
 - **Dev-Server stoppen:** nur den eigenen Prozess beenden, über den Port (`netstat -ano | grep :3030` → `taskkill //PID … //T //F`), nicht `taskkill /IM node.exe`.
 - `pdftoppm` ist nicht vorhanden, PDFs lassen sich nicht als Bild ansehen. Stattdessen `Emulation.setEmulatedMedia({media:'print'})` + Screenshot.
-
-## Bekannte Fallstricke (bereits gelöst – nicht wieder einbauen)
-
-- **Druck:** Folien im Druck 2 px niedriger als 16:9 (`aspect-ratio: 1280/718`), `html, body { height: auto }`. Sonst entstehen durch Rundung oder Skalierung leere Zusatzseiten. Kein `100vh` für die Seitenhöhe.
-- **Chromium wendet `place-items` auch auf Block-Layout an.** Für Druck/Block-Kontexte ausdrücklich `place-items: normal` setzen.
-- **Bühne absolut zentrieren** (`left/top 50%` + `translate(-50%,-50%) scale()`), nicht per Grid. Sonst wird in Fenstern unter 1280 px links abgeschnitten.
-- **Mermaid:** feste `max-height` (460px) statt `%`, weil sich das SVG in Spalten sonst an die Nachbarspalte anpasst. Der Versions-Container braucht `grid-template-columns: minmax(0,1fr)`.
-- **Druckbereitschaft:** `document.documentElement.dataset.printReady = '1'` ist das Signal für `make pdf`. Die Präsentation rendert die Druckseiten nach 1,5 s bzw. bei `beforeprint` (`.print-only`).
-- **Mermaid (mermaid.ts):** `prepare()` hängt bei flowchart/graph/stateDiagram/classDiagram die Theme-`classDef`s (`accent ok warn bad important muted actor`) an und setzt bei `look=hand` ein YAML-Frontmatter davor. Fehler stehen als `.mermaid-error` im DOM, `hashmark check` liest sie (src/cli/check.ts).
-- **Bild-Attribute:** `{ratio=16:9}` geht nicht (`:9` zerreißt den Text-Knoten, das Attribut-Muster greift nicht), deshalb `16/9`.
-- **Figur mit Inline-SVG:** Ein SVG ohne Breite schrumpft in `width: fit-content` auf 0, darum `.d-figure:has(.svg-block…) { width: 100% }`.
-- **Navigator:** `down()`/`forward()` merken sich die Position für ↑. Für reine Anzeige immer `peek = true` übergeben.
-- **Slugs behalten Umlaute** (github-slugger): `# Präsentieren` → Id `präsentieren`, im Hash `#pr%C3%A4sentieren`. In CDP-Tests die Ids kodieren.
-- **Presenter-Link** (`presenter-link.ts`):
-  - Unter http(s) läuft er über BroadcastChannel (`hashmark-presenter:<pfad>`). Der funktioniert ohne `window.opener`, also auch mit App-Fenstern und eigenen Tabs.
-  - Unter file:// (Export) läuft er über postMessage an das Partnerfenster. Vertraut wird über `e.source` bzw. denselben Origin.
-  - Jede Präsentation hat eine `session`. Die Presenter-View koppelt sich an eine und adressiert Tasten per `target`. Die Editor-Vorschau (`embedded`) nimmt nicht teil.
-  - Hello jede Sekunde, so übersteht die Verbindung ein Neuladen. Quelle der Wahrheit bleibt die Präsentation.
-- **Vortragsplan (Fahrpläne):**
-  - Gespeichert wird nur die Überschreibung je Knoten-ID in `.hashmark/plan.json` (`{ active, plans: { Name: { states, budget? } } }`, tolerant gelesen in `parsePlanFile`). Der Datei-Watcher überspringt Punkt-Ordner, ein Speichern löst also keinen Reload aus.
-  - Die Presenter-View ist der einzige Ort zum Bearbeiten. Sie schickt den Plan als `hashmark:presenter-plan` **an alle** Präsentationen (kein `target`: der Plan gehört zum Deck, nicht zur Sitzung); die Präsentation meldet Ausflüge und `all` im `presenter-state` zurück, damit die Vorschau „Als Nächstes“ stimmt.
-  - `plan-store.ts`: Server (`./__hashmark/plan`, relativ, mit Header `X-Hashmark-Editor`), sonst `localStorage`. Schlägt das PUT fehl (Webdienst ohne Anmeldung, statischer Export), gilt der Browser-Speicher als neuer (Flag `…:local`).
-  - Im Webdienst liegt `/__hashmark/plan` hinter dem Passwort wie die Datei-API (nicht in `PUBLIC_API`).
-  - Zeitschätzung: `{duration}` nur an Blättern, sonst 1 min je Sub-Slide (`ownSeconds`). `duration` an Kapiteln gilt für das ganze Kapitel samt Details.
-  - Vorlage „Zeitbudget“ schreibt nur die rausgeworfenen Knoten (`optional`). Ein ausdrückliches `path` an einem Elternknoten würde den Autor-Standard (`appendix`) der Kinder überstimmen.
-- **Präsentieren (Desktop):** `desktop-go/present.go` hält `presentSettings` (`present.json`: presenter auto|on|off, Bildschirm-Indizes, -1 = automatisch) mit `pickScreens`; `app.present` startet die Präsentation mit `--screen <index>` und, wenn der Presenter dabei ist, mit `?dual` (Bedienhilfen aus, bis der Presenter meldet; nach 15 s ohne ihn wieder an). Im Browser blendet `App.svelte` die Hilfen aus, solange `presenter-hello` kommt (`withPresenter`). Der Optionen-Dialog (`editor/PresentOptions.svelte`) nutzt die Bindungen `hmPresentOptions`/`hmSetPresentOptions` (nur im Hauptfenster, `hasPresentOptions()`). Nicht `?withpresenter` nennen: der E2E-Test erkennt URLs mit „presenter“ als Presenter-Fenster.
-- **Desktop-Modus der Seiten:** Das Vite-Plugin mit `onAppAction` setzt `window.__HASHMARK_DESKTOP__` (transformIndexHtml). Dann gehen P/S/PDF/Präsentieren/Ctrl+W per `POST /__hashmark/app` (Header `X-Hashmark-Editor`) an den Sidecar statt per `window.open`.
-- **Go-Hülle (`desktop-go/`):**
-  - Die Webview-Bibliothek kennt **ein Fenster je Prozess** und keinen Hook für neue Fenster. Präsentation und Presenter sind deshalb Kindprozesse derselben EXE (`--window URL --mode presentation|presenter`). Schließt die Präsentation, beendet der Hauptprozess auch den Presenter.
-  - Das Menü ist ein Win32-Menü über eine Fensterprozedur (`SetWindowLongPtr`). Tastenkürzel greifen darüber nicht, weil WebView2 Tasten selbst verarbeitet: `shortcutsJS` (app.go) fängt sie in jeder Seite des Hauptfensters (nicht in iframes) ab und ruft `window.hmMenu(id)` (Bind).
-  - Die Startseite hat einen eigenen Server (api.go). Ihre Befehle verlangen den Header `X-Hashmark-App`, das löst bei fremden Origins einen Preflight aus, den der Server nicht beantwortet. Die Prüfung auf `127.0.0.1` im Host schützt vor DNS-Rebinding.
-  - Externe Links (http/https/mailto) und `window.open` fängt `externalLinksJS` (app.go) in allen Frames ab und ruft `hmOpen` (Bind), das nur diese Schemata im Standardbrowser öffnet.
-  - Die eingebettete Webview-Bibliothek entpackt sich nach `%TEMP%\webview-<Version>`.
-  - Go-Builds **immer mit `CGO_ENABLED=0`** (`make app-cross` setzt es), sonst hängt purego-fremder Code am C-Compiler. Windows: `-ldflags="-H windowsgui"`, sonst erscheint ein Konsolenfenster.
-  - Backslashes in Pfaden: Beim Bearbeiten von Makefile/Skripten per Shell gehen sie leicht verloren (aus `\d` wird ein Steuerzeichen). Das Edit-Werkzeug nehmen.
-- **Kaltstart auf frisch kopierten Dateien:** Node liest beim ersten Import hunderte kleine Dateien (unified, remark, micromark …). Jede prüft der Virenscanner: kalt 10–30 s, warm 0,3 s. Deshalb ist der Sidecar im Paket ein Bündel (`scripts/bundle-sidecar.ts`, wird von `package-app.ts` erzeugt und danach wieder gelöscht, damit die Entwicklung bei den Quellen bleibt; `HASHMARK_SIDECAR_SOURCE=1` erzwingt die Quelle). Dazu `NODE_COMPILE_CACHE` im Datenordner. Messen mit frischer Kopie (`robocopy`) an einen neuen Ort, nicht mit dem zuletzt benutzten Ordner.
-- **Aufwärmen im Sidecar** (`warmUp()`): Kern + Shiki laden und das zuletzt geöffnete Deck lesen, während die Startseite zu sehen ist. `open` nutzt das vorab gelesene Deck nur, wenn `isStale()` keine Änderung seit dem Lesen findet (mtime von Ordner und Deck-Dateien).
-- **Headless-Tests der App:** `HASHMARK_HEADLESS=1` macht alle Fenster unsichtbar (Hauptfenster `visible(false)`, Präsentation/Presenter werden nicht gezeigt). Die Seiten laufen trotzdem, WebView2-CDP funktioniert. Screenshots unsichtbarer Fenster sind unzuverlässig, daher nur bei `VISIBLE=1` sinnvoll.
-- **Kein Vite-Dev-Server in der App:** Die Vorbündelung (`deps_temp_… → deps`) scheitert unter Windows oft mit `EPERM rename`, weil Virenscanner oder Indexer die Dateien sperren. Die Seite wartet dann minutenlang. Deshalb liefert die App eine vorgebaute Runtime über `live-server.ts` aus. `make dev`/`make edit` nutzen weiterhin Vite. Neue virtuelle Module oder HMR-Ereignisse brauchen beide Wege (`hashmark()` und `hashmarkLive()`, `onDeckUpdate`).
-- **8.3-Kurznamen (`C:\Users\MICHAE~1\…`, typisch in %TEMP%):** Vite verweigert Dateien, wenn Freigabe und Anfrage in unterschiedlicher Form vorliegen (`outside of Vite serving allow list`, `/@vite/client` → 404). Deshalb löst `config.ts` (`realPath`), `deck.ts` (Themes) und `main.go` (`longPath` für EXE- und App-Ordner) alles auf lange Pfade auf.
-- **WebView2 per CDP testen:** App mit `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=<port>` starten, dann wie bei Edge über `/json/list`.
-- **Tasten per CDP:** Für `window.open` (Taste S) braucht es `Input.dispatchKeyEvent`, also eine echte Nutzer-Geste. Synthetische Events öffnen kein Popup.
 - **Shell:** Markdown mit Backticks nie in `node -e "…"` bzw. doppelten Anführungszeichen bearbeiten, Bash führt sie als Befehle aus. Dafür das Edit-Werkzeug nehmen.
-- **Editor-API:** nur localhost, Header `X-Hashmark-Editor: 1`, nur Pfade im Deck, nur `.md`/`.yaml`/Bilder. `hashmark edit` hat bewusst kein `--host`.
-- Die Datei-API-Pfade und `deck-assets/` sind **relativ**, damit Builds auch in Unterverzeichnissen laufen (`base: './'`).
 
-- **Editor (CodeMirror 6):**
-  - Die Farben der Hashmark-Syntax (`.st-*`) stehen als Decorations innerhalb der Markdown-Überschrift (`.tok-h`) und brauchen `!important`, sonst gewinnt die Überschriftenfarbe.
-  - Bei `showTooltip` ist das gelieferte `dom` selbst das `.cm-tooltip`-Element. Eigene Farben brauchen deshalb `.cm-editor .cm-tooltip.st-bubble` (mehr Spezifität als das Basis-Theme).
-  - Vorschläge starten nur bei Eingabe (`userEvent input.type`), nicht bei programmatischen Änderungen. Tests per CDP tippen mit `Input.dispatchKeyEvent` (`char`).
-  - Headless: `Emulation.setTouchEmulationEnabled` macht `pointer: coarse` wahr (Tastaturleiste), `setFocusEmulationEnabled` liefert `view.hasFocus`.
-  - Beim Laden wechselt der Editor einmal die Datei, sobald die Vorschau ihre Position meldet (`followPreview`). Tests erst danach bedienen.
+## Projekt-Hinweise
 
-- **PPTX-Export** (`src/pptx/`, `src/cli/pptx.ts`):
-  - Ablauf: Druckansicht in Edge/Chrome (Viewport 1400 × 900, Faktor 2) → `extractPages` (als `fn.toString()` per CDP ausgewertet, **in sich geschlossen**, keine Imports) beschreibt jede Seite als Objekte (`model.ts`) → Aufnahmen → `buildPptx`. Maße in Bühnen-Pixeln (1280 × 720 = 13,33 × 7,5 Zoll), Schrift px × 0,75 = pt.
-  - Drei Ebenen je Folie: Hintergrundbild (Seite mit durchsichtigem Text, `html.hm-bg`; Bilder/Tabellen/Diagramme per `data-pn/pt/pr` ausgeblendet; Pseudo-Elemente behalten ihre Farbe über `--hm-pb/--hm-pa`), darüber Bilder bzw. Einzelaufnahmen (`html.hm-r`, durchsichtig), darüber der native Text. Dekoration, die im DOM nach einem Bild liegt und es überlappt (Sprechblasen, Rahmen), wird als `overlay`-Bild über das Bild gelegt, sonst läge sie darunter.
-  - Ohne Dekoration (`solidBg`) gibt es kein Hintergrundbild, nur eine Folienfarbe. Inline-Elemente mit Hintergrund (Inline-Code) werden zur Textmarkierung (`data-ph`), nicht zur Kachel.
-  - pptxgenjs-Eigenheiten: Ein Lauf mit `bullet` beginnt immer einen neuen Absatz (Absatz-Eigenschaften nur am ersten Lauf); Aufzählungsfarbe fehlt, `colorBullets` setzt `buClr` per XML nach (nur wenn die Anzahl stimmt); Tabellenränder ≥ 1 gelten als Punkte.
-  - Formeln: `.katex-display` und Absätze/Listenpunkte mit Formel im Satz (`hasInlineMath`) werden Bilder (die Lücke einer Formel im Text per geschützten Leerzeichen zu treffen, war unzuverlässig); in Tabellenzellen bleibt eine Lücke mit gemessener Breite. Rasterbox einer Formel = Vereinigung der Nachkommen (Brüche ragen aus der Box). `\htmlData{step=n}` im Formelbild wird ein eigenes Bild mit Schritt.
-  - Animationen (`animate.ts`): `extractPages({ animate })` zeigt alle Schritte (`step-hidden`/`step-current` entfernt) und liest `data-step`/`data-until` über `stepOf` (vererbt sich nach unten). Elemente bekommen `from`/`until` (Klick), Listen- und Codeabsätze `Para.from`. Dekoration mit Schritt wird ein `overlay`-Bild (Text unsichtbar, Pseudo-Elemente mit Farbe), Mermaid-Versionen (`.mermaid-state`) und Tabellenzeilen-Gruppen eigene Formen. `timingXml` schreibt `<p:timing>` (Einblenden `presetID=10`, Absatzbereiche `pRg`, `bldP build="p"`), `finish` setzt es nach Namen → Form-IDs ein; davor `<p:transition>`. Aus bei `steps=1` oder `anim=0` (`wantsAnimation`).
-  - Prüfen: PowerPoint ist hier installiert, `Presentations.Open` + `Export(dir,'PNG',1280,720)` per COM und Vergleich mit Browser-Screenshots. Animationen: `Slide.TimeLine.MainSequence` (Effekte, `Exit`, `Paragraph`) und `SlideShowTransition.EntryEffect` lesen. **Keinen Bildschirm abfotografieren** (`CopyFromScreen` zeigt den echten Desktop des Nutzers) und PowerPoint nie per `taskkill` beenden (könnte das des Nutzers sein): `$app.Quit()` des selbst gestarteten Objekts genügt.
-- **Folien mit `step=Infinity`** (Lesemodus, Miniaturen): `applySteps` behandelt `until` ohne Wert als unendlich (`until === Infinity ||`), sonst wäre `Infinity < Infinity` falsch und alle Schritt-Inhalte blieben verborgen.
-- **Webdienst (`hashmark serve`, Docker/Render):**
-  - Ein Prozess, ein Container: `live-server.ts` mit Option `web` liefert die Präsentation öffentlich und `/editor.html` plus Datei-API nur mit HTTP-Basic-Passwort (`EDITOR_PASSWORD`, ohne Passwort gibt es keinen Editor). `/healthz` für Render.
-  - Die Datei-API prüft im Webbetrieb weiter den Header `X-Hashmark-Editor` und dass `Origin` zum `Host` passt (Basic-Zugangsdaten gehen sonst auch von fremden Seiten mit). `/__hashmark/app` bleibt localhost-only.
-  - Das Image installiert online per `npm ci` (der Vendor-Cache enthält nur Windows-Binärdateien) und baut die Runtime beim Bauen vor. Läuft als root, weil Render-Festplatten root gehören.
-  - Image: `make image` baut es lokal. Lokal gibt es kein Docker: das Image wurde nicht gebaut, nur `hashmark serve` ist getestet.
-
-## Stand und offene Punkte
-
-- **Umgesetzt:**
-  - Baum-Navigation mit Steuerkreuz, Space der Linie nach, Presenter-Tasten
-  - Schritte, Übersicht (Ctrl+Shift+O), Editor, Bilder
-  - PDF/Druck (Ctrl+P, P, `make pdf`), Export, LAN, Docker
-  - **Stufe 1 der Roadmap** (`roadmap.md`):
-    - Presenter-View (S) mit Timer, Zeitplan und Baum
-    - Notizen pro Sub-Slide und Schritt, Notiz-Overlay (N)
-    - Suche (Ctrl+K, /)
-    - Code-Zeilen hervorheben, Hinweiskästen
-    - Layouts `statement`, `quote`, `image-*`, `agenda`, `three-col`, dazu `cols=`, `bg=` und Layouts je Ebene
-    - Titel-Bug auf Ebene ≥ 2 behoben (`:where` bei den Größen je Ebene)
-  - **Desktop-App in Go** (Node als Sidecar, Windows getestet; Linux/macOS haben Menü/Vollbild, kompilieren, sind aber nie gelaufen). Davor Tauri/Rust (am 01.10.2026 entfernt, siehe `roadmap.md`) und davor Electron: Eine Electron-Version wurde gebaut und auf Wunsch komplett zurückgenommen, auch aus der Git-Historie, sie war zu groß.
-- **Offen:** Stufen 2–6 in `roadmap.md`, u. a. Plugin-API, Theme v2, FS-Abstraktion, Editor-Inspector, Auto-Fit, weitere Diagrammsprachen, Animationen, Outliner.
-- **Regel:** keine großen Binärdateien ins Repo, auch keine Build-Ergebnisse (`dist-go/`, `export/` sind ignoriert). Es werden **nie Installer** erzeugt, die App ist immer standalone. Go liegt im Benutzerprofil.
-- **Pipeline (GitHub Actions, `.github/workflows/`):** `ci.yml` (Vitest, Go-Hülle für 6 Ziele, Image-Probebau) bei Push/PR; `release.yml` bei einem Tag `v*` (6 Standalone-Pakete → GitHub-Release mit Notizen aus `scripts/release-notes.ts` → `pages`); `pages.yml` (GitHub Pages, auch per `workflow_call`); `docker.yml` (Image nach ghcr.io bei Push auf `main`, danach Render-Deploy-Hook aus dem Secret `RENDER_DEPLOY_HOOK_URL`). CI installiert online per `npm ci` (nicht aus `vendor/`).
-- **Commit-Betreffzeilen sind der Changelog:** Fehlerbehebungen mit `Fix: …` beginnen oder „behoben“/„Fehler“ nennen, dann landen sie unter „Behobene Fehler“, alles andere unter „Neue Funktionen“. Reines `docs:`/`chore:`/`ci:`/`test:` oder `[skip changelog]` taucht nicht auf. Dafür kurze, für Anwender verständliche Betreffzeilen schreiben.
-- **Git:** Remote ist GitHub. Das Repo ist klein, weil `vendor/` (Node, npm-Cache, ca. 125 MB) nicht eingecheckt ist (GitHub-Limit: 100 MB pro Datei).
 - **Beispiel-Deck:** `01-einfuehrung.md` enthält einen Test-Abschnitt des Nutzers („### Test“). Nur auf Wunsch entfernen.
 - **Lokale Decks:** `local/` ist ignoriert (`.gitignore`, `.dockerignore`), taucht weder in `listExamples` noch in Build, Docker oder Desktop-Beispielen auf. Dort liegen firmeninterne Decks, z. B. `local/<deck>` (Diagramm-Generator unter `tools/`): `make dev DECK=local/<deck>`. Nie nach `examples/` verschieben.
-- **Komponenten** (`src/core/components.ts`): Vorlage bleibt logikfrei (kein JS, keine Ausdrücke), das ist die bewusste Grenze zur späteren Plugin-API. Eingebaute Container-Namen (`CONTAINERS` in vocab.ts) gewinnen immer. Dateiwächter brauchen `.html` (Vite-Plugin, live-server). Der Kopf `{{!meta}}` (YAML) beschreibt Attribute/Flags/Kinder für Hinweise, Linter und Vorschläge (`lint.ts`/`complete.ts` bekommen `components: Record<string, ComponentMeta>`). Eingebaut: timeline, process, kpis, person, versus, roadmap, pyramid, matrix, aside. Beispiel: `examples/komponenten-demo`. Dateien in `src/runtime/components/` werden mit `src/` gepackt, kein eigener Schritt nötig.
-- **Hinweise statt stiller Fehler:** Gestaltungs-Container, Bild- und Mermaid-/QR-Attribute melden ungültige Angaben als Ladehinweis (`ctx.warnings`, in `hashmark check` sichtbar). Neue Attribute immer in `DESIGN_ATTRS` (render.ts) eintragen, sonst gelten sie als unbekannt.
-- **Fußzeile im PDF:** Hat ein Knoten eine Deck-Fußzeile (`node.footer`), entfällt die Druck-Fußzeile (Brotkrumen und `i / n` in `PrintPages.svelte`), sonst liegen beide übereinander.
-- **go-webview: gebundene Funktionen dürfen keinen `error` zurückgeben** (auch nicht `nil`): Die Bibliothek (v0.0.0-20250327) macht `res[i].Interface().(error)` und stürzt mit „interface conversion: interface is nil, not error“ in einer eigenen Goroutine ab, ohne dass `recover` greift. Das war der Absturz beim Klick auf den Pfeil neben „Präsentieren“. Deshalb Bindungen nur als `func(...) string` über `callGuard` (crash.go) und Fehler als JSON `{"error":"…"}`; auf der Seite `callShell`/`failure` in `desktop.ts`.
-- **Abstürze der Desktop-App:** `crash.go`. `debug.SetCrashOutput` schreibt Absturz-Stacks (Panik ohne recover, fatale Laufzeitfehler, native Ausnahmen) in `crash.log` im Datenordner; alle Prozesse der EXE hängen an dieselbe Datei an. Beim nächsten Start (und wenn ein Fensterprozess mit Fehler endet, `reportCrash`) zeigt ein Dialog die Fehlerzeile samt Pfad, die Datei wird als `crash-<Zeit>.log` aufgehoben (5 Stück) und `hashmark.log` bekommt eine Zeile „Absturz erkannt“. Prüfen: `hashmark.exe --crash-test` löst eine Panik aus (nur in Headless-Läufen ohne Dialog). `callGuard` fängt Panics von Bindungen ab und meldet sie der Seite; der Optionen-Dialog zeigt den Fehlertext, `hmLog` schreibt ihn ins Protokoll. Menü Hilfe › „Protokoll öffnen“. Doppeltes „Präsentieren“ innerhalb 2 s wird ignoriert (sonst startete es zwei Präsentationsprozesse).
-- **Diagnose der Desktop-App:** `hashmark.log` im Datenordner (`%APPDATA%\app.hashmark.desktop`) sammelt Panics (`recoverLog`/`safeGo` in `desktop-go/log.go`), Start und Ende der Fenster-Prozesse mit Exit-Code, das Ende des Sidecars und JS-Fehler der Fenster (`hmLog`). `sidecar.log` wird bei jedem Start nach `sidecar.log.1` gesichert. Neue Goroutinen immer mit `safeGo` starten. **Tests mit `make app-test` teilen sich den Datenordner mit der echten App** (Zuletzt-geöffnet-Liste) und scheitern, solange die echte App läuft.
+- **Desktop-App:** Go (Node als Sidecar, Windows getestet; Linux/macOS kompilieren, sind aber nie gelaufen). Davor Tauri/Rust (am 01.10.2026 entfernt, siehe `roadmap.md`) und davor Electron, das auf Wunsch komplett zurückgenommen wurde (zu groß).
+- **Stand und offene Punkte** stehen in `roadmap.md` (Stufen 2–6: Plugin-API, Theme v2, FS-Abstraktion, Editor-Inspector, weitere Diagrammsprachen, Animationen, Outliner), nicht hier.
