@@ -2,6 +2,7 @@
   "name": "hashmark",
   "version": "0.2.0",
   "private": true,
+  "license": "PolyForm-Noncommercial-1.0.0",
   "description": "Mächtige Präsentationen aus reinem Markdown",
   "type": "module",
   "bin": {

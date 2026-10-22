@@ -1,4 +1,4 @@
-# Hashmark – alles Nötige lokal starten. Node.js und alle npm-Pakete liegen im Projekt (vendor/).
+# Hashmark – alles Nötige lokal starten. Node.js und der npm-Cache liegen lokal in vendor/ (nicht im Repo, `make setup` holt sie).
 #
 #   make            Hilfe anzeigen
 #   make setup      Node.js (falls fehlend) + Pakete aus dem lokalen Cache installieren
@@ -43,7 +43,7 @@ VERSION ?= $(GIT_TAG).$(shell git rev-parse --short HEAD)
 help:
 	@echo Hashmark - Maechtige Praesentationen aus reinem Markdown
 	@echo.
-	@echo   make setup         Node.js nach vendor/node holen und Pakete offline installieren
+	@echo   make setup         Node.js nach vendor/node holen und Pakete installieren (Cache in vendor/npm-cache)
 	@echo   make app           Desktop-App (Go) bauen und starten, optional DECK=...
 	@echo   make app-cross     Desktop-Huelle fuer Windows/Linux/macOS (amd64, arm64) nach dist-go/
 	@echo   make app-package   Portables Programm: dist-app/Hashmark/Hashmark.exe
@@ -62,7 +62,7 @@ help:
 	@echo   make export        Eine HTML-Datei, laeuft offline per Doppelklick (export/)
 	@echo   make pptx          PowerPoint nach export/ (DEPTH=1, STEPS=1, PLAN=path|grouped, NOANIM=1, PPTX=pfad.pptx)
 	@echo   make pdf           PDF nach export/ (DEPTH=1 Hauptpfad, STEPS=1 je Schritt, NOTES=1 Handout, PLAN=path|grouped nach Vortragsplan)
-	@echo   make docs          Dokumentation bauen wie auf GitLab Pages (public/: Startseite, Handbuch, Beispiele)
+	@echo   make docs          Dokumentation bauen (public/: Startseite, Handbuch, Beispiele)
 	@echo   make docs-serve    Dokumentation bauen und lokal zeigen (http://localhost:$(DOCS_PORT), DOCS_PORT=...)
 	@echo   make check         Deck pruefen: Layouts, Bilder, Theme, Ueberlauf (NOOVERFLOW=1 ohne Browser, STRICT=1)
 	@echo   make docker        Build + Docker-Image mit nginx  (IMAGE=$(IMAGE))
@@ -81,16 +81,16 @@ node: $(NODE_EXE)
 $(NODE_EXE):
 	powershell -NoProfile -ExecutionPolicy Bypass -File scripts\get-node.ps1 -Version $(NODE_VERSION)
 
-# Installation ausschliesslich aus vendor/npm-cache (kein Internet noetig)
+# Installation aus vendor/npm-cache; fehlt etwas, holt npm es online (prefer-offline in .npmrc)
 install: $(NODE_EXE)
-	$(NPM) ci --offline
+	$(NPM) ci
 
 # Holt aktuelle Pakete aus der Registry und legt sie im Cache ab
 deps-update: $(NODE_EXE)
 	$(NPM) install --prefer-online
 
 node_modules: | $(NODE_EXE)
-	$(NPM) ci --offline
+	$(NPM) ci
 
 # ---------- Desktop-App (Go) ----------
 
@@ -118,7 +118,7 @@ app-test: node_modules
 sidecar-smoke: node_modules
 	$(NODE) scripts\sidecar-smoke.ts
 
-# Dokumentation wie auf GitLab Pages: Startseite, Handbuch (docs/) und Beispiele nach $(DOCS_OUT)/; docs-serve zeigt sie auf http://localhost:$(DOCS_PORT)
+# Dokumentation als statische Seiten: Startseite, Handbuch (docs/) und Beispiele nach $(DOCS_OUT)/; docs-serve zeigt sie auf http://localhost:$(DOCS_PORT)
 docs: node_modules
 	$(NODE) scripts\build-docs.ts --out "$(DOCS_OUT)"
 

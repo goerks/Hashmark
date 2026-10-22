@@ -1,0 +1,44 @@
+# Dokumentation auf GitHub Pages: Startseite, Handbuch (docs/, ein Hashmark-Deck mit Lesemodus) und alle Beispiel-Decks.
+# Lokal dasselbe: make docs-serve. Einmalig: Settings → Pages → Source „GitHub Actions“.
+# Die Startseite verweist auf den neuesten Release (letzter Tag); release.yml ruft diesen Ablauf nach dem Release auf.
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Tags für den neuesten Release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
+      - name: Dokumentation bauen
+        env:
+          HASHMARK_PROJECT_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: node scripts/build-docs.ts --out public
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deployment
+        uses: actions/deploy-pages@v4

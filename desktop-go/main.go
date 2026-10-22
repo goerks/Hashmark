@@ -25,7 +25,7 @@ import (
 //go:embed icon.ico
 var iconFS embed.FS
 
-// version wird beim Bauen gesetzt: -ldflags "-X main.version=<letzter Tag>.<Hash>" (make, .gitlab-ci.yml)
+// version wird beim Bauen gesetzt: -ldflags "-X main.version=<letzter Tag>.<Hash>" (make)
 var version = "dev"
 
 var goVersion = strings.TrimPrefix(runtime.Version(), "go")

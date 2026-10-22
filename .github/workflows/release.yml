@@ -1,0 +1,82 @@
+# Release bei einem Tag (v*): Standalone-Pakete für 6 Ziele (Hülle + Node + App, keine Installer) bauen und
+# als GitHub-Release mit Notizen aus den Commit-Betreffzeilen veröffentlichen. Danach die Dokumentation neu bauen,
+# damit die Startseite auf die neuen Pakete zeigt.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [windows-amd64, windows-arm64, linux-amd64, linux-arm64, darwin-amd64, darwin-arm64]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # volle Historie samt Tags, sonst findet git describe keinen Tag
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache-dependency-path: desktop-go/go.sum
+      - name: Version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}.$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+      - name: Hülle bauen
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          TARGET=${{ matrix.target }}
+          export GOOS="${TARGET%-*}" GOARCH="${TARGET#*-}"
+          LDFLAGS="-s -w -X main.version=$VERSION"
+          EXT=""
+          if [ "$GOOS" = windows ]; then LDFLAGS="$LDFLAGS -H windowsgui"; EXT=".exe"; fi
+          cd desktop-go && go vet . && go build -trimpath -ldflags="$LDFLAGS" -o "../dist-go/hashmark-$TARGET$EXT" .
+      - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
+      - name: Paket bauen
+        run: node scripts/package-app.ts "${{ matrix.target }}" --version="$VERSION" --archive --online
+      - uses: actions/upload-artifact@v4
+        with:
+          name: paket-${{ matrix.target }}
+          path: dist-app/hashmark-*
+          if-no-files-found: error
+
+  release:
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Release anlegen
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: paket-*
+          path: dist-app
+          merge-multiple: true
+      - name: Release-Notizen
+        run: node scripts/release-notes.ts "$GITHUB_REF_NAME" > release-notes.md
+      - name: Release veröffentlichen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist-app/hashmark-* --title "Hashmark $GITHUB_REF_NAME" --notes-file release-notes.md --verify-tag
+
+  pages:
+    needs: release
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/pages.yml

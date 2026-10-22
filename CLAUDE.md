@@ -8,11 +8,11 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 
 | Befehl | Zweck |
 | --- | --- |
-| `make setup` | Node nach `vendor/node` (falls fehlend) + `npm ci --offline` aus `vendor/npm-cache` |
+| `make setup` | Node nach `vendor/node` (falls fehlend, online von nodejs.org) + `npm ci` (nutzt `vendor/npm-cache`, holt Fehlendes online) |
 | `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen (mit Datei: Logo zuschneiden und ersetzen) |
 | `make test` | Vitest (`tests/*.test.ts`, 179 Tests, Kern-Logik ohne DOM) |
 | `make app` / `make app-cross` / `make app-package` | Desktop-App (Go): bauen + starten (`DECK=…` optional) / Hülle für Windows, Linux, macOS (amd64, arm64) nach `dist-go/` / portables `dist-app/Hashmark/` (windows-amd64). Andere Ziele samt Archiv: `node scripts/package-app.ts <ziel> --version=… --archive` (online, lädt Node und die Pakete des Ziels) |
-| `hashmark --version` | Version `<letzter Tag ohne v>.<Kurz-Hash>`, per `-ldflags "-X main.version=…"` eingebettet (`make` über `git describe`, in der Pipeline der Job `version`); `VERSION=…` überschreibt |
+| `hashmark --version` | Version `<letzter Tag ohne v>.<Kurz-Hash>`, per `-ldflags "-X main.version=…"` eingebettet (`make` über `git describe`); `VERSION=…` überschreibt |
 | Go | liegt **nicht** im Repo (ab 1.26, im `PATH`). Mehr braucht die Desktop-Hülle nicht: kein CGO, kein C-Compiler, kein Rust |
 | `make sidecar-smoke` | Node-Sidecar wie aus der App ansprechen: Deck, Datei-API, Aktionen, PDF, Handout, PPTX, HTML (`SIDECAR_BUNDLE=1`: das Bündel) |
 | `make build-examples` / `make docker-examples` | alle `examples/*` als statische Seiten mit Auswahlseite (`scripts/build-examples.ts`, `src/cli/examples.ts` teilt die Liste mit der Desktop-Startseite); Docker-Image `hashmark/beispiele` |
@@ -21,18 +21,18 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | `make dev` / `make edit` | Dev-Server bzw. Editor (`DECK=…`, `PORT=…`, Standard `examples/hashmark-demo`, 3030). `make dev` ohne ausdrückliches `DECK=` startet mit `--examples`: Plugin-Option `examples` (plugin.ts, `/__hashmark/examples` GET/POST wechselt das Deck) + `src/runtime/example-switcher.ts` (nur `import.meta.env.DEV`) |
 | `make build` / `make export` / `make pdf` | statisches HTML / Single-File-HTML / PDF über Edge oder Chrome headless (`PLAN=path` oder `PLAN=grouped`: Reihenfolge nach Vortragsplan) |
 | `make pptx` | PowerPoint-Export (`hashmark pptx`, `DEPTH=1 STEPS=1 PLAN=… PPTX=…`): `src/pptx/` (extract.ts läuft im Browser, build.ts nutzt pptxgenjs + jszip), Orchestrierung `src/cli/pptx.ts` über dieselbe Druckansicht wie das PDF; Editor-Button, Desktop-Menü (Aktion `pptx`), `GET /__hashmark/pptx` |
-| `make docs` / `make docs-serve` | Dokumentation wie auf GitLab Pages nach `public/` (`DOCS_OUT`, `DOCS_PORT`, Standard 4000): `scripts/build-docs.ts` baut das Handbuch (`docs/`, ein Deck) nach `handbuch/`, alle Beispiele nach `beispiele/` und schreibt die Startseite (`scripts/docs-landing.ts`, Live-Beispiele lesen ihren Quelltext aus dem Handbuch). CI-Job `pages` |
+| `make docs` / `make docs-serve` | Dokumentation als statische Seiten nach `public/` (`DOCS_OUT`, `DOCS_PORT`, Standard 4000): `scripts/build-docs.ts` baut das Handbuch (`docs/`, ein Deck) nach `handbuch/`, alle Beispiele nach `beispiele/` und schreibt die Startseite (`scripts/docs-landing.ts`, Live-Beispiele lesen ihren Quelltext aus dem Handbuch). `HASHMARK_PROJECT_URL` setzt die Projektadresse der Download-Karten |
 | `make check` | `hashmark check`: `src/core/check.ts` (statisch: Layouts, Attribute, Übergänge, Hinweise des Ladens), `src/cli/check.ts` (Überlauf: Build + Druckansicht per Edge/Chrome, liest `data-overflow` der `.print-page[data-node][data-sub]`); Exit 1 bei Fehlern; `pdf.ts`: `withPrintView`/`serveBuild` geteilt mit dem PDF-Export |
-| `make deps-update` | neue Pakete online holen, landen im Cache `vendor/npm-cache` |
+| `make deps-update` | neue Pakete online holen, landen im lokalen Cache `vendor/npm-cache` |
 
 - Das Makefile nutzt `SHELL := cmd.exe`. Rezepte müssen in cmd funktionieren und stellen `vendor\node` vor den `PATH`.
 - Node direkt aufrufen, z. B. für Skripte: `export PATH="$PWD/vendor/node:$PATH"` (Git Bash). Global ist **kein** Node installiert.
-- Neue npm-Pakete mit `vendor/node/npm.cmd install <pkg>` installieren. Wegen `.npmrc` (`cache=./vendor/npm-cache`, `save-exact`) liegen sie danach offline im Repo. Die neuen Cache-Dateien mitcommitten.
+- Neue npm-Pakete mit `vendor/node/npm.cmd install <pkg>` installieren. Wegen `.npmrc` (`cache=./vendor/npm-cache`, `save-exact`) liegen sie danach im lokalen Cache; `package.json` und `package-lock.json` mitcommitten.
 
 ## Harte Regeln
 
-- **Keine externen Laufzeit-Abhängigkeiten:** kein CDN, keine Web-Fonts, alles gebündelt und offline lauffähig. Neue Pakete immer über den Vendor-Cache.
-- **`vendor/` wird eingecheckt**, mit portablem Node 24 und npm-Cache. `.gitignore` ignoriert nur `/node_modules/`, `/dist/` und `/export/` im Root, sonst würde npm unter `vendor/node/node_modules` fehlen.
+- **Keine externen Laufzeit-Abhängigkeiten:** kein CDN, keine Web-Fonts, alles gebündelt und offline lauffähig. Neue Pakete nur über `package.json`/`package-lock.json`.
+- **`vendor/` ist nicht im Repo** (`.gitignore`): portables Node 24 (`make setup` lädt es per `scripts/get-node.ps1`) und npm-Cache. Aus der Historie entfernt; die CI installiert online per `npm ci`.
 - **TypeScript läuft ohne Build-Schritt** über Node-Type-Stripping (CLI, Plugin, Kern). Deshalb:
   - nur „erasable syntax“: keine Parameter-Properties (`constructor(readonly x)`), keine Enums, keine Namespaces;
   - relative Imports **mit `.ts`-Endung**; reine Typen per `import type`.
@@ -207,7 +207,7 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
   - Ein Prozess, ein Container: `live-server.ts` mit Option `web` liefert die Präsentation öffentlich und `/editor.html` plus Datei-API nur mit HTTP-Basic-Passwort (`EDITOR_PASSWORD`, ohne Passwort gibt es keinen Editor). `/healthz` für Render.
   - Die Datei-API prüft im Webbetrieb weiter den Header `X-Hashmark-Editor` und dass `Origin` zum `Host` passt (Basic-Zugangsdaten gehen sonst auch von fremden Seiten mit). `/__hashmark/app` bleibt localhost-only.
   - Das Image installiert online per `npm ci` (der Vendor-Cache enthält nur Windows-Binärdateien) und baut die Runtime beim Bauen vor. Läuft als root, weil Render-Festplatten root gehören.
-  - Pipeline: `.gitlab-ci.yml` (Test → Kaniko-Image in die GitLab-Registry → Deploy-Hook mit `imgURL` auf den Commit-Tag), `render.yaml` als Blueprint. Lokal gibt es kein Docker: das Image wurde nicht gebaut, nur `hashmark serve` ist getestet.
+  - Image: `make image` baut es lokal. Lokal gibt es kein Docker: das Image wurde nicht gebaut, nur `hashmark serve` ist getestet.
 
 ## Stand und offene Punkte
 
@@ -224,10 +224,10 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
     - Titel-Bug auf Ebene ≥ 2 behoben (`:where` bei den Größen je Ebene)
   - **Desktop-App in Go** (Node als Sidecar, Windows getestet; Linux/macOS haben Menü/Vollbild, kompilieren, sind aber nie gelaufen). Davor Tauri/Rust (am 01.10.2026 entfernt, siehe `roadmap.md`) und davor Electron: Eine Electron-Version wurde gebaut und auf Wunsch komplett zurückgenommen, auch aus der Git-Historie, sie war zu groß.
 - **Offen:** Stufen 2–6 in `roadmap.md`, u. a. Plugin-API, Theme v2, FS-Abstraktion, Editor-Inspector, Auto-Fit, weitere Diagrammsprachen, Animationen, Outliner.
-- **Regel:** keine großen Binärdateien ins Repo (über das bestehende `vendor/` hinaus), auch keine Build-Ergebnisse (`dist-go/`, `export/` sind ignoriert). Es werden **nie Installer** erzeugt, die App ist immer standalone. Go liegt im Benutzerprofil.
-- **Pipeline und Releases** (`.gitlab-ci.yml`): Bei jedem Push `version` → `test`, `build-app` (6 Ziele) → `package` (Standalone-Pakete als Artefakte). Bei einem Tag zusätzlich `release-notes` → `publish` (Generic Package Registry) → `release` (GitLab-Release mit Download-Links). `scripts/release-notes.ts` erzeugt die Notizen aus den Commit-Betreffzeilen seit dem vorherigen Tag.
+- **Regel:** keine großen Binärdateien ins Repo, auch keine Build-Ergebnisse (`dist-go/`, `export/` sind ignoriert). Es werden **nie Installer** erzeugt, die App ist immer standalone. Go liegt im Benutzerprofil.
+- **Pipeline (GitHub Actions, `.github/workflows/`):** `ci.yml` (Vitest, Go-Hülle für 6 Ziele, Image-Probebau) bei Push/PR; `release.yml` bei einem Tag `v*` (6 Standalone-Pakete → GitHub-Release mit Notizen aus `scripts/release-notes.ts` → `pages`); `pages.yml` (GitHub Pages, auch per `workflow_call`); `docker.yml` (Image nach ghcr.io bei Push auf `main`). CI installiert online per `npm ci` (nicht aus `vendor/`).
 - **Commit-Betreffzeilen sind der Changelog:** Fehlerbehebungen mit `Fix: …` beginnen oder „behoben“/„Fehler“ nennen, dann landen sie unter „Behobene Fehler“, alles andere unter „Neue Funktionen“. Reines `docs:`/`chore:`/`ci:`/`test:` oder `[skip changelog]` taucht nicht auf. Dafür kurze, für Anwender verständliche Betreffzeilen schreiben.
-- **Git:** Es gibt noch **kein Remote**, pushen ist erst mit URL möglich. Grösse ca. 125 MB wegen `vendor/`, `node.exe` hat 93 MB (Limit bei GitHub: 100 MB pro Datei).
+- **Git:** Remote ist GitHub. Das Repo ist klein, weil `vendor/` (Node, npm-Cache, ca. 125 MB) nicht eingecheckt ist (GitHub-Limit: 100 MB pro Datei).
 - **Beispiel-Deck:** `01-einfuehrung.md` enthält einen Test-Abschnitt des Nutzers („### Test“). Nur auf Wunsch entfernen.
 - **Lokale Decks:** `local/` ist ignoriert (`.gitignore`, `.dockerignore`), taucht weder in `listExamples` noch in Build, Docker oder Desktop-Beispielen auf. Dort liegen firmeninterne Decks, z. B. `local/<deck>` (Diagramm-Generator unter `tools/`): `make dev DECK=local/<deck>`. Nie nach `examples/` verschieben.
 - **Komponenten** (`src/core/components.ts`): Vorlage bleibt logikfrei (kein JS, keine Ausdrücke), das ist die bewusste Grenze zur späteren Plugin-API. Eingebaute Container-Namen (`CONTAINERS` in vocab.ts) gewinnen immer. Dateiwächter brauchen `.html` (Vite-Plugin, live-server). Der Kopf `{{!meta}}` (YAML) beschreibt Attribute/Flags/Kinder für Hinweise, Linter und Vorschläge (`lint.ts`/`complete.ts` bekommen `components: Record<string, ComponentMeta>`). Eingebaut: timeline, process, kpis, person, versus, roadmap, pyramid, matrix, aside. Beispiel: `examples/komponenten-demo`. Dateien in `src/runtime/components/` werden mit `src/` gepackt, kein eigener Schritt nötig.

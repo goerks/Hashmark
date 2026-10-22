@@ -1,4 +1,4 @@
-// Dokumentation bauen (GitLab Pages): make docs / node scripts/build-docs.ts [--out public] [--serve [port]]
+// Dokumentation bauen (statische Seiten): make docs / node scripts/build-docs.ts [--out public] [--serve [port]]
 //
 //   <out>/index.html      Startseite mit Live-Beispielen (scripts/docs-landing.ts)
 //   <out>/handbuch/       das Handbuch (docs/, ein Hashmark-Deck): Präsentation, ?reader = Lesemodus, ?card = Einzelfolie
@@ -19,14 +19,13 @@ import { indexPage } from './build-examples.ts'
 import { landingPage, type LandingDemo, type LandingRelease } from './docs-landing.ts'
 import { execFileSync } from 'node:child_process'
 
-/** Letzter Tag und die zugehörige Paketversion (wie `version` in der Pipeline); null ohne Tags (flacher Klon, neues Repo) */
+/** Letzter Tag und die zugehörige Paketversion (wie die Version der Desktop-App); null ohne Tags (flacher Klon, neues Repo) */
 function latestRelease(): LandingRelease | null {
   const git = (...a: string[]) => execFileSync('git', a, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
   try {
     const tag = process.env.HASHMARK_RELEASE_TAG || git('describe', '--tags', '--abbrev=0')
     const version = `${tag.replace(/^v/, '')}.${git('rev-parse', '--short', `${tag}^{commit}`)}`
-    const api = process.env.CI_API_V4_URL, id = process.env.CI_PROJECT_ID
-    return { tag, version, packageBase: api && id ? `${api}/projects/${id}/packages/generic/hashmark` : '' }
+    return { tag, version }
   } catch { return null }
 }
 
@@ -95,9 +94,9 @@ export async function buildDocs(out: string) {
   }
   fs.writeFileSync(path.join(out, 'beispiele', 'index.html'), indexPage(examples))
 
-  const projectUrl = process.env.CI_PROJECT_URL ?? ''
+  const projectUrl = (process.env.HASHMARK_PROJECT_URL ?? '').replace(/\/+$/, '')
   fs.writeFileSync(path.join(out, 'index.html'), landingPage({ title: 'Hashmark – Mächtige Präsentationen aus reinem Markdown', demos: await demosFromHandbook(), projectUrl, release: latestRelease() }))
-  // GitLab Pages liefert .html ohne Endung nicht aus; eine Datei 404.html für unbekannte Adressen
+  // Manche Hoster liefern .html ohne Endung nicht aus; eine Datei 404.html für unbekannte Adressen
   fs.writeFileSync(path.join(out, '404.html'), '<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=./"><title>Hashmark</title><a href="./">Zur Startseite</a>')
   console.log(`[hashmark] Dokumentation: ${out} (index.html, handbuch/, beispiele/)`)
 }

@@ -1,4 +1,4 @@
-// Startseite der Dokumentation (GitLab Pages): Slogan, animierter Baum, Merkmale, Live-Beispiele mit Quelltext und
+// Startseite der Dokumentation (statische Seiten): Slogan, animierter Baum, Merkmale, Live-Beispiele mit Quelltext und
 // Ergebnis, das Handbuch im Lesemodus und Downloads. Eine einzige HTML-Datei ohne externe Ressourcen.
 // Die Folien stammen aus dem Handbuch-Deck (docs/): `handbuch/?card#id` zeigt eine Folie, `handbuch/?reader` den Lesemodus.
 
@@ -16,20 +16,18 @@ export interface LandingDemo {
   hint: string
 }
 
-/** Aktueller Release (letzter Tag): Name, Paket-Version und Basisadresse der Paket-Registry */
+/** Aktueller Release (letzter Tag): Name und Paket-Version */
 export interface LandingRelease {
   /** z. B. v0.2.0 */
   tag: string
-  /** Paketversion wie in der Pipeline: <Tag ohne v>.<Kurz-Hash> */
+  /** Paketversion wie beim Paketbau: <Tag ohne v>.<Kurz-Hash> */
   version: string
-  /** Adresse der Generic Package Registry, leer = nur Link auf die Release-Seite */
-  packageBase: string
 }
 
 export interface LandingOptions {
   title: string
   demos: LandingDemo[]
-  /** Projektadresse (GitLab), leer = Platzhalter */
+  /** Projektadresse (GitHub), leer = Platzhalter */
   projectUrl: string
   /** letzter Release, falls bekannt */
   release?: LandingRelease | null
@@ -39,9 +37,9 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 export function landingPage(o: LandingOptions): string {
   const r = o.release ?? null
-  // Ohne bekannten Tag zeigt GitLab mit „permalink/latest“ trotzdem den neuesten Release
-  const releases = !o.projectUrl ? '#' : r ? `${o.projectUrl}/-/releases/${r.tag}` : `${o.projectUrl}/-/releases/permalink/latest`
-  const pkg = (ext: string, target: string) => (r?.packageBase ? `${r.packageBase}/${r.version}/hashmark-${r.version}-${target}.${ext}` : releases)
+  // Ohne bekannten Tag zeigt GitHub mit „releases/latest“ trotzdem den neuesten Release
+  const releases = !o.projectUrl ? '#' : r ? `${o.projectUrl}/releases/tag/${r.tag}` : `${o.projectUrl}/releases/latest`
+  const pkg = (ext: string, target: string) => (r && o.projectUrl ? `${o.projectUrl}/releases/download/${r.tag}/hashmark-${r.version}-${target}.${ext}` : releases)
   const link = (label: string, href: string, primary = false) => `<a class="btn${primary ? '' : ' ghost'}" href="${esc(href)}">${label}</a>`
   const latest = r ? `<p class="lead">Aktuelle Version: <strong>${esc(r.tag)}</strong> · <a href="${esc(releases)}">Release-Notizen</a></p>` : ''
   const demos = JSON.stringify(o.demos.map((d) => ({ tab: d.tab, id: d.id, steps: d.steps, file: d.file, source: d.source, hint: d.hint })))
@@ -194,14 +192,14 @@ export function landingPage(o: LandingOptions): string {
 
 <section class="block" id="download">
   <h2>Download</h2>
-  <p class="lead">Die Pakete stehen in den GitLab-Releases: eine portable Datei je Plattform, ohne Installer.</p>
+  <p class="lead">Die Pakete stehen in den GitHub-Releases: eine portable Datei je Plattform, ohne Installer.</p>
   ${latest}
   <div class="dl">
     <div class="card"><h3>Windows</h3><p>Entpacken und <code>Hashmark.exe</code> starten</p><div class="dl-btns">${link('x64', pkg('zip', 'windows-amd64'), true)}${link('ARM64', pkg('zip', 'windows-arm64'))}</div></div>
     <div class="card"><h3>macOS</h3><p>Apple Silicon und Intel (noch wenig erprobt)</p><div class="dl-btns">${link('Apple Silicon', pkg('tar.gz', 'darwin-arm64'))}${link('Intel', pkg('tar.gz', 'darwin-amd64'))}</div></div>
     <div class="card"><h3>Linux</h3><p>amd64 und arm64 (noch wenig erprobt)</p><div class="dl-btns">${link('x64', pkg('tar.gz', 'linux-amd64'))}${link('ARM64', pkg('tar.gz', 'linux-arm64'))}</div></div>
   </div>
-  <p class="lead" style="margin-top:14px"><a href="${esc(o.projectUrl ? `${o.projectUrl}/-/releases` : '#')}">Alle Releases</a></p>
+  <p class="lead" style="margin-top:14px"><a href="${esc(o.projectUrl ? `${o.projectUrl}/releases` : '#')}">Alle Releases</a></p>
 </section>
 
 <footer>Hashmark · Dokumentation${o.projectUrl ? ` · <a href="${esc(o.projectUrl)}">Quellcode</a>` : ''}</footer>

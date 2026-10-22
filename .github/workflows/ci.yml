@@ -1,0 +1,59 @@
+# CI: bei jedem Push und Pull Request testen, die Desktop-Hülle für alle Ziele bauen und das Docker-Image prüfen.
+# Pakete und Release: release.yml (bei einem Tag), Dokumentation: pages.yml.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Pakete online aus dem Lockfile; der Cache in vendor/ enthält nur die Windows-Binärdateien
+      - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
+      - run: npx vitest run
+
+  # Go-Hülle ohne CGO: der Go-Compiler genügt, auch für die anderen Plattformen
+  build-app:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [windows-amd64, windows-arm64, linux-amd64, linux-arm64, darwin-amd64, darwin-arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache-dependency-path: desktop-go/go.sum
+      - name: Bauen
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          TARGET=${{ matrix.target }}
+          export GOOS="${TARGET%-*}" GOARCH="${TARGET#*-}"
+          cd desktop-go && go vet . && go build -trimpath -ldflags="-s -w" -o /dev/null .
+
+  # Image bauen, aber nicht veröffentlichen (das macht docker.yml auf main)
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false

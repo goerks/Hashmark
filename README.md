@@ -21,7 +21,7 @@ make dev DECK=decks/mein-vortrag
 
 | Befehl | Wirkung |
 | --- | --- |
-| `make setup` | Node.js nach `vendor/node` (falls fehlend) und `npm ci --offline` aus `vendor/npm-cache` |
+| `make setup` | Node.js nach `vendor/node` (falls fehlend) und `npm ci` (Cache in `vendor/npm-cache`) |
 | `make app` / `make app-package` / `make app-cross` | Desktop-App (Go) bauen und starten / als portables `Hashmark.exe` packen / für alle Plattformen bauen, siehe „Desktop-App“ |
 | `make edit` | Editor mit Live-Vorschau im Browser (`DECK=…`), siehe unten |
 | `make dev` / `make dev-open` | Dev-Server mit Hot Reload (`DECK=…`, `PORT=…`). Ohne `DECK=` zeigt die Seite unten links eine Auswahl der Beispiel-Decks (`examples/`), z. B. `hashmark-demo` und `theme-demo`. |
@@ -81,7 +81,7 @@ Die App ist eine schlanke Go-Hülle (ohne CGO, ca. 7 MB) um die Webview des Syst
 - `make sidecar-smoke` – Node-Teil so, wie die App ihn anspricht (Deck öffnen, Datei-API, App-Aktionen, PDF, Handout, HTML). `SIDECAR_BUNDLE=1` prüft das Bündel.
 - `make app-test` – die ganze App: Startseite, Deck öffnen, Editor, Rechte, Präsentation, Presenter, Tasten, Ctrl+W, dazu die Zeiten. Nutzt das gepackte Programm bzw. `export/hashmark.exe` (`make app`). `VISIBLE=1` zeigt die Fenster, `node scripts/app-e2e.ts <exe>` testet eine beliebige EXE.
 
-## Dokumentation (GitLab Pages)
+## Dokumentation (statische Seiten)
 
 Die Dokumentation ist selbst mit Hashmark gebaut und besteht aus drei Teilen:
 
@@ -94,7 +94,7 @@ make docs-serve        # bauen und ansehen: http://localhost:4000 (DOCS_PORT=…
 make docs              # nur bauen, nach public/ (DOCS_OUT=…)
 ```
 
-Auf GitLab baut der Job `pages` (`.gitlab-ci.yml`) bei jedem Push auf den Standard-Branch dasselbe nach `public/`. Einmalig: Pages im Projekt aktivieren (Deploy → Pages), die Adresse steht danach dort; alle Links sind relativ und funktionieren auch unter `https://<gruppe>.gitlab.io/<projekt>/`. Die Download-Karten verweisen auf `$CI_PROJECT_URL/-/releases`.
+Das Ergebnis ist reines statisches HTML mit relativen Links und läuft auf jedem Hoster. Auf GitHub baut `.github/workflows/pages.yml` es bei jedem Push auf `main` und nach jedem Release nach GitHub Pages (einmalig: Settings → Pages → Source „GitHub Actions“). Mit `HASHMARK_PROJECT_URL=https://github.com/<benutzer>/<projekt>` verlinken die Download-Karten auf die GitHub-Releases; der Workflow setzt die Variable selbst.
 
 **Lesemodus und Einzelkarte gelten für jedes Deck**, nicht nur für das Handbuch: Hänge `?reader` an die Adresse eines gebauten Decks (`make dev`, `make build`, Export) für den Lesemodus, `?card#id` zeigt nur eine Folie ohne Bedienelemente (`&step=n` für einen Schritt), etwa zum Einbetten per `<iframe>`.
 
@@ -102,8 +102,8 @@ Auf GitLab baut der Job `pages` (`.gitlab-ci.yml`) bei jedem Push auf den Standa
 
 Es muss nichts global installiert werden:
 
-- `vendor/node/` enthält portables Node.js 24 LTS. Es wurde von nodejs.org geladen und per SHA256 geprüft (`scripts/get-node.ps1`).
-- `vendor/npm-cache/` enthält alle npm-Pakete als Tarballs. `make setup` installiert daraus **ohne Internet**, weil `.npmrc` auf diesen Cache zeigt.
+- `vendor/node/` enthält portables Node.js 24 LTS. `make setup` lädt es von nodejs.org und prüft es per SHA256 (`scripts/get-node.ps1`). Der Ordner gehört nicht zum Repo.
+- `vendor/npm-cache/` ist der lokale npm-Cache (`.npmrc`). Nach dem ersten `make setup` geht die Installation **ohne Internet**.
 - Zur Laufzeit gibt es keine CDNs und keine Web-Fonts. Mermaid und Shiki werden mitgebündelt, Schriften kommen aus dem System.
 
 Voraussetzungen: Windows x64 und GNU Make (z. B. `choco install make`). Für die Desktop-App zusätzlich Go (ab 1.26) im `PATH`.
@@ -118,19 +118,17 @@ hashmark --version       # Hashmark 1.2.0.a1b2c3d   (Windows: Hashmark.exe --ver
 
 Außerdem steht sie im Menü Hilfe → Über. `make app`, `make app-cross` und `make app-exe` setzen sie aus `git describe` (mit `VERSION=…` überschreibbar).
 
-**Pipeline (`.gitlab-ci.yml`), bei jedem Push:**
-1. `version` ermittelt die Version und gibt sie an alle Jobs weiter.
-2. `test` führt Vitest aus.
-3. `build-app` baut die Go-Hülle ohne CGO für Windows, Linux und macOS (amd64 und arm64).
-4. `package` baut je Ziel ein Standalone-Paket, ohne Installer: Hülle, Node (von nodejs.org, SHA256 geprüft) und die App mit den Laufzeit-Paketen des Ziels. Als Artefakt `dist-app/hashmark-<version>-<ziel>.zip` (Windows) bzw. `.tar.gz`. Lokal: `node scripts/package-app.ts <ziel> --version=… --archive`.
+**Pipeline (GitHub Actions):** `ci.yml` testet bei jedem Push und Pull Request (Vitest), baut die Go-Hülle für alle sechs Ziele und prüft das Docker-Image. `release.yml` läuft bei einem Tag `v*`. `docker.yml` veröffentlicht das Image bei jedem Push auf `main`.
 
-**Release:** Ein Tag (z. B. `git tag v1.0.0 && git push origin v1.0.0`) erzeugt zusätzlich ein GitLab-Release. Die Pakete landen in der Generic Package Registry des Projekts und sind im Release verlinkt. Die Notizen entstehen aus den Commit-Betreffzeilen seit dem vorherigen Tag (`scripts/release-notes.ts`):
+**Pakete bauen:** `make app-cross` baut die Go-Hülle ohne CGO für Windows, Linux und macOS (amd64 und arm64), `make app-package` das portable Paket für Windows. Andere Ziele samt Archiv: `node scripts/package-app.ts <ziel> --version=… --archive` (online, lädt Node und die Pakete des Ziels). Das Standalone-Paket enthält Hülle, Node (von nodejs.org, SHA256 geprüft) und die App mit den Laufzeit-Paketen des Ziels, ohne Installer: `dist-app/hashmark-<version>-<ziel>.zip` (Windows) bzw. `.tar.gz`.
+
+**Release:** Ein Tag (z. B. `git tag v1.0.0 && git push origin v1.0.0`) baut die Pakete aller sechs Ziele und veröffentlicht sie als GitHub-Release. Die Notizen entstehen aus den Commit-Betreffzeilen seit dem vorherigen Tag (`node scripts/release-notes.ts <tag>`):
 - **Behobene Fehler:** Betreffzeile beginnt mit `Fix` (z. B. `Fix: Überlauf bei Tabellen`) oder enthält „behoben“, „behebt“, „Fehler“ oder „Bug“.
 - **Neue Funktionen:** alles andere. Weggelassen werden Merge-Commits, `docs:`/`chore:`/`ci:`/`test:`/`style:` und `[skip changelog]`.
 
 **Hinweise zu den Paketen:** Die Programme sind nicht signiert. Unter macOS (`Hashmark.app`) warnt Gatekeeper beim ersten Start (Rechtsklick → Öffnen, oder `xattr -dr com.apple.quarantine Hashmark.app`), unter Windows kann SmartScreen warnen. Linux braucht WebKitGTK, für Dialoge zenity oder kdialog.
 
-## Deployment (GitLab-Registry und Render)
+## Deployment (Docker)
 
 Ein einziger Container liefert die Präsentation (`/`, öffentlich) und den Editor (`/editor.html`, mit Passwort). Beide arbeiten auf demselben Deck-Ordner, Änderungen im Editor erscheinen sofort in der Präsentation. Es braucht deshalb **nur eine Bereitstellung**.
 
@@ -149,15 +147,7 @@ make image && make image-run       # dasselbe als Docker-Image, http://localhost
 | `DECK_DIR` | Deck-Ordner, Standard `/data/deck` |
 | `DECK_SEED` | wird beim ersten Start in einen leeren `DECK_DIR` kopiert, Standard das Beispiel-Deck |
 
-**Automatik:** `.gitlab-ci.yml` führt bei jedem Push auf den Standard-Branch die Tests aus (die Desktop-App-Jobs stehen oben), baut das Image mit Kaniko, legt es als `:<commit>` und `:latest` in die GitLab-Registry und stößt Render über den Deploy-Hook an.
-
-**Einmalig einrichten:**
-
-1. In GitLab ein **Deploy-Token** mit `read_registry` anlegen (Settings → Repository → Deploy tokens).
-2. In Render unter *Workspace Settings → Registry Credentials* Zugangsdaten anlegen: Registry `registry.gitlab.com`, Benutzername und Token aus Schritt 1, Name `gitlab`.
-3. In `render.yaml` die Image-Adresse eintragen (`registry.gitlab.com/<gruppe>/<projekt>:latest`) und das Blueprint in Render anlegen, oder den Dienst von Hand erstellen: *Existing image*, Port 10000, Health Check `/healthz`, Festplatte auf `/data`.
-4. In Render `EDITOR_PASSWORD` setzen.
-5. In Render die **Deploy-Hook-URL** des Dienstes kopieren und in GitLab als CI/CD-Variable `RENDER_DEPLOY_HOOK_URL` eintragen (maskiert und geschützt).
+**Bereitstellung:** Das Image läuft auf jedem Container-Dienst: Port aus `PORT`, Health Check `/healthz`, eine Festplatte auf `/data` und `EDITOR_PASSWORD` gesetzt. Gebaut wird es lokal mit `make image`; `docker.yml` legt es bei jedem Push auf `main` als `ghcr.io/<benutzer>/<projekt>:latest` ab.
 
 **Wichtig zur Festplatte:** Ohne Festplatte ist das Dateisystem bei Render flüchtig, Änderungen aus dem Editor gehen bei jedem Neustart und Deploy verloren (kostenlose Dienste haben keine Festplatte). Mit der Festplatte auf `/data` bleiben sie erhalten, das Image selbst enthält nur das Beispiel-Deck als Startinhalt. Die Zugangsdaten gehen per HTTP Basic über HTTPS (Render terminiert TLS).
 
@@ -252,14 +242,14 @@ Das PDF hat:
 | Kollegen im selben Netz/VPN öffnen mit | `make dev-lan` oder `make preview-lan` | Vite zeigt die Netzwerk-URL (`Network: http://<ip>:3030/`) |
 | Dauerhaft auf einem Server | `make docker` + `make docker-run` | nginx-Container, http://<server>:8080 |
 | Webservice mit Auswahl aller Beispiel-Decks | `make docker-examples` + `make docker-run IMAGE=hashmark/beispiele` | http://<server>:8080 zeigt eine Auswahlseite, jedes Deck liegt unter `/<name>/` (z. B. `/theme-demo/`). Neue Ordner unter `examples/` erscheinen automatisch. |
-| Beliebiges statisches Hosting (GitLab/GitHub Pages, IIS, S3 …) | `make build` | Inhalt von `dist/` hochladen. Funktioniert auch in Unterverzeichnissen. |
+| Beliebiges statisches Hosting (GitHub Pages, IIS, S3 …) | `make build` | Inhalt von `dist/` hochladen. Funktioniert auch in Unterverzeichnissen. |
 
 Hinweise:
 
 - **Windows-Firewall:** Beim ersten `*-lan`-Start fragt Windows, ob `node.exe` im Netzwerk lauschen darf.
 - **Vertraulichkeit:** Build und Export enthalten den ganzen Deck-Inhalt samt Sprechernotizen im Klartext. Für interne Vorträge nur intern hosten. Für Docker gibt es einen vorbereiteten Basic-Auth-Block in [docker/nginx.conf](docker/nginx.conf).
 - **Docker** braucht beim ersten `make docker` Internet, um das Basis-Image `nginx:alpine` zu laden. Das Image enthält nur das gebaute Deck. Gebaut wird vorher lokal mit dem Node aus `vendor/`.
-- **CI unter Linux:** `vendor/` enthält nur Windows-Pakete (Node und die nativen Binaries von Vite/Rolldown). Auf einem Linux-Runner braucht es `npm ci` mit Registry-Zugriff. Alternativ lokal bauen und nur `dist/` veröffentlichen.
+- **CI unter Linux:** `vendor/` enthält nur Windows-Pakete (Node und die nativen Binaries von Vite/Rolldown). Auf einem Linux-Rechner braucht es `npm ci` mit Registry-Zugriff. Alternativ lokal bauen und nur `dist/` veröffentlichen.
 - **Remote-Vortrag** (Teams/Zoom): Nur das Präsentationsfenster teilen, die Presenter-View (S) bleibt privat. Dass das Publikum der Position live im eigenen Browser folgt, ist noch nicht umgesetzt.
 
 ## Vortragsplan: Pfad, Optional, Anhang
@@ -514,3 +504,7 @@ examples/      Beispiel-Decks: hashmark-demo (Funktionen, 3 Ebenen), theme-demo 
 ## Noch nicht umgesetzt
 
 Die Reihenfolge der nächsten Ausbaustufen steht in der [Roadmap](roadmap.md). Noch offen sind z. B. Includes, `hidden`, PlantUML/D2/Graphviz, Auto-Layout/Auto-Fit, Hell/Dunkel-Umschaltung, Magic Move, Diagramm-Morphing (stabile Knotenpositionen) und eigene Layouts.
+
+## Lizenz
+
+Hashmark steht unter der [PolyForm Noncommercial License 1.0.0](LICENSE): Du darfst es frei nutzen, ansehen, ändern und weitergeben, aber nicht für kommerzielle Zwecke (z. B. verkaufen). Wer es kommerziell nutzen will, fragt vorher an. Die Abhängigkeiten in `node_modules/` behalten ihre eigenen Lizenzen.

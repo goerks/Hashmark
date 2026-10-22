@@ -1,4 +1,4 @@
-// Dokumentation (GitLab Pages): das Handbuch ist ein gültiges Deck, die Beispiele der Startseite stammen aus seinen Quelltexten.
+// Dokumentation (statische Seiten): das Handbuch ist ein gültiges Deck, die Beispiele der Startseite stammen aus seinen Quelltexten.
 
 import { describe, expect, it } from 'vitest'
 import fs from 'node:fs'
@@ -51,7 +51,7 @@ describe('Abschnitt eines Knotens', () => {
 
 describe('Startseite', () => {
   const html = landingPage({
-    title: 'T', projectUrl: 'https://gitlab.example/g/p',
+    title: 'T', projectUrl: 'https://github.example/g/p',
     demos: [{ tab: 'A', id: 'baum', steps: 2, file: 'a.md', source: '# A <b>&</b>', hint: 'h' }],
   })
 
@@ -63,8 +63,8 @@ describe('Startseite', () => {
   })
 
   it('verlinkt die Releases des Projekts und braucht nichts von außen', () => {
-    expect(html).toContain('https://gitlab.example/g/p/-/releases')
-    expect(html).not.toMatch(/(src|href)="https?:\/\/(?!gitlab\.example)/)
+    expect(html).toContain('https://github.example/g/p/releases')
+    expect(html).not.toMatch(/(src|href)="https?:\/\/(?!github.example)/)
     expect(html).not.toMatch(/url\(https?:/)
   })
 })

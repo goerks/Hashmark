@@ -1,7 +1,8 @@
 /node_modules/
 /dist/
 *.log
-# vendor/ (Node.js + npm-Cache) wird bewusst mit eingecheckt
+# lokale Werkzeuge: portables Node.js (vendor/node, `make setup` lädt es) und npm-Cache (vendor/npm-cache)
+/vendor/
 /export/
 /public/
 /dist-app/

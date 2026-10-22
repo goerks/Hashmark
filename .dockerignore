@@ -1,7 +1,6 @@
 # Build-Kontext des Webdienst-Images (Dockerfile im Root): nur package.json, package-lock.json, src/ und examples/
 .git
 .vscode
-.gitlab-ci.yml
 node_modules
 vendor
 dist
