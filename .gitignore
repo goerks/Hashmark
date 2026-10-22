@@ -13,3 +13,6 @@
 
 # lokale Decks (nicht eingecheckt, nicht im Docker-Image): z. B. firmeninterne Präsentationen
 /local/
+
+# lokale GitHub-CLI (nur lokal, nie einchecken)
+/gh.exe

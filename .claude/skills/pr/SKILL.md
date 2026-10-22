@@ -16,4 +16,5 @@ Bringt den aktuellen Branch per Pull Request nach `main`. Push und PR wirken nac
 3. **Titel:** Eine Zeile, deutsch, für Anwender verständlich, Changelog-tauglich. Fehlerbehebung: `Fix: …`. Reine Doku/Tooling: Präfix `docs:`/`chore:`/`ci:`/`test:` (taucht nicht im Changelog auf).
 4. **Beschreibung** nach `.github/pull_request_template.md`: Zusammenfassung, Testplan (was lief, was **nicht** getestet werden konnte), Hinweise für den Review. Mit der Zeile `🤖 Generated with [Claude Code](https://claude.com/claude-code)` enden.
 5. **Veröffentlichen:** `git push -u origin <branch>`, dann `gh pr create --base main --title "…" --body "…"`. Den Link der PR nennen. **Nicht mergen**: das macht der Nutzer (Squash).
-   - Ist `gh` nicht installiert (hier der Fall), nach dem Push Titel und Beschreibung ausgeben und den Link `https://github.com/goerks/Hashmark/compare/main...<branch>?expand=1` nennen; der Nutzer legt den PR dort an.
+   - Liegt `gh` nicht im `PATH`, aber als `./gh.exe` im Projektordner (lokal, in der `.gitignore`, nie einchecken), diese Datei benutzen.
+   - Ist `gh` gar nicht vorhanden, nach dem Push Titel und Beschreibung ausgeben und den Link `https://github.com/goerks/Hashmark/compare/main...<branch>?expand=1` nennen; der Nutzer legt den PR dort an.
