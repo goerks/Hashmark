@@ -1,5 +1,5 @@
 # Docker-Image des Webdienstes (Präsentation öffentlich, Editor mit Passwort) in die GitHub Container Registry:
-# ghcr.io/<benutzer>/<projekt>:latest und :<commit>. Läuft bei jedem Push auf main.
+# ghcr.io/<benutzer>/<projekt>:latest und :<commit>. Läuft bei jedem Push auf main und stößt danach Render an.
 name: Docker
 
 on:
@@ -35,3 +35,13 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      # Render zieht das neue Image (Tag = Commit) über den Deploy-Hook. Alles außer dem Tag muss zur Image-Adresse im
+      # Render-Dienst passen. Ohne das Secret RENDER_DEPLOY_HOOK_URL wird der Schritt übersprungen.
+      - name: Render ausrollen
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then echo "RENDER_DEPLOY_HOOK_URL nicht gesetzt, übersprungen"; exit 0; fi
+          REPO=$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          IMG=$(printf '%s' "ghcr.io/$REPO:${GITHUB_SHA::7}" | sed 's|/|%2F|g; s|:|%3A|g')
+          curl --fail --silent --show-error -X POST "$RENDER_DEPLOY_HOOK_URL&imgURL=$IMG"

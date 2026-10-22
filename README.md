@@ -147,7 +147,7 @@ make image && make image-run       # dasselbe als Docker-Image, http://localhost
 | `DECK_DIR` | Deck-Ordner, Standard `/data/deck` |
 | `DECK_SEED` | wird beim ersten Start in einen leeren `DECK_DIR` kopiert, Standard das Beispiel-Deck |
 
-**Bereitstellung:** Das Image läuft auf jedem Container-Dienst: Port aus `PORT`, Health Check `/healthz`, eine Festplatte auf `/data` und `EDITOR_PASSWORD` gesetzt. Gebaut wird es lokal mit `make image`; `docker.yml` legt es bei jedem Push auf `main` als `ghcr.io/<benutzer>/<projekt>:latest` ab.
+**Bereitstellung:** Das Image läuft auf jedem Container-Dienst: Port aus `PORT`, Health Check `/healthz`, eine Festplatte auf `/data` und `EDITOR_PASSWORD` gesetzt. Gebaut wird es lokal mit `make image`; `docker.yml` legt es bei jedem Push auf `main` als `ghcr.io/<benutzer>/<projekt>:latest` ab und ruft danach den Render-Deploy-Hook auf (GitHub-Secret `RENDER_DEPLOY_HOOK_URL`).
 
 **Wichtig zur Festplatte:** Ohne Festplatte ist das Dateisystem bei Render flüchtig, Änderungen aus dem Editor gehen bei jedem Neustart und Deploy verloren (kostenlose Dienste haben keine Festplatte). Mit der Festplatte auf `/data` bleiben sie erhalten, das Image selbst enthält nur das Beispiel-Deck als Startinhalt. Die Zugangsdaten gehen per HTTP Basic über HTTPS (Render terminiert TLS).
 
