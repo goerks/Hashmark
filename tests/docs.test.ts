@@ -112,7 +112,7 @@ describe('Funktionsseiten', () => {
   it('zeigt Bilder, wo vorhanden, sonst die echte Folie, und verlinkt ins Handbuch', () => {
     const html = featurePage(FEATURES[0], site)
     expect(html).toContain('src="../../screenshots/baum.jpg"')
-    expect(html).toContain('../../handbuch/?card&step=3#themen/navigation/ausflug') // Ausflug: ohne Bild die Folie
+    expect(html).toContain('../../handbuch/?card&amp;step=3#themen/navigation/ausflug') // Ausflug: ohne Bild die Folie (& im Attribut maskiert)
     expect(html).toContain('../../handbuch/?reader#themen/navigation')
     expect(html).toContain('id="stepbtn"')
     expect(html).not.toMatch(/(src|href)="https?:\/\/(?!github.example)/)
