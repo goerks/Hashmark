@@ -25,7 +25,14 @@ Nichts geht direkt auf `main`. Jede Änderung entsteht auf einem Branch und komm
 4. Die CI (`ci.yml`) läuft bei jedem PR: Tests, Go-Hülle für alle Ziele, Docker-Probebau.
 5. Ein Merge nach `main` veröffentlicht die Dokumentation (GitHub Pages) und deployt das Image (Render).
 
-Mit Claude Code: `/feature <thema>` legt den Branch an, `/pr` prüft und öffnet den Pull Request. Ein Hook verhindert Commits und Pushes auf `main`. Die Regeln stehen in `.claude/rules/git-workflow.md`.
+**Mit Claude Code** läuft der Ablauf ohne Zutun des Auftraggebers:
+
+1. Auftrag als **GitHub-Ticket** (vorbereitet: `.github/ISSUE_TEMPLATE/auftrag.md`). Nennt jemand eine Aufgabe ohne Ticket, legt Claude es an.
+2. Claude legt Branch und Pull Request an, setzt um und prüft (`/feature`, `/pr` benutzt er selbst).
+3. Der Auftraggeber bekommt eine fachliche **Abnahmemeldung** („so probierst du es aus“, „nicht getestet“), probiert es aus und gibt ausdrücklich frei oder nennt Änderungswünsche.
+4. Nach der Freigabe und grüner CI führt Claude den PR per Squash zusammen. Danach ist das Ticket geschlossen.
+
+Der Auftraggeber muss keinen Git-Befehl kennen. Ein Hook verhindert Commits und Pushes auf `main`. Die Regeln stehen in `.claude/rules/git-workflow.md`.
 
 ## Befehle
 
