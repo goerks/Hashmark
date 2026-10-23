@@ -79,7 +79,7 @@ describe('Video-Eigenschaften', () => {
 
 describe('Video im Deck', () => {
   it('rendert <video> mit Ausschnitt, Schritt und Standbild', async () => {
-    const { html, slide, assets, warnings } = await render('# V\n\n![Demo](demo.webm){play=2 start=0:05 end=0:50 muted loop poster=poster.png width=60%}')
+    const { html, slide, assets, warnings } = await render('# V\n\n![Demo](demo.webm){play=2 start=5s end=50 muted loop poster=poster.png width=60%}')
     expect(html).toContain('<video')
     expect(html).not.toContain('<img')
     expect(html).toContain('class="hm-video"')

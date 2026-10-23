@@ -11,7 +11,7 @@ Das Video steht als Standbild auf der Folie. Der **nächste Schritt (→)** star
 ![Nur der Mittelteil, in Schleife](medien/demo.webm){start=1.4 end=5 loop muted width=60%}
 
 ::: notes
-`start=` und `end=` schneiden einen Ausschnitt (Sekunden, `0:05` oder `1:02:03`). Mit `loop` beginnt er von vorn, mit `muted` läuft er ohne Ton, `play=0` startet ihn sofort mit der Folie.
+`start=` und `end=` schneiden einen Ausschnitt (Sekunden wie `12.5` oder mit Einheit wie `5s`, `1m30s`). Mit `loop` beginnt er von vorn, mit `muted` läuft er ohne Ton, `play=0` startet ihn sofort mit der Folie.
 :::
 
 ## Mit Abspielleiste

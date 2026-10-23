@@ -1,4 +1,6 @@
-// Video in Folien: Erkennung, Zeitangaben und die Attribute von `![Demo](demo.mp4){play=1 start=0:05 end=0:50}`.
+// Video in Folien: Erkennung, Zeitangaben und die Attribute von `![Demo](demo.mp4){play=1 start=5s end=50s}`.
+// Zeitangaben mit Doppelpunkt (`0:05`) lassen sich in den Attributen eines Bildes nicht schreiben: Markdown zerreißt den Text an `:05`
+// (wie bei `ratio=16:9`). Deshalb Sekunden (`5`, `12.5`) oder Einheiten (`5s`, `1m30s`); `parseClock` kennt die Schreibweise mit Doppelpunkt für andere Stellen.
 // Rein (Node und Browser), ohne Abhängigkeiten; render.ts setzt die Eigenschaften am Bild-Knoten.
 
 /** Videoformate, die Browser und WebView ohne Zusatz abspielen (MP4 mit H.264/AAC, WebM) */
@@ -49,7 +51,7 @@ export interface VideoProps {
  * Attribute eines Videos → Eigenschaften des `<video>`-Elements.
  * - `play=N`: ab Schritt N startet das Video (Standard 1; `play=0`: sofort beim Anzeigen der Folie).
  *   Mit `controls` (Abspielleiste des Browsers) ist das Video kein Schritt, außer `play` steht ausdrücklich da.
- * - `start`/`end`: Ausschnitt, z. B. `0:05` bis `0:50`. `loop`, `muted`: wie bei HTML.
+ * - `start`/`end`: Ausschnitt, z. B. `5s` bis `50s` oder `1m5s` bis `1m30s`. `loop`, `muted`: wie bei HTML.
  * - `poster=bild.png`: Standbild vor dem Start (sonst das erste Bild des Ausschnitts).
  */
 export function videoProps(attrs: Record<string, string>, alt: string, warn: (msg: string) => void, poster?: string): VideoProps {
@@ -63,8 +65,8 @@ export function videoProps(attrs: Record<string, string>, alt: string, warn: (ms
 
   const start = parseClock(attrs.start)
   const end = parseClock(attrs.end)
-  if (attrs.start !== undefined && start === undefined) warn(`Video: start="${attrs.start}" ist ungültig (z. B. 12, 0:05 oder 1:02:03)`)
-  if (attrs.end !== undefined && end === undefined) warn(`Video: end="${attrs.end}" ist ungültig (z. B. 12, 0:50 oder 1:02:03)`)
+  if (attrs.start !== undefined && start === undefined) warn(`Video: start="${attrs.start}" ist ungültig (z. B. 12, 12.5, 5s oder 1m30s)`)
+  if (attrs.end !== undefined && end === undefined) warn(`Video: end="${attrs.end}" ist ungültig (z. B. 12, 12.5, 50s oder 1m30s)`)
   if (start !== undefined && end !== undefined && end <= start) warn(`Video: end="${attrs.end}" liegt nicht nach start="${attrs.start}"`)
   if (start !== undefined) props.dataStart = String(start)
   if (end !== undefined) props.dataEnd = String(end)

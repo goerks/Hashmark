@@ -50,7 +50,7 @@ export const SNIPPETS: Snippet[] = [
   },
   {
     label: 'Video', kind: 'Inhalt', keywords: 'film clip mp4 webm abspielen',
-    title: 'Video aus dem Deck-Ordner: → startet es, K hält an (play=2: ab Schritt 2, start=/end= schneiden, controls = Abspielleiste)',
+    title: 'Video aus dem Deck-Ordner: → startet es, K hält an (play=2: ab Schritt 2, start=/end= schneiden (5s, 1m30s), controls = Abspielleiste)',
     text: '![§Beschreibung](medien/video.mp4){play=1}\n',
   },
   {
