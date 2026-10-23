@@ -61,7 +61,7 @@ const probe = (cdp: Cdp) => evalJs<Probe>(cdp, `(() => {
   const v = root?.querySelector('video.hm-video')
   return {
     title: root?.querySelector('.slide-title')?.textContent ?? '',
-    slide: (m => m ? Number(m[1]) - 1 : 0)(location.hash.match(/:(\d+)$/)),
+    slide: (m => m ? Number(m[1]) - 1 : 0)(location.hash.match(/:([0-9]+)$/)),
     state: v?.dataset.state ?? null, paused: v ? v.paused : true, time: v ? v.currentTime : 0, duration: v ? v.duration : 0,
     controls: v ? v.controls : false, play: v?.dataset.play ?? null, ready: v ? v.readyState : 0, hash: location.hash,
   }
