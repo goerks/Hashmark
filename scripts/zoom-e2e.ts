@@ -305,6 +305,7 @@ async function run(cdp: Cdp) {
   await touch('touchEnd', [])
   p = await until(cdp, (x) => x.slide === 1, 2000)
   check('Wisch nach links blättert zur nächsten Folie, ohne zu zoomen', p.slide === 1 && !p.zoomed, short(p))
+  await sleep(900) // der Folienübergang läuft noch: bis dahin gehören die Berührungen der abtretenden Folie
   const mid = await evalJs<{ x: number; y: number }>(cdp, `(() => { const r = document.querySelector('.stage').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 } })()`)
   await touch('touchStart', [{ x: mid.x - 60, y: mid.y, id: 1 }])
   for (let i = 1; i <= 6; i++) await touch('touchMove', [{ x: mid.x - 60 + i * 25, y: mid.y, id: 1 }])
