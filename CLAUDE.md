@@ -25,7 +25,7 @@ Regeln je Bereich:
 
 ## Workflow
 
-**Ticket → Feature-Branch mit Pull Request → Umsetzung → Abnahme durch den Auftraggeber → Merge durch Claude.** Der Auftraggeber bleibt fachlich: Er hat mit Branches, Commits, PRs und Merges nichts zu tun. Claude macht den ganzen technischen Ablauf selbstständig (Skills `/feature`, `/pr`), spricht in Ticket- und Abnahmesprache und mergt (Squash) **nur nach ausdrücklicher Freigabe** und grüner CI. PR-Titel = Changelog-Zeile. Nie direkt auf `main` (ein Hook blockiert das). Details: `.claude/rules/git-workflow.md`.
+**Ticket → Analyse mit Varianten und Entscheidung (`/analyse`) → Feature-Branch mit Pull Request → Umsetzung → Abnahme durch den Auftraggeber → Merge durch Claude.** Der Auftraggeber bleibt fachlich: Er hat mit Branches, Commits, PRs und Merges nichts zu tun. Claude macht den ganzen technischen Ablauf selbstständig (Skills `/feature`, `/pr`), spricht in Ticket- und Abnahmesprache und mergt (Squash) **nur nach ausdrücklicher Freigabe** und grüner CI. PR-Titel = Changelog-Zeile. Nie direkt auf `main` (ein Hook blockiert das). Details: `.claude/rules/git-workflow.md`.
 
 ## Befehle (immer über `make`, Node liegt im Projekt)
 

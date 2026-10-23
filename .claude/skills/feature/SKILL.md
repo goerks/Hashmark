@@ -7,6 +7,7 @@ description: Startet die Arbeit an einem Ticket: Branch von aktuellem main und E
 
 Startet Arbeit immer auf einem eigenen Branch mit Ticket und Entwurfs-PR. Regeln: `.claude/rules/git-workflow.md`. Der Auftraggeber bleibt fachlich: nichts davon verlangt eine Entscheidung von ihm.
 
+0. **Analyse vorher:** Legt das Ticket Verhalten, Syntax oder Aussehen fest und gibt es noch keine Entscheidung des Auftraggebers, zuerst `/analyse` ausführen und die Entscheidung abwarten.
 1. **Ticket klären.** Mit Nummer: Ticket lesen (`issue_read`). Ohne Ticket: zuerst eins nach `.github/ISSUE_TEMPLATE/auftrag.md` anlegen (vorher `search_issues` auf Dubletten) und die Nummer nennen.
 2. **Art und Namen bestimmen:** `feat` (neue Funktion), `fix` (Fehler), `docs` (nur Doku), `chore` (Aufräumen, Tooling). Name klein, mit Bindestrichen, ohne Umlaute: `feat/video-und-bildzoom`. Gibt die Umgebung einen Branch vor, diesen nehmen.
 3. **Arbeitsbaum ansehen:** `git status -sb`. Fremde Änderungen (der Auftraggeber arbeitet parallel im Deck) nie verwerfen, kurz erwähnen.

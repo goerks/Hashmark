@@ -10,13 +10,20 @@ Gilt immer, für jede Änderung. Ausführlich für Menschen: `CONTRIBUTING.md`.
 ## Ablauf
 
 1. **Auftrag = GitHub-Ticket.** Jede Änderung hat ein Ticket (Vorlage `.github/ISSUE_TEMPLATE/auftrag.md`: Ziel, Umfang, Akzeptanzkriterien, offene Fragen). Nennt der Auftraggeber eine Aufgabe ohne Ticket, legt Claude es zuerst an, sagt die Nummer und fragt bei echten Unklarheiten fachlich nach. Vor dem Anlegen mit `search_issues` auf Dubletten prüfen.
-2. **Feature-Branch von aktuellem `main`.** Namen: `feat/<thema>`, `fix/<thema>`, `docs/<thema>`, `chore/<thema>` (klein, Bindestriche, ohne Umlaute). Gibt die Umgebung einen Branch vor (z. B. `claude/…` in der Cloud), gilt dieser. Nie auf `main` committen oder pushen: Ein Hook (`.claude/hooks/schutz-main.sh`) blockiert Commit/Push auf `main` und Force-Push.
-3. **Pull Request sofort öffnen** (Entwurf), mit `Closes #<Nr>` in der Beschreibung. **Ein Thema pro PR.**
-4. **Umsetzen**, in kleinen Commits, laufend pushen. Vor der Abnahme: `make test`; bei Änderungen an Decks/Syntax `make check`; bei Doku `make docs`; bei UI im Browser prüfen (Edge headless/CDP). CI (`ci.yml`) muss grün sein.
-5. **Abnahme durch den Auftraggeber.** Claude meldet in der Ticketsprache, nicht in Git-Sprache: was neu ist, **wie man es ausprobiert** (3 bis 6 Schritte, mit Beispiel-Deck) und **was nicht getestet werden konnte**. Findet der Auftraggeber etwas, behebt Claude es auf demselben PR und meldet erneut.
-6. **Merge nur nach ausdrücklicher Freigabe** („passt“, „abgenommen“, „bitte mergen“ o. Ä.) und grüner CI. Claude führt den PR per **Squash** zusammen, danach schließt sich das Ticket (`Closes #…`). Schweigen, Lob oder eine Zwischenfrage sind keine Freigabe. Danach meldet Claude kurz: „Ticket #… ist umgesetzt und veröffentlicht.“
+2. **Anforderung hinterfragen und Varianten analysieren** (Skill `/analyse`), bevor Branch und Code entstehen. Pflicht, sobald ein Ticket Verhalten, Syntax oder Aussehen festlegt; bei eindeutigen Fehlern genügt eine Zeile im Ticket. Inhalt:
+   - **Hinterfragen:** Welches Problem steckt hinter der gewünschten Lösung? Was gibt es schon (Code und Handbuch prüfen)? Ist das Ticket zu groß oder mischt es Themen? Was fehlt, was sollte raus? Der Auftraggeber erwartet ausdrücklich Widerspruch, wo die beste Lösung anders aussieht.
+   - **Mindestens zwei, besser drei Varianten.** Echte Alternativen, keine Ausbaustufen derselben Idee.
+   - **Bewertung** nach festen Kriterien: Nutzen im Vortrag, Passung zum Baum- und Schrittmodell, Wirkung auf PDF/PPTX/Handout, Bedienbarkeit vom Presenter-Fenster, Aufwand, Risiko.
+   - **Je Variante ein Design-Vorschlag**, den man ansehen kann (Artifact mit Entwurf, klickbar wo es hilft). Ohne Bild keine Variante.
+   - **Klare Empfehlung** mit Begründung, und was dafür bewusst weggelassen wird. Schnitt des Tickets vorschlagen, wenn sinnvoll.
+   - **Ergebnis ins Ticket** als Kommentar (Text, deutsch) und dem Auftraggeber den Entwurfslink nennen. Der Auftraggeber entscheidet Variante und Umfang. Erst danach geht es weiter.
+3. **Feature-Branch von aktuellem `main`.** Namen: `feat/<thema>`, `fix/<thema>`, `docs/<thema>`, `chore/<thema>` (klein, Bindestriche, ohne Umlaute). Gibt die Umgebung einen Branch vor (z. B. `claude/…` in der Cloud), gilt dieser. Nie auf `main` committen oder pushen: Ein Hook (`.claude/hooks/schutz-main.sh`) blockiert Commit/Push auf `main` und Force-Push.
+4. **Pull Request sofort öffnen** (Entwurf), mit `Closes #<Nr>` in der Beschreibung. **Ein Thema pro PR.**
+5. **Umsetzen**, in kleinen Commits, laufend pushen. Vor der Abnahme: `make test`; bei Änderungen an Decks/Syntax `make check`; bei Doku `make docs`; bei UI im Browser prüfen (Edge headless/CDP). CI (`ci.yml`) muss grün sein.
+6. **Abnahme durch den Auftraggeber.** Claude meldet in der Ticketsprache, nicht in Git-Sprache: was neu ist, **wie man es ausprobiert** (3 bis 6 Schritte, mit Beispiel-Deck) und **was nicht getestet werden konnte**. Findet der Auftraggeber etwas, behebt Claude es auf demselben PR und meldet erneut.
+7. **Merge nur nach ausdrücklicher Freigabe** („passt“, „abgenommen“, „bitte mergen“ o. Ä.) und grüner CI. Claude führt den PR per **Squash** zusammen, danach schließt sich das Ticket (`Closes #…`). Schweigen, Lob oder eine Zwischenfrage sind keine Freigabe. Danach meldet Claude kurz: „Ticket #… ist umgesetzt und veröffentlicht.“
 
-Ablauf in einem Satz: Ticket → Branch mit PR → Umsetzung → Abnahme durch den Auftraggeber → Merge durch Claude.
+Ablauf in einem Satz: Ticket → Analyse mit Varianten und Entscheidung → Branch mit PR → Umsetzung → Abnahme durch den Auftraggeber → Merge durch Claude.
 
 ## Verhalten gegenüber dem Auftraggeber
 

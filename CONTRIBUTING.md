@@ -28,9 +28,10 @@ Nichts geht direkt auf `main`. Jede Änderung entsteht auf einem Branch und komm
 **Mit Claude Code** läuft der Ablauf ohne Zutun des Auftraggebers:
 
 1. Auftrag als **GitHub-Ticket** (vorbereitet: `.github/ISSUE_TEMPLATE/auftrag.md`). Nennt jemand eine Aufgabe ohne Ticket, legt Claude es an.
-2. Claude legt Branch und Pull Request an, setzt um und prüft (`/feature`, `/pr` benutzt er selbst).
-3. Der Auftraggeber bekommt eine fachliche **Abnahmemeldung** („so probierst du es aus“, „nicht getestet“), probiert es aus und gibt ausdrücklich frei oder nennt Änderungswünsche.
-4. Nach der Freigabe und grüner CI führt Claude den PR per Squash zusammen. Danach ist das Ticket geschlossen.
+2. Claude hinterfragt die Anforderung und legt **mindestens zwei Varianten mit Bewertung, je einem Design-Vorschlag und einer klaren Empfehlung** vor (`/analyse`, Ergebnis als Ticketkommentar). Der Auftraggeber entscheidet.
+3. Claude legt Branch und Pull Request an, setzt um und prüft (`/feature`, `/pr` benutzt er selbst).
+4. Der Auftraggeber bekommt eine fachliche **Abnahmemeldung** („so probierst du es aus“, „nicht getestet“), probiert es aus und gibt ausdrücklich frei oder nennt Änderungswünsche.
+5. Nach der Freigabe und grüner CI führt Claude den PR per Squash zusammen. Danach ist das Ticket geschlossen.
 
 Der Auftraggeber muss keinen Git-Befehl kennen. Ein Hook verhindert Commits und Pushes auf `main`. Die Regeln stehen in `.claude/rules/git-workflow.md`.
 
