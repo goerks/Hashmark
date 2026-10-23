@@ -157,15 +157,18 @@ describe('Video im Deck', () => {
 })
 
 describe('Beispiel-Deck', () => {
-  it('hat eine Folie „Video“ mit Standbild, Ausschnitt und Abspielleiste ohne Hinweise', async () => {
+  it('hat ein Kapitel „Video“ mit drei Folien (Standbild, Ausschnitt, Abspielleiste) ohne Hinweise', async () => {
     const { deck, warnings, assets } = await loadDeck(path.resolve('examples/hashmark-demo'))
     expect(warnings.filter((w) => /video|medien/i.test(w))).toEqual([])
     const video = deck.nodes.find((n) => n.id === 'video')!
     expect(video).toBeDefined()
     expect(video.slides[0].html).toContain('src="deck-assets/medien/demo.webm#t=0.001"')
     expect(video.slides[0].steps).toHaveLength(1)
-    expect(video.children.map((c) => c.title)).toEqual(['Ausschnitt und Schleife', 'Mit Abspielleiste'])
-    expect(video.children[0].slides[0].html).toContain('src="deck-assets/medien/demo.webm#t=1.4"')
+    expect(video.slides).toHaveLength(3)
+    expect(video.slides[1].html).toContain('src="deck-assets/medien/demo.webm#t=1.4"')
+    expect(video.slides[1].html).toMatch(/data-end="5"/)
+    expect(video.slides[2].html).toMatch(/<video[^>]*\scontrols/)
+    expect(video.slides[2].steps).toHaveLength(0)
     expect(assets.some((a) => a.endsWith(path.join('medien', 'demo.webm')))).toBe(true)
   })
 })

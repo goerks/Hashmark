@@ -54,13 +54,14 @@ const press = async (cdp: Cdp, name: string) => {
   await cdp.send('Input.dispatchKeyEvent', { type: 'keyUp', ...base })
 }
 
-interface Probe { title: string; state: string | null; paused: boolean; time: number; duration: number; controls: boolean; play: string | null; ready: number; hash: string }
+interface Probe { title: string; slide: number; state: string | null; paused: boolean; time: number; duration: number; controls: boolean; play: string | null; ready: number; hash: string }
 const probe = (cdp: Cdp) => evalJs<Probe>(cdp, `(() => {
   const slides = [...document.querySelectorAll('.stage .stage-slide')]
   const root = slides[slides.length - 1]
   const v = root?.querySelector('video.hm-video')
   return {
     title: root?.querySelector('.slide-title')?.textContent ?? '',
+    slide: (m => m ? Number(m[1]) - 1 : 0)(location.hash.match(/:(\d+)$/)),
     state: v?.dataset.state ?? null, paused: v ? v.paused : true, time: v ? v.currentTime : 0, duration: v ? v.duration : 0,
     controls: v ? v.controls : false, play: v?.dataset.play ?? null, ready: v ? v.readyState : 0, hash: location.hash,
   }
@@ -76,7 +77,7 @@ async function until(cdp: Cdp, ok: (p: Probe) => boolean, ms = 8000): Promise<Pr
   }
   return p
 }
-const short = (p: Probe) => `Zustand ${p.state}, ${p.paused ? 'angehalten' : 'läuft'}, ${p.time.toFixed(2)} s, Folie „${p.title}“`
+const short = (p: Probe) => `Zustand ${p.state}, ${p.paused ? 'angehalten' : 'läuft'}, ${p.time.toFixed(2)} s, Folie „${p.title}“ ${p.slide + 1}`
 
 // ---------- Ablauf ----------
 
@@ -84,7 +85,7 @@ async function run(cdp: Cdp, baseUrl: string) {
   // 1 · Standbild
   let p = await until(cdp, (x) => x.ready >= 1 && x.duration > 0)
   check('Video lädt (Metadaten, Länge bekannt)', p.ready >= 1 && p.duration > 7, short(p))
-  check('Folie „Video“ mit Standbild: angehalten, ein Schritt vorgesehen', p.title === 'Video' && p.paused && p.play === '1' && p.state === 'idle', short(p))
+  check('Folie 1 „Video“ mit Standbild: angehalten, ein Schritt vorgesehen', p.title === 'Video' && p.slide === 0 && p.paused && p.play === '1' && p.state === 'idle', short(p))
 
   // 2 · → startet das Video
   await press(cdp, 'ArrowRight')
@@ -106,19 +107,19 @@ async function run(cdp: Cdp, baseUrl: string) {
   // 4 · ← setzt auf das Standbild zurück
   await press(cdp, 'ArrowLeft')
   p = await until(cdp, (x) => x.state === 'idle')
-  check('← geht zurück auf Schritt 0: Standbild am Anfang', p.state === 'idle' && p.paused && p.time < 0.5 && p.title === 'Video', short(p))
+  check('← geht zurück auf Schritt 0: Standbild am Anfang', p.state === 'idle' && p.paused && p.time < 0.5 && p.slide === 0, short(p))
 
   // 5 · → startet erneut, nächstes → springt ans Ende, die Folie bleibt
   await press(cdp, 'ArrowRight')
   p = await until(cdp, (x) => x.state === 'playing' && x.time > 0.3)
   await press(cdp, 'ArrowRight')
   p = await until(cdp, (x) => x.state === 'ended')
-  check('→ bei laufendem Video springt ans Ende, die Folie bleibt', p.state === 'ended' && p.paused && p.time > 7 && p.title === 'Video', short(p))
+  check('→ bei laufendem Video springt ans Ende, die Folie bleibt', p.state === 'ended' && p.paused && p.time > 7 && p.slide === 0, short(p))
 
-  // 6 · nächstes → geht zur nächsten Folie (Ausschnitt in Schleife)
+  // 6 · nächstes → geht zur nächsten Folie desselben Kapitels (Ausschnitt in Schleife)
   await press(cdp, 'ArrowRight')
-  p = await until(cdp, (x) => x.title === 'Ausschnitt und Schleife')
-  check('danach geht → zur nächsten Folie', p.title === 'Ausschnitt und Schleife', short(p))
+  p = await until(cdp, (x) => x.slide === 1)
+  check('danach geht → zur nächsten Folie', p.slide === 1 && p.title === 'Video', short(p))
   check('nächste Folie: Standbild am Beginn des Ausschnitts (1,4 s)', p.paused && p.play === '1', short(p))
 
   // 7 · Ausschnitt 1,4 bis 5 s mit Schleife, stumm
@@ -143,11 +144,11 @@ async function run(cdp: Cdp, baseUrl: string) {
   await press(cdp, 'ArrowRight') // Ausschnitt läuft: springt ans Ende (Schleife zählt nicht als Ende)
   await sleep(300)
   p = await probe(cdp)
-  if (p.title === 'Ausschnitt und Schleife') {
+  if (p.slide === 1) {
     await press(cdp, 'ArrowRight')
-    p = await until(cdp, (x) => x.title === 'Mit Abspielleiste')
+    p = await until(cdp, (x) => x.slide === 2)
   }
-  check('Folie mit Abspielleiste: Leiste sichtbar, kein Schritt, angehalten', p.title === 'Mit Abspielleiste' && p.controls && p.play === null && p.paused, short(p))
+  check('Folie 3 mit Abspielleiste: Leiste sichtbar, kein Schritt, angehalten', p.slide === 2 && p.controls && p.play === null && p.paused, short(p))
 
   // 9 · Teilabrufe
   const range = await evalJs<{ status: number; range: string | null; length: number }>(cdp, `fetch('${baseUrl}deck-assets/medien/demo.webm', { headers: { Range: 'bytes=0-9' } }).then(async (r) => ({ status: r.status, range: r.headers.get('content-range'), length: (await r.arrayBuffer()).byteLength }))`)
