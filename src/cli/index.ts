@@ -54,6 +54,7 @@ cli
     await serve({
       deck,
       seed: opts.seed ?? process.env.DECK_SEED,
+      reseed: process.env.DECK_SEED_RESET === '1',
       host: opts.host,
       port: Number(opts.port ?? process.env.PORT ?? 3030),
       editorUser: process.env.EDITOR_USER || undefined,

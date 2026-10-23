@@ -11,6 +11,8 @@ export interface ServeOptions {
   deck: string
   /** Deck, das beim ersten Start in einen leeren Deck-Ordner kopiert wird (z. B. auf einer neuen Festplatte) */
   seed?: string
+  /** Deck-Ordner bei jedem Start durch `seed` ersetzen (Vorschau eines Pull Requests, nie auf einer dauerhaften Festplatte) */
+  reseed?: boolean
   host: string
   port: number
   editorUser?: string
@@ -20,13 +22,18 @@ export interface ServeOptions {
 
 const isEmpty = (dir: string) => !fs.existsSync(dir) || fs.readdirSync(dir).filter((f) => !f.startsWith('.')).length === 0
 
+/** Beispiel in den Deck-Ordner kopieren: in einen leeren immer, mit `reseed` auch in einen gefüllten (dessen Inhalt wird zuerst entfernt, der Ordner selbst bleibt, er kann eine Festplatte sein). true = kopiert. */
+export function seedDeck(deckDir: string, seed: string | undefined, reseed = false): boolean {
+  if (!seed || !(reseed || isEmpty(deckDir))) return false
+  fs.mkdirSync(deckDir, { recursive: true })
+  if (reseed) for (const entry of fs.readdirSync(deckDir)) fs.rmSync(path.join(deckDir, entry), { recursive: true, force: true })
+  fs.cpSync(path.resolve(seed), deckDir, { recursive: true })
+  return true
+}
+
 export async function serve(opts: ServeOptions) {
   const deckDir = path.resolve(opts.deck)
-  if (opts.seed && isEmpty(deckDir)) {
-    fs.mkdirSync(deckDir, { recursive: true })
-    fs.cpSync(path.resolve(opts.seed), deckDir, { recursive: true })
-    console.log(`[hashmark] Deck-Ordner war leer, Beispiel kopiert: ${opts.seed} → ${deckDir}`)
-  }
+  if (seedDeck(deckDir, opts.seed, opts.reseed)) console.log(`[hashmark] Beispiel kopiert: ${opts.seed} → ${deckDir}${opts.reseed ? ' (ersetzt den Inhalt)' : ''}`)
   if (isEmpty(deckDir)) throw new Error(`Deck-Ordner ist leer oder fehlt: ${deckDir} (--seed <ordner> legt ein Beispiel an)`)
 
   const runtimeDir = await ensureRuntime(console.log)
