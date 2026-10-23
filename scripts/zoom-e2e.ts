@@ -121,10 +121,11 @@ async function run(cdp: Cdp) {
   await press(cdp, 'z')
   await until(cdp, (x) => x.zoomed && x.scale > 1.5, 6000)
   await press(cdp, 'ArrowRight')
-  p = await until(cdp, (x) => x.slide === 1)
+  // der Übergang zur nächsten Folie läuft rund 0,4 s und setzt selbst eine Transformation: abwarten
+  p = await until(cdp, (x) => x.slide === 1 && x.noTransform)
   check('→ im vergrößerten Zustand geht weiter, die Kamera steht normal', p.slide === 1 && !p.zoomed && p.noTransform, short(p))
   await press(cdp, 'z')
-  await sleep(300)
+  await sleep(500)
   p = await probe(cdp)
   check('Z auf einer Folie ohne Bild tut nichts', !p.zoomed && p.noTransform, short(p))
   await press(cdp, 'ArrowLeft')
