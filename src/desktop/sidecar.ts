@@ -156,9 +156,10 @@ export function createSidecar({ dataDir, emit, log = () => {} }: SidecarOptions)
     async html(r) {
       if (!deckDir) throw new Error('Kein Deck geöffnet')
       const out = str(r.out, 'out')
-      const [{ exportSingleFile }, { config }] = await Promise.all([import('../cli/export.ts'), import('../cli/config.ts')])
-      await exportSingleFile(config(deckDir, { logLevel: 'warn' }, { inlineAssets: true }, { cacheDir: path.join(dataDir, 'vite-cache') }), out)
-      return { out }
+      const [{ exportSingleFile, mediaSink }, { config }] = await Promise.all([import('../cli/export.ts'), import('../cli/config.ts')])
+      const media = mediaSink(out)
+      await exportSingleFile(config(deckDir, { logLevel: 'warn' }, { inlineAssets: true, media }, { cacheDir: path.join(dataDir, 'vite-cache') }), out, media)
+      return { out, media: media.files.size, mediaDir: media.dir }
     },
   }
 

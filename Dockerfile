@@ -19,14 +19,21 @@ RUN npm ci --omit=dev --no-audit --no-fund
 
 COPY src ./src
 COPY examples ./examples
+# Abnahme-Präsentation des offenen Pull Requests (siehe .claude/rules/git-workflow.md); im Normalbetrieb ein kurzer Ruhezustand
+COPY abnahme ./abnahme
 
 # Oberfläche (Präsentation, Editor) einmal vorbauen, damit der Start nur Sekunden dauert
 RUN node src/desktop/runtime-build.ts
 
+# Vorschau eines Pull Requests: --build-arg SEED=abnahme --build-arg SEED_RESET=1 zeigt die Abnahme-Präsentation statt des Beispiels
+ARG SEED=examples/hashmark-demo
+ARG SEED_RESET=0
+
 ENV NODE_ENV=production \
     PORT=10000 \
     DECK_DIR=/data/deck \
-    DECK_SEED=/app/examples/hashmark-demo
+    DECK_SEED=/app/${SEED} \
+    DECK_SEED_RESET=${SEED_RESET}
 
 EXPOSE 10000
 

@@ -390,10 +390,22 @@ func (a *app) exportHTML() error {
 	if err != nil || out == "" {
 		return err
 	}
-	if err := a.withBusy("HTML-Export", func() error { _, e := a.call("html", map[string]any{"out": out}); return e }); err != nil {
+	var res any
+	if err := a.withBusy("HTML-Export", func() error {
+		var e error
+		res, e = a.call("html", map[string]any{"out": out})
+		return e
+	}); err != nil {
 		return err
 	}
-	a.done("HTML-Datei erstellt – läuft offline per Doppelklick, auch mit Presenter-View (S).", out)
+	message := "HTML-Datei erstellt – läuft offline per Doppelklick, auch mit Presenter-View (S)."
+	// Videos sind zu groß für den Text der Datei: sie liegen in einem Ordner daneben und müssen mit
+	if m, ok := res.(map[string]any); ok {
+		if n, ok := m["media"].(float64); ok && n > 0 {
+			message += fmt.Sprintf("\n\nAchtung: %d Video(s) liegen im Ordner „%s“ neben der Datei. Beides zusammen weitergeben.", int(n), str(res, "mediaDir"))
+		}
+	}
+	a.done(message, out)
 	return nil
 }
 

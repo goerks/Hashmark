@@ -39,6 +39,7 @@ icons.ts      eingebaute Linien-Icons für `::: card icon=…` (eigene Zeichnung
 math.ts       Formeln (KaTeX): `protectMath` ersetzt `$…$`/`$$…$$` VOR dem Parsen durch Platzhalter (Markdown würde `\,` `\{` `\\` zerstören; Zeilenzahl bleibt gleich), `renderMath`/`renderTex` setzen sie im fertigen HTML in Node; ` ```math ` ist ein Code-Plugin in render.ts. Schriften/CSS: `src/runtime/katex.css` + `katex-fonts/` (nur woff2) erzeugt `scripts/katex-assets.ts`, nach einem katex-Update neu ausführen. Nur in Node importieren (nie aus `search.ts`/Runtime), sonst landet KaTeX im Client-Bündel
 svg-steps.ts  beliebiges SVG: Elemente mit `id="step-N"` → `data-step` (`![](x.svg){steps=ids}`)
 excalidraw.ts Excalidraw-SVG: Szene aus `<metadata>` (zlib/bstring) → Gruppen per Reihenfolge den Top-Level-`<g>` zuordnen → `data-step`; drawio.ts analog mit Ebenen
+media.ts      Video in Folien: `isVideoUrl` (.mp4 .m4v .webm .ogv), `parseClock` (12, 45s, 1m30s; `0:05` nur außerhalb von Attributen), `videoProps` (Attribute → Eigenschaften des `<video>`), `VIDEO_MIME`, `VideoInfo`; rein, getestet in `tests/media.test.ts`
 check.ts      Quelle für `hashmark check` (statisch: Layouts, Attribute, Übergänge, Hinweise des Ladens)
 ```
 
@@ -65,6 +66,7 @@ Datenfluss: Markdown → `loadDeck` (Node, im Vite-Plugin) → Deck-JSON mit fer
 - **Knoten-Attribute:** `layout`, `id`, `transition`, `.klasse`, `duration=5m`, `bg=…` (Farbe/Verlauf bleibt CSS, sonst Bild → `url(…)`), `bgdim=0.5`.
 - **Code:** `lines="2-3|5|all"`: Abschnitt k gilt ab Schritt k (Abschnitt 0 sofort), `all` bzw. leer = nichts abdunkeln.
 - **Hinweiskästen:** `> [!NOTE|TIP|IMPORTANT|WARNING|CAUTION] [eigener Titel]`.
+- **Video:** `![Demo](demo.mp4){play=1 start=5s end=50s loop muted poster=bild.png controls}` (kein `0:05`: der Doppelpunkt zerreißt den Text-Knoten wie bei `ratio=16:9`). Ein Bild mit Videoendung wird in `imageAttrs` (render.ts) zum `<video class="hm-video">` (`hName`), die Startzeit hängt als `#t=` an der Adresse (ohne Startzeit `#t=0.001`, damit WebKit ein Standbild zeigt). `play=N` (Standard 1) ist ein Schritt: `data-play` wird in `blocksToHtml` bei den Schritten mitgezählt. `controls` ohne `play` ist kein Schritt, `play=0` startet mit der Folie. Videos werden nie wegen `embedImages` eingebettet (`resolveImage`): im Deck-Ordner Datei (`deck-assets/`), außerhalb des Decks bis 25 MB als Data-URI, sonst Hinweis. `embedMedia: true` (deck.yaml) betrifft nur den Einzel-HTML-Export.
 - **Bilder:**
   - `![](pfad){width=60% .klasse}`;
   - Dateien außerhalb des Decks bzw. mit `embedImages: true` werden als Base64 eingebettet;

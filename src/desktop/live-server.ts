@@ -9,13 +9,14 @@ import http from 'node:http'
 import path from 'node:path'
 import type { AddressInfo } from 'node:net'
 import { loadDeck, type LoadResult } from '../core/deck.ts'
-import { ASSET_PREFIX, IMAGE_MIME } from '../core/render.ts'
+import { ASSET_PREFIX, MEDIA_MIME } from '../core/render.ts'
 import { appApi, editorApi, planApi } from '../vite/editor-api.ts'
+import { serveFile } from '../vite/serve-file.ts'
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.woff2': 'font/woff2', '.wasm': 'application/wasm',
-  ...IMAGE_MIME,
+  ...MEDIA_MIME,
 }
 
 export interface LiveServerOptions {
@@ -104,10 +105,9 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     return false
   }
 
-  function sendFile(res: http.ServerResponse, file: string, cache: string) {
-    res.setHeader('Content-Type', MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream')
-    res.setHeader('Cache-Control', cache)
-    fs.createReadStream(file).pipe(res)
+  /** mit Teilabrufen (Range), damit man in Videos vorspulen kann */
+  function sendFile(req: http.IncomingMessage, res: http.ServerResponse, file: string, cache: string) {
+    serveFile(req, res, file, { type: MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream', cache })
   }
 
   /** Datei unterhalb von `root`, sonst null (kein Ausbrechen per ../) */
@@ -148,14 +148,14 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     }
     if (pathname.startsWith('/' + ASSET_PREFIX)) {
       const file = inside(deckDir, pathname.slice(ASSET_PREFIX.length + 1))
-      return file ? sendFile(res, file, 'no-cache') : notFound()
+      return file ? sendFile(req, res, file, 'no-cache') : notFound()
     }
     // vorgebaute Runtime: / und ?print/?presenter → index.html
     const rel = pathname === '/' ? 'index.html' : pathname.slice(1)
     const file = inside(runtimeDir, rel)
     if (!file) return notFound()
     // gebündelte Dateien tragen einen Hash im Namen → dürfen dauerhaft im Cache liegen
-    sendFile(res, file, rel.startsWith('assets/') ? 'public, max-age=31536000, immutable' : 'no-cache')
+    sendFile(req, res, file, rel.startsWith('assets/') ? 'public, max-age=31536000, immutable' : 'no-cache')
   })
 
   const host = web?.host ?? '127.0.0.1'

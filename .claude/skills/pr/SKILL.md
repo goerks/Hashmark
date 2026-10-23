@@ -16,8 +16,8 @@ Bringt die Arbeit am aktuellen Ticket in einen abnahmefähigen Zustand. Regeln: 
    - Fehlschläge selbst beheben. Nicht pushen, solange Tests rot sind, außer es wird fachlich entschieden.
 3. **Push:** `git push -u origin <branch>` (bei Netzfehlern bis zu vier Wiederholungen mit 2/4/8/16 s Pause).
 4. **PR aktualisieren** (Titel, Beschreibung nach `.github/pull_request_template.md`, `Closes #<Nr>`), per GitHub-MCP (`create_pull_request` bzw. `update_pull_request`, in Cloud-Umgebungen gibt es kein `gh`). Titel = Changelog-Zeile (deutsch, für Anwender verständlich, `Fix: …` bei Fehlern, Präfix `docs:`/`chore:`/`ci:`/`test:` für Reines). Den PR aus dem Entwurf nehmen. Die CI muss grün sein.
-5. **Abnahme melden**, ohne Git-Begriffe:
+5. **Abnahme-Präsentation** in `abnahme/` schreiben bzw. aktualisieren (Regeln: `.claude/rules/git-workflow.md`, Schritt 6), pushen und warten, bis die Pipeline die Vorschau angelegt hat (Kommentar im PR). **Abnahme melden**, ohne Git-Begriffe, mit der Adresse der Vorschau:
    - Was ist neu (Ticket #…).
    - **So probierst du es aus** (3 bis 6 Schritte, Beispiel-Deck nennen).
    - **Nicht getestet:** was Claude nicht prüfen konnte.
-6. **Nicht mergen**, bevor der Auftraggeber ausdrücklich freigibt. Dann: Squash-Merge über `merge_pull_request` (`merge_method: squash`), Ticket prüfen (geschlossen), kurz melden. Bei Änderungswünschen auf demselben PR weiterarbeiten und erneut abnehmen lassen.
+6. **Nicht mergen**, bevor der Auftraggeber ausdrücklich freigibt. Dann `abnahme/` auf den Ruhezustand zurücksetzen und pushen, danach: Squash-Merge über `merge_pull_request` (`merge_method: squash`), Ticket prüfen (geschlossen), kurz melden. Bei Änderungswünschen auf demselben PR weiterarbeiten und erneut abnehmen lassen.

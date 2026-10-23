@@ -21,6 +21,7 @@
         ['▶ / ◀ (PageDown / PageUp)', 'wie Space / Shift+Space'],
         ['Play (F5)', 'Vollbild an/aus'],
         ['Schwarzbild (B / .)', 'Bildschirm schwarz / zurück'],
+        ['K', 'Video der Folie starten, anhalten, fortsetzen (→ bei laufendem Video springt ans Ende)'],
         ['S', 'Presenter-View im zweiten Fenster: Notizen, nächste Folie, Timer, Baum'],
         ['P (in der Presenter-View)', 'Vortragsplan bearbeiten: Pfad, Optional, Anhang, Zeitbudget'],
         ['N', 'Notizen unten einblenden (zum Üben mit einem Bildschirm)'],

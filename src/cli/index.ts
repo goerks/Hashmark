@@ -5,7 +5,7 @@ import path from 'node:path'
 import cac from 'cac'
 import { build, createServer, preview } from 'vite'
 import { PROJECT_ROOT, config } from './config.ts'
-import { exportSingleFile } from './export.ts'
+import { exportSingleFile, mediaSink } from './export.ts'
 import { checkDeck, formatFinding } from './check.ts'
 import { exportPdf } from './pdf.ts'
 import { exportPptx } from './pptx.ts'
@@ -54,6 +54,7 @@ cli
     await serve({
       deck,
       seed: opts.seed ?? process.env.DECK_SEED,
+      reseed: process.env.DECK_SEED_RESET === '1',
       host: opts.host,
       port: Number(opts.port ?? process.env.PORT ?? 3030),
       editorUser: process.env.EDITOR_USER || undefined,
@@ -86,7 +87,8 @@ cli
   .option('--out <file>', 'Zieldatei (Standard: export/<deck>.html)')
   .action(async (deck = '.', opts: { out?: string }) => {
     const out = path.resolve(opts.out ?? path.join('export', `${path.basename(path.resolve(deck))}.html`))
-    await exportSingleFile(config(deck, {}, { inlineAssets: true }), out)
+    const media = mediaSink(out)
+    await exportSingleFile(config(deck, {}, { inlineAssets: true, media }), out, media)
   })
 
 cli

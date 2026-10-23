@@ -26,6 +26,20 @@ jobs:
       - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
       - run: npx vitest run
 
+  # Video in der Präsentation im echten Browser (Chrome des Runners): Start per Schritt, K, Überspringen, Ausschnitt, Teilabrufe
+  video-e2e:
+    runs-on: ubuntu-latest
+    env:
+      HASHMARK_BROWSER: /usr/bin/google-chrome
+      HASHMARK_NO_SANDBOX: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
+      - run: node scripts/video-e2e.ts
+
   # Go-Hülle ohne CGO: der Go-Compiler genügt, auch für die anderen Plattformen
   build-app:
     runs-on: ubuntu-latest
@@ -46,6 +60,46 @@ jobs:
           TARGET=${{ matrix.target }}
           export GOOS="${TARGET%-*}" GOARCH="${TARGET#*-}"
           cd desktop-go && go vet . && go build -trimpath -ldflags="-s -w" -o /dev/null .
+
+  # Zum Ausprobieren ohne Git: bei jedem Pull Request ein Windows-Paket (entpacken, Hashmark.exe starten) und die
+  # HTML-Datei des Beispiel-Decks samt Videoordner als Download (Actions › Lauf › Artifacts, 7 Tage)
+  probe:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26'
+          cache-dependency-path: desktop-go/go.sum
+      - name: Version
+        run: echo "VERSION=pr${{ github.event.number }}.$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+      - name: Hülle bauen
+        env:
+          CGO_ENABLED: '0'
+          GOOS: windows
+          GOARCH: amd64
+        run: cd desktop-go && go build -trimpath -ldflags="-s -w -X main.version=$VERSION -H windowsgui" -o ../dist-go/hashmark-windows-amd64.exe .
+      - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
+      - name: Paket bauen
+        run: node scripts/package-app.ts windows-amd64 --version="$VERSION" --archive --online
+      - name: HTML-Datei des Beispiel-Decks
+        run: node src/cli/index.ts export examples/hashmark-demo --out export/hashmark-demo.html
+      - uses: actions/upload-artifact@v4
+        with:
+          name: probe-windows
+          path: dist-app/hashmark-*
+          retention-days: 7
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: probe-html-demo
+          path: export/
+          retention-days: 7
+          if-no-files-found: error
 
   # Image bauen, aber nicht veröffentlichen (das macht docker.yml auf main)
   image:

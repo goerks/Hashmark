@@ -5,11 +5,17 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { build, type InlineConfig } from 'vite'
+import type { MediaSink } from '../vite/plugin.ts'
 
 /** `</script` im Code würde das Inline-Script vorzeitig beenden. */
 const escapeScript = (code: string) => code.replace(/<\/script/gi, '<\\/script')
 
-export async function exportSingleFile(config: InlineConfig, outFile: string) {
+/** Videos kommen in den Ordner `<name>-medien` neben der HTML-Datei (sie sind zu groß für den Text der Datei) */
+export function mediaSink(outFile: string): MediaSink {
+  return { dir: `${path.basename(outFile, path.extname(outFile))}-medien`, files: new Map() }
+}
+
+export async function exportSingleFile(config: InlineConfig, outFile: string, media?: MediaSink) {
   const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'hashmark-export-'))
   try {
     await build({
@@ -51,6 +57,17 @@ export async function exportSingleFile(config: InlineConfig, outFile: string) {
 
     await fs.mkdir(path.dirname(outFile), { recursive: true })
     await fs.writeFile(outFile, html)
+    if (media?.files.size) {
+      // alte Fassung des Ordners entfernen, damit keine verwaisten Videos liegen bleiben
+      const target = path.join(path.dirname(outFile), media.dir)
+      await fs.rm(target, { recursive: true, force: true })
+      for (const [file, rel] of media.files) {
+        const to = path.join(target, ...decodeURIComponent(rel).split('/'))
+        await fs.mkdir(path.dirname(to), { recursive: true })
+        await fs.copyFile(file, to)
+      }
+      console.warn(`[hashmark] ${media.files.size} ${media.files.size === 1 ? 'Video liegt' : 'Videos liegen'} im Ordner „${media.dir}“ neben der HTML-Datei: beides zusammen weitergeben (oder embedMedia: true in der deck.yaml, bis 25 MB je Video)`)
+    }
     const size = (await fs.stat(outFile)).size / 1024 / 1024
     console.log(`[hashmark] Export: ${outFile} (${size.toFixed(1)} MB)`)
   } finally {

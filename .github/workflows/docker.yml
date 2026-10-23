@@ -1,10 +1,15 @@
 # Docker-Image des Webdienstes (Präsentation öffentlich, Editor mit Passwort) in die GitHub Container Registry:
-# ghcr.io/<benutzer>/<projekt>:latest und :<commit>. Läuft bei jedem Push auf main und stößt danach Render an.
+# ghcr.io/<benutzer>/<projekt>:latest und :<commit>. Läuft bei jedem Push auf den Hauptzweig und stößt danach Render an.
+# Bei Pull Requests (Jobs `preview` und `preview-cleanup`) entsteht das Image mit dem Tag pr-<Nummer>-<commit> und bei Render eine
+# eigene Vorschau-Instanz desselben Dienstes (API „Create preview for image-backed service“): Die Live-Instanz und `latest` bleiben
+# unberührt. Nötig sind die Secrets RENDER_API_KEY und RENDER_SERVICE_ID (der bestehende Dienst). Beim Schließen des PR wird die Vorschau gelöscht.
 name: Docker
 
 on:
   push:
     branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
 
 permissions:
@@ -13,6 +18,7 @@ permissions:
 
 jobs:
   publish:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,3 +51,110 @@ jobs:
           REPO=$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
           IMG=$(printf '%s' "ghcr.io/$REPO:${GITHUB_SHA::7}" | sed 's|/|%2F|g; s|:|%3A|g')
           curl --fail --silent --show-error -X POST "$RENDER_DEPLOY_HOOK_URL&imgURL=$IMG"
+
+  # Vorschau eines Pull Requests: Image mit eigenem Tag, dann bei Render eine Vorschau-Instanz des bestehenden Dienstes anlegen.
+  # Nur für PRs aus diesem Repository (Forks bekommen weder Secrets noch Schreibrechte). Ohne die Secrets wird nur das Image gebaut.
+  # Die Adresse der Vorschau steht danach als Kommentar im PR.
+  preview:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      pull-requests: write
+    concurrency:
+      group: preview-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - id: tag
+        env:
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          REPO=$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          echo "image=ghcr.io/$REPO:pr-$PR-${SHA::7}" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tag.outputs.image }}
+          # die Vorschau zeigt die Abnahme-Präsentation (Ordner abnahme/) und setzt sie bei jedem Start neu auf
+          build-args: |
+            SEED=abnahme
+            SEED_RESET=1
+      - name: Vorschau bei Render anlegen
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          IMAGE: ${{ steps.tag.outputs.image }}
+        run: |
+          if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then echo "RENDER_API_KEY oder RENDER_SERVICE_ID nicht gesetzt, übersprungen"; exit 0; fi
+          API=https://api.render.com/v1
+          NAME="hashmark-pr-$PR"
+          auth=(-H "Authorization: Bearer $RENDER_API_KEY" -H "Accept: application/json")
+
+          # Vorschauen früherer Stände dieses PR entfernen (Render löscht sie nicht selbst). Der Dienst selbst bleibt tabu.
+          old=$(curl -fsS "${auth[@]}" "$API/services?limit=100" | jq -r --arg pr "pr-$PR" --arg base "$RENDER_SERVICE_ID" \
+            '.[] | .service | select(.id != $base) | select(.name | test($pr + "(-|$)")) | .id')
+          for id in $old; do
+            echo "entferne frühere Vorschau $id"
+            curl -fsS -X DELETE "${auth[@]}" "$API/services/$id" || echo "konnte $id nicht entfernen"
+          done
+
+          # neue Vorschau: nutzt die Einstellungen des Dienstes, nur das Image (Tag) ist anders
+          body=$(jq -n --arg img "$IMAGE" --arg name "$NAME" '{imagePath: $img, name: $name}')
+          code=$(curl -sS -o response.json -w '%{http_code}' -X POST "${auth[@]}" -H 'Content-Type: application/json' -d "$body" "$API/services/$RENDER_SERVICE_ID/preview")
+          echo "Render antwortete mit Status $code"
+          if [ "$code" -ge 300 ]; then jq -r '.message // .' response.json | head -c 800; exit 1; fi
+          echo "Felder der Antwort: $(jq -c '(.service // .) | keys' response.json)"
+          url=$(jq -r '(.service // .) | .serviceDetails.url // empty' response.json)
+          id=$(jq -r '(.service // .) | .id // empty' response.json)
+          echo "Vorschau $id: ${url:-ohne Adresse in der Antwort}"
+
+          text="### Vorschau bei Render"$'\n\n'
+          if [ -n "$url" ]; then
+            url="${url%/}"
+            text+="**Abnahme-Präsentation:** $url/"$'\n'
+            text+="- Lesemodus (zum Nachlesen): $url/?reader"$'\n'
+            text+="- Editor: $url/editor.html"$'\n\n'
+            text+="Die Präsentation zeigt die Neuerung selbst (Taste F5 für Vollbild, S für die Presenter-View)."$'\n\n'
+          else
+            text+="Die Vorschau wurde angelegt, die Adresse steht im Render-Dashboard (Dienst \`$NAME\`)."$'\n\n'
+          fi
+          text+="Stand \`${SHA::7}\`. Der Start dauert einige Minuten. Beim Schließen des PR wird die Vorschau gelöscht."
+          gh pr comment "$PR" --edit-last --create-if-none --body "$text" || gh pr comment "$PR" --body "$text"
+
+  # Beim Schließen (gemergt oder verworfen) die Vorschau bei Render löschen
+  preview-cleanup:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    concurrency:
+      group: preview-pr-${{ github.event.pull_request.number }}
+      cancel-in-progress: false
+    steps:
+      - name: Vorschau bei Render löschen
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          if [ -z "$RENDER_API_KEY" ] || [ -z "$RENDER_SERVICE_ID" ]; then echo "RENDER_API_KEY oder RENDER_SERVICE_ID nicht gesetzt, übersprungen"; exit 0; fi
+          API=https://api.render.com/v1
+          auth=(-H "Authorization: Bearer $RENDER_API_KEY" -H "Accept: application/json")
+          old=$(curl -fsS "${auth[@]}" "$API/services?limit=100" | jq -r --arg pr "pr-$PR" --arg base "$RENDER_SERVICE_ID" \
+            '.[] | .service | select(.id != $base) | select(.name | test($pr + "(-|$)")) | .id')
+          for id in $old; do
+            echo "lösche Vorschau $id"
+            curl -fsS -X DELETE "${auth[@]}" "$API/services/$id"
+          done

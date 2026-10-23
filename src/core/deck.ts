@@ -19,8 +19,10 @@ export interface LoadResult {
   themeCss: string
   /** Dateien und Ordner des Themes (für den File-Watcher) */
   themeFiles: string[]
-  /** referenzierte lokale Bilder */
+  /** referenzierte lokale Bilder und Videos */
   assets: string[]
+  /** deck.yaml: `embedMedia: true` – Videos im Einzel-HTML-Export einbetten */
+  embedMedia: boolean
   /** Hinweise beim Laden, z. B. fehlende Bilder */
   warnings: string[]
 }
@@ -240,6 +242,7 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
     themeCss: theme.css,
     themeFiles: theme.files,
     assets: [...assets],
+    embedMedia: manifest.embedMedia === true,
     warnings,
   }
 }

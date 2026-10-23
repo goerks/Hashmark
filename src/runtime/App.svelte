@@ -15,6 +15,8 @@
   import Notes from './Notes.svelte'
   import { enter, leave } from './transitions.ts'
   import { openLink, type PresenterMessage } from './presenter-link.ts'
+  import type { VideoInfo } from '../core/media.ts'
+  import { onVideoChange, skipVideo, toggleVideo, videoInfo } from './video.ts'
   import { onDeckUpdate } from './deck-source.ts'
   import { desktopAction, isDesktop } from './desktop.ts'
 
@@ -180,9 +182,16 @@
   // Die Vorschau im Editor nimmt nicht teil, sonst würde sie Tasten des Presenters mit ausführen
   const link = embedded ? null : openLink(() => presenter, (msg, source) => onPresenterMessage(msg, source))
 
+  // Video der aktuellen Folie: Zustand für die Presenter-View (läuft, angehalten, Zeit)
+  let video = $state.raw<VideoInfo | null>(null)
+  onMount(() => {
+    onVideoChange(() => (video = videoInfo()))
+    return () => onVideoChange(null)
+  })
+
   // Stand an die Presenter-View melden
   $effect(() => {
-    if (pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all })
+    if (pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all, video })
   })
 
   // Desktop-App: aktuelle Folie melden (für „Präsentieren ab aktueller Folie“)
@@ -209,6 +218,9 @@
       trip = nav.trip
       return true
     }
+    // K: Video der Folie starten, anhalten, fortsetzen. → bei laufendem Video springt ans Ende, erst das nächste → geht weiter.
+    if (key === 'k' || key === 'K') return toggleVideo()
+    if ((key === 'ArrowRight' || key === 'PageDown' || (key === ' ' && !shiftKey)) && skipVideo()) return true
     const handlers: Record<string, () => Move | null> = {
       ArrowRight: () => nav.next(pos!),
       // Space und Presenter (PageDown/PageUp): dem Vortragsplan nach
@@ -284,7 +296,7 @@
     // Tasten und Sprünge nur, wenn sie an diese Präsentation gerichtet sind
     if ((msg.type === 'hashmark:presenter-key' || msg.type === 'hashmark:presenter-goto') && msg.target && msg.target !== session) return
     if (msg.type === 'hashmark:presenter-hello') presenterUntil = Date.now() + 3500
-    if (msg.type === 'hashmark:presenter-hello' && pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all })
+    if (msg.type === 'hashmark:presenter-hello' && pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all, video })
     else if (msg.type === 'hashmark:presenter-plan') applyPlan(msg.plan)
     else if (msg.type === 'hashmark:presenter-key') {
       wake()
@@ -368,7 +380,7 @@
     <div class="stage" style="--scale:{scale}">
       {#key `${node.id}:${pos.slide}`}
         <div class="stage-slide" in:enter={{ dir, kind: node.attrs.transition }} out:leave={{ dir, kind: node.attrs.transition }}>
-          <Slide {node} slide={pos.slide} {layout} step={pos.step ?? 0} />
+          <Slide {node} slide={pos.slide} {layout} step={pos.step ?? 0} media={embedded ? 'still' : 'live'} />
         </div>
       {/key}
 
@@ -464,6 +476,6 @@
 <!-- außerhalb von .viewport: die Bühne wird beim Drucken ausgeblendet, diese Seiten eingeblendet -->
 {#if printMounted && deck}
   <div class="print-root print-slides print-only" aria-hidden="true">
-    <PrintPages {deck} options={DEFAULT_PRINT} />
+    <PrintPages {deck} options={DEFAULT_PRINT} media="off" />
   </div>
 {/if}

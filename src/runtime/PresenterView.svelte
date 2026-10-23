@@ -8,6 +8,7 @@
   import { loadPlanFile, savePlanFile } from './plan-store.ts'
   import { desktopAction, isDesktop } from './desktop.ts'
   import { formatClock, pace } from '../core/timing.ts'
+  import type { VideoInfo } from '../core/media.ts'
   import ScaledSlide from './ScaledSlide.svelte'
   import Notes from './Notes.svelte'
   import Search from './Search.svelte'
@@ -29,6 +30,10 @@
   let planOpen = $state(false)
   /** aus der Präsentation: Plan ausgeschaltet (T) und laufende Ausflüge */
   let all = $state(false)
+  /** Video der aktuellen Folie in der Präsentation (läuft, angehalten …) */
+  let video = $state.raw<VideoInfo | null>(null)
+  const VIDEO_STATE: Record<VideoInfo['state'], string> = { idle: 'Standbild', playing: '▶ läuft', paused: '❚❚ angehalten', ended: 'zu Ende' }
+  const VIDEO_KEY: Record<VideoInfo['state'], string> = { idle: 'Start', playing: 'Pause', paused: 'weiter', ended: 'von vorn' }
   let trip = $state.raw<Excursion[]>([])
   const nav = $derived(new Navigator(nodes, { states: activeStates(planFile), all, trip }))
   const planSum = $derived(summarize(nav.with({ all: false, trip: [] })))
@@ -165,6 +170,7 @@
     pos = msg.pos
     black = msg.black
     all = msg.all
+    video = msg.video ?? null
     trip = msg.trip
   }
 
@@ -303,7 +309,7 @@
       <span class="pv-pos">{stepCount ? `Schritt ${step}/${stepCount} · ` : ''}{progress.index} / {progress.total}</span>
     </div>
     {#if node && pos}
-      <ScaledSlide {node} slide={pos.slide} {step} layout={layoutOf(node)} />
+      <ScaledSlide {node} slide={pos.slide} {step} layout={layoutOf(node)} media="still" />
     {:else}
       <p class="pv-wait">Warte auf die Präsentation …</p>
     {/if}
@@ -316,6 +322,11 @@
       {#if right && right.pos.id !== pos?.id}
         <span class="pv-right"><kbd>→</kbd> {nav.node(right.pos.id)?.title}</span>
       {/if}
+      {#if video}
+        <span class="pv-video" class:playing={video.state === 'playing'}>
+          Video: {VIDEO_STATE[video.state]}{video.state === 'playing' || video.state === 'paused' ? ` ${formatClock(video.time)} / ${formatClock(video.duration)}` : ''} · <kbd>K</kbd> {VIDEO_KEY[video.state]}
+        </span>
+      {/if}
       {#if budgetNode?.duration}
         <span class="pv-budget" class:over={budgetUsed > budgetNode.duration} title="Zeit seit Beginn von „{budgetNode.title}“">
           {budgetNode.title}: {formatClock(budgetUsed)} / {formatClock(budgetNode.duration)}
@@ -327,7 +338,7 @@
   <section class="pv-next">
     <div class="pv-label"><span>Als Nächstes <kbd>Space</kbd></span><span class="pv-next-title">{nextLabel}</span></div>
     {#if next && nextNode}
-      <ScaledSlide node={nextNode} slide={next.pos.slide} step={next.pos.step ?? 0} layout={layoutOf(nextNode)} />
+      <ScaledSlide node={nextNode} slide={next.pos.slide} step={next.pos.step ?? 0} layout={layoutOf(nextNode)} media="off" />
     {:else}
       <p class="pv-wait">Ende des Vortrags</p>
     {/if}

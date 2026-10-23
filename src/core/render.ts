@@ -13,6 +13,7 @@ import { expandComponent, type Template } from './components.ts'
 import { drawioSteps } from './drawio.ts'
 import { excalidrawSteps } from './excalidraw.ts'
 import { ICON_NAMES, iconSvg } from './icons.ts'
+import { MAX_EMBED_BYTES, VIDEO_ATTRS, VIDEO_MIME, isVideoUrl, mediaName, videoProps } from './media.ts'
 import { renderMath, renderTex } from './math.ts'
 import { nearest } from './vocab.ts'
 import { svgIdSteps } from './svg-steps.ts'
@@ -51,8 +52,11 @@ export const IMAGE_MIME: Record<string, string> = {
   '.gif': 'image/gif', '.webp': 'image/webp', '.avif': 'image/avif', '.ico': 'image/x-icon', '.bmp': 'image/bmp',
 }
 
+/** Bilder und Videos, die der Deck-Ordner ausliefert */
+export const MEDIA_MIME: Record<string, string> = { ...IMAGE_MIME, ...VIDEO_MIME }
+
 export function toDataUri(file: string): string {
-  const type = IMAGE_MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream'
+  const type = MEDIA_MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream'
   return `data:${type};base64,${fs.readFileSync(file).toString('base64')}`
 }
 
@@ -60,18 +64,29 @@ export function toDataUri(file: string): string {
 const isUrl = (url: string) => !/^[a-z]:[\\/]/i.test(url) && /^([a-z][a-z0-9+.-]*:|\/|#)/i.test(url)
 
 /**
- * Lokales Bild auflösen: im Deck-Ordner → deck-assets/ (der Build kopiert die Datei),
+ * Lokales Bild bzw. Video auflösen: im Deck-Ordner → deck-assets/ (der Build kopiert die Datei),
  * außerhalb des Decks oder mit embedImages → Base64-Data-URI.
+ * Videos werden nie wegen `embedImages` eingebettet (sie sind groß): außerhalb des Decks nur bis 25 MB, im Einzel-HTML-Export entscheidet `embedMedia`.
  */
 export function resolveImage(url: string, ctx: RenderContext): string {
   if (isUrl(url)) return url
   const abs = path.resolve(path.dirname(ctx.file), decodeURI(url))
+  const where = path.relative(ctx.deckDir, ctx.file)
   if (!fs.existsSync(abs)) {
-    ctx.warnings?.push(`Bild nicht gefunden: ${url} (${path.relative(ctx.deckDir, ctx.file)})`)
+    ctx.warnings?.push(`${mediaName(url)} nicht gefunden: ${url} (${where})`)
     return url
   }
   const rel = path.relative(ctx.deckDir, abs)
-  if (ctx.embedImages || rel.startsWith('..') || path.isAbsolute(rel)) return toDataUri(abs)
+  const outside = rel.startsWith('..') || path.isAbsolute(rel)
+  if (isVideoUrl(abs)) {
+    if (outside) {
+      if (fs.statSync(abs).size > MAX_EMBED_BYTES) {
+        ctx.warnings?.push(`Video liegt außerhalb des Decks und ist größer als ${MAX_EMBED_BYTES / 1024 / 1024} MB, es lässt sich nicht einbinden: ${url} (${where}). In den Deck-Ordner legen.`)
+        return url
+      }
+      return toDataUri(abs)
+    }
+  } else if (ctx.embedImages || outside) return toDataUri(abs)
   ctx.assets.add(abs)
   return ASSET_PREFIX + rel.split(path.sep).map(encodeURIComponent).join('/')
 }
@@ -269,19 +284,21 @@ type AnyNode = RootContent & { name?: string; attributes?: Record<string, string
 /** `![](x.png){width=60% .rund}`: Attribute im Text direkt nach dem Bild */
 const OBJECT_FITS = ['cover', 'contain', 'fill', 'none', 'scale-down']
 
-function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn) {
+function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn, video?: (url: string) => string) {
   const next = parent.children?.[index + 1] as { type: string; value: string } | undefined
   const m = next?.type === 'text' ? next.value.match(/^\{([^{}]*)\}/) : null
   if (!m) {
     // `{ratio=16:9}`: der Doppelpunkt zerreißt den Text, die Attribute bleiben sichtbar stehen
     if (next?.type === 'text' && /^\{\w+=[^{}]*$/.test(next.value)) warn(`Bild-Attribute nicht lesbar: „${next.value.slice(0, 40)}…“ (kein Doppelpunkt im Wert, z. B. ratio=16/9)`)
-    return
+    // ein Video braucht auch ohne Attribute seine Eigenschaften (Standbild bis zum ersten Schritt)
+    if (!video) return
   }
-  next!.value = next!.value.slice(m[0].length)
-  const attrs = parseAttrs(m[1])
-  const known = ['width', 'height', 'fit', 'pos', 'ratio', 'step', 'until', 'style', 'class', 'id']
+  if (m) next!.value = next!.value.slice(m[0].length)
+  const attrs = m ? parseAttrs(m[1]) : {}
+  const known = ['width', 'height', 'fit', 'pos', 'ratio', 'step', 'until', 'style', 'class', 'id', ...(video ? VIDEO_ATTRS : [])]
+  const what = video ? 'Video' : 'Bild'
   for (const key of Object.keys(attrs)) {
-    if (!known.includes(key)) warn(`Bild-Attribut „${key}“ ist unbekannt (bekannt: ${known.join(', ')})`)
+    if (!known.includes(key)) warn(`${what}-Attribut „${key}“ ist unbekannt (bekannt: ${known.join(', ')})`)
   }
   if (attrs.fit && !OBJECT_FITS.includes(attrs.fit)) warn(`Bild: fit="${attrs.fit}" ist ungültig (${OBJECT_FITS.join(' | ')})`)
   for (const key of ['step', 'until']) if (attrs[key] !== undefined && !/^\d+$/.test(attrs[key])) warn(`Bild: ${key}="${attrs[key]}" ist ungültig (Schrittnummer)`)
@@ -301,8 +318,17 @@ function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn) {
   if (/^\d+$/.test(attrs.until ?? '')) props.dataUntil = attrs.until
   if (attrs.class) props.className = attrs.class.split(/\s+/)
   if (attrs.id) props.id = attrs.id
+  if (video) {
+    // `<video>` statt `<img>`: die Startzeit hängt als Medienfragment an der Adresse, das Standbild zeigt dann diese Stelle
+    const img = node as unknown as { url: string; alt?: string | null }
+    const v = videoProps(attrs, img.alt ?? '', warn, attrs.poster ? video(attrs.poster) : undefined)
+    Object.assign(props, v.props)
+    props.className = ['hm-video', ...((props.className as string[] | undefined) ?? [])]
+    // ohne Startzeit `#t=0.001`: so zeigen auch Safari und WebKit das erste Bild als Standbild
+    img.url = `${img.url}#t=${v.start && v.start > 0 ? v.start : 0.001}`
+  }
   const existing = (node.data as { hProperties?: Record<string, unknown> } | undefined)?.hProperties
-  node.data = { ...node.data, hProperties: { ...existing, ...props } }
+  node.data = { ...node.data, ...(video ? { hName: 'video' } : {}), hProperties: { ...existing, ...props } }
 }
 
 /** `::: steps`: jeder Listenpunkt (bzw. jeder andere Block) erscheint in einem eigenen Schritt. */
@@ -588,8 +614,10 @@ function applyDirectives(root: Root, ctx: RenderContext) {
     }
     if (node.type === 'image') {
       const img = node as unknown as { url: string }
+      const isVideo = isVideoUrl(img.url)
       img.url = resolveImage(img.url, ctx)
-      if (parent && index !== undefined) imageAttrs(node, index, parent, warn)
+      if (isVideo && /^https?:/i.test(img.url)) warn(`Video „${img.url}“ liegt im Netz und läuft offline nicht`)
+      if (parent && index !== undefined) imageAttrs(node, index, parent, warn, isVideo ? (u) => resolveImage(u, ctx) : undefined)
     }
   })
 }
@@ -709,6 +737,7 @@ async function blocksToHtml(blocks: AnyNode[], ctx: RenderContext): Promise<{ ht
   // Code mit `lines="a|b|c"` braucht Schritte bis zur Anzahl Abschnitte − 1.
   const count = Math.max(0,
     ...[...html.matchAll(/data-step="(\d+)"/g)].map((m) => Number(m[1])),
+    ...[...html.matchAll(/data-play="(\d+)"/g)].map((m) => Number(m[1])),
     ...[...html.matchAll(/data-hl-count="(\d+)"/g)].map((m) => Number(m[1]) - 1))
   for (let k = 1; k <= count; k++) steps.push({ selector: `[data-step="${k}"]`, state: { visible: 'true' } })
   return { html, steps }
