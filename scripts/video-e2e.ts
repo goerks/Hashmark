@@ -133,7 +133,7 @@ async function run(cdp: Cdp, baseUrl: string) {
   while (Date.now() < stop) {
     await sleep(200)
     p = await probe(cdp)
-    if (p.time > 5.2 || p.time < 1.3) inside = false
+    if (p.time > 5.1 || p.time < 1.3) inside = false
     if (p.time < last - 1) looped = true
     last = p.time
   }

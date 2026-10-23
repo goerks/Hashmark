@@ -74,22 +74,34 @@ function start(v: HTMLVideoElement) {
   if (run) run.catch(() => { v.controls = true; setState(v, 'idle') })
 }
 
+/** Ende des Ausschnitts bzw. Schleife: `timeupdate` kommt nur etwa viermal pro Sekunde, das Video liefe bis zu 0,25 s darüber hinaus */
+function atEnd(v: HTMLVideoElement) {
+  const stop = endOf(v)
+  if (stop === undefined || v.dataset.state !== 'playing' || v.currentTime < stop - 0.02) return
+  if (v.loop) v.currentTime = startOf(v)
+  else finish(v)
+}
+
+/** solange das Video läuft, bei jedem Bild prüfen, ob der Ausschnitt zu Ende ist */
+function watchEnd(v: HTMLVideoElement) {
+  if (endOf(v) === undefined) return
+  const frame = () => {
+    if (v.dataset.state !== 'playing') return
+    atEnd(v)
+    requestAnimationFrame(frame)
+  }
+  requestAnimationFrame(frame)
+}
+
 /** Zustand verfolgen, Ende des Ausschnitts und Schleife behandeln (einmal je Element) */
 function bind(v: HTMLVideoElement) {
   if (v.dataset.bound) return
   v.dataset.bound = '1'
   v.dataset.state = 'idle'
-  v.addEventListener('playing', () => setState(v, 'playing'))
+  v.addEventListener('playing', () => { setState(v, 'playing'); watchEnd(v) })
   v.addEventListener('pause', () => { if (v.dataset.state === 'playing') setState(v, 'paused') })
   v.addEventListener('ended', () => setState(v, 'ended'))
-  v.addEventListener('timeupdate', () => {
-    const stop = endOf(v)
-    if (stop !== undefined && v.dataset.state === 'playing' && v.currentTime >= stop - 0.05) {
-      if (v.loop) v.currentTime = startOf(v)
-      else finish(v)
-    }
-    notify()
-  })
+  v.addEventListener('timeupdate', () => { atEnd(v); notify() })
 }
 
 /** Elemente nach dem Rendern vorbereiten: nur die laufende Präsentation lädt und spielt */
