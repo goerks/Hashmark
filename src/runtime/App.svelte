@@ -17,7 +17,7 @@
   import { openLink, type PresenterMessage } from './presenter-link.ts'
   import type { VideoInfo } from '../core/media.ts'
   import { onVideoChange, skipVideo, toggleVideo, videoInfo } from './video.ts'
-  import { escapeZoom, onZoomChange, resetZoom, toggleZoom, zoomInfo, type ZoomInfo } from './zoom.ts'
+  import { escapeZoom, onZoomChange, panZoom, resetZoom, toggleZoom, zoomBy, zoomInfo, type ZoomInfo } from './zoom.ts'
   import { onDeckUpdate } from './deck-source.ts'
   import { desktopAction, isDesktop } from './desktop.ts'
 
@@ -227,6 +227,10 @@
     // Z: Kamera fährt aufs Bild (und zurück), Esc fährt zuerst zurück, bevor es im Baum aufsteigt
     if (key === 'z' || key === 'Z') return toggleZoom()
     if (key === 'Escape' && escapeZoom()) return true
+    // + / −: tiefer hinein bzw. heraus; im tiefen Zoom verschieben die Pfeile den Ausschnitt (Space und Bild ab gehen weiter)
+    if (key === '+' || key === '=') return zoomBy(1.5)
+    if (key === '-' || key === '_') return zoomBy(1 / 1.5)
+    if (panZoom(key)) return true
     // K: Video der Folie starten, anhalten, fortsetzen. → bei laufendem Video springt ans Ende, erst das nächste → geht weiter.
     if (key === 'k' || key === 'K') return toggleVideo()
     if ((key === 'ArrowRight' || key === 'PageDown' || (key === ' ' && !shiftKey)) && skipVideo()) return true

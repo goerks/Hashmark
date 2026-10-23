@@ -10,7 +10,7 @@ Das ist die Abnahme-Präsentation für Ticket #6 (Bild-Zoom). Alle Folien sind d
 
 - **→** geht weiter, **←** zurück, **F5** Vollbild
 - **Z** fährt die Kamera auf ein Bild, **Z**, **Esc** oder ein Klick fährt zurück
-- Ein **Klick auf das Bild** wirkt wie Z
+- Ein **Klick auf das Bild** wirkt wie Z; **+** und **−** fahren tiefer bzw. heraus
 - Ein Bild kann auch **von selbst** hineinfahren, allein durch →
 - **S** öffnet die Presenter-View: Dort funktioniert Z ebenfalls
 - Am Ende: was **nicht** geprüft werden konnte
@@ -58,6 +58,44 @@ Keine Installation nötig: Die Präsentation läuft im Browser. Für die Present
 **Prüfen:** Nur → drücken, nie Z. Schritt 1 zeigt den Text. Schritt 2 (→): die Kamera fährt von selbst aufs Bild. Schritt 3 (→): sie fährt wieder heraus. ← kehrt jeden Schritt um. Im Presenter zählt der Zoom als Schritt in der Schrittanzeige, und → im Presenter löst ihn ebenfalls aus. Ohne `zoomuntil` bliebe die Kamera, bis die Folie wechselt.
 :::
 
+# Tiefer hinein {id=zoom-tief}
+
+![Statusseite mit Fehlermeldung](bilder/status.svg){width=40%}
+
+- **Z**, dann **+**: eine Stufe tiefer
+- **Pfeile** verschieben den Ausschnitt, die **Minikarte** zeigt, wo man ist
+- **−** fährt zurück, **Esc** ganz heraus
+
+::: notes
+**Prüfen:** Z drücken, dann mehrmals +. Unten rechts erscheint die Minikarte, die Pfeile verschieben den Ausschnitt (→ blättert hier nicht, Space schon). Mit − wieder heraus. Mausrad: sobald die Kamera fährt, zoomt es am Zeiger. Strg + Mausrad (Touchpad-Spreizen) startet den Zoom auch aus der Normalansicht.
+:::
+
+# Code und Diagramm {id=zoom-code}
+
+```ts
+function pruefe(dienst: Dienst) {
+  if (dienst.status !== 'ok') {
+    alarm(dienst.name, dienst.fehler)
+  }
+}
+```
+
+```mermaid
+flowchart LR
+  A[Anfrage] --> B{Dienst ok?}
+  B -- ja --> C[Antwort]
+  B -- nein --> D[Alarm]
+```
+
+| Dienst | Status |
+| --- | --- |
+| Web | ok |
+| Datenbank | Fehler 502 |
+
+::: notes
+**Prüfen:** Hier gibt es kein `{zoom}`: Code, Diagramm und Tabelle lassen sich immer vergrößern. Z fährt auf das erste Ziel, ein Klick auf eines der drei Ziele auf dieses.
+:::
+
 # Dieses Bild nicht {id=zoom-aus}
 
 ![Ausgenommen: kein Zoom](bilder/status.svg){zoom=off width=55%}
@@ -96,8 +134,8 @@ zoom: true
 # Nicht geprüft {id=offen}
 
 ::: cards cols=2
-::: card icon=target title="Stufe 2"
-Weiter hineinfahren (+ / −), verschieben, Mausrad, Touchpad, Minikarte und der Zoom für Code und Diagramme sind noch nicht gebaut.
+::: card icon=target title="Echte Geräte"
+Touchpad-Spreizen und Mausrad habe ich nur mit künstlichen Ereignissen geprüft, nicht mit echten Geräten. Wie sich die Minikarte und der tiefe Zoom beim Vortragen anfühlen, kann ich nicht beurteilen.
 :::
 ::: card icon=user title="Desktop-App"
 Presenter-Fenster der App und Vollbild auf dem Beamer.

@@ -20,7 +20,7 @@ async function makeDeck() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'hashmark-zoom-e2e-'))
   await fs.writeFile(path.join(dir, 'deck.yaml'), 'title: Zoom-Prüfung\n')
   await fs.writeFile(path.join(dir, 'status.svg'), SVG)
-  await fs.writeFile(path.join(dir, 'a.md'), '# Zoom\n\nText über dem Bild.\n\n![Status](status.svg){zoom width=30%}\n\nText unter dem Bild.\n\n---\n\nZweite Folie ohne Bild.\n\n---\n\nDritte Folie.\n\n![Status](status.svg){zoomstep=1 zoomuntil=2 width=30%}\n')
+  await fs.writeFile(path.join(dir, 'a.md'), '# Zoom\n\nText über dem Bild.\n\n![Status](status.svg){zoom width=30%}\n\nText unter dem Bild.\n\n---\n\nZweite Folie ohne Bild.\n\n---\n\nDritte Folie.\n\n![Status](status.svg){zoomstep=1 zoomuntil=2 width=30%}\n\n---\n\nVierte Folie.\n\n```ts\nconst a = 1\nconst b = a + 1\n```\n')
   return dir
 }
 
@@ -33,6 +33,8 @@ const evalJs = async <T>(cdp: Cdp, expression: string): Promise<T> => {
 const KEYS: Record<string, { key: string; code: string; vk: number; text?: string }> = {
   z: { key: 'z', code: 'KeyZ', vk: 90, text: 'z' },
   Escape: { key: 'Escape', code: 'Escape', vk: 27 },
+  '+': { key: '+', code: 'Equal', vk: 187, text: '+' },
+  '-': { key: '-', code: 'Minus', vk: 189, text: '-' },
   ArrowRight: { key: 'ArrowRight', code: 'ArrowRight', vk: 39 },
   ArrowLeft: { key: 'ArrowLeft', code: 'ArrowLeft', vk: 37 },
 }
@@ -185,6 +187,49 @@ async function run(cdp: Cdp) {
   p = await until(cdp, (x) => x.zoomed && x.scale > 1.5)
   check('→ aus dem Presenter-Fenster löst den Zoom ebenfalls aus', p.zoomed && p.slide === 2, short(p))
   await press(cdp, 'ArrowLeft')
+  await until(cdp, (x) => !x.zoomed && x.noTransform)
+  await evalJs(cdp, `location.hash = '#zoom:1'`)
+  await until(cdp, (x) => x.slide === 0 && x.noTransform)
+  await sleep(500)
+
+  // 7c · Stufe 2: + und − fahren tiefer bzw. heraus, Pfeile verschieben, Minikarte, Strg + Rad, Zoom für Code
+  const mapShown = () => evalJs<boolean>(cdp, `!!document.querySelector('.stage .zoom-map')`)
+  await press(cdp, 'z')
+  p = await until(cdp, (x) => x.zoomed && x.scale > 1.5)
+  await sleep(1000)
+  p = await probe(cdp)
+  const base = p.scale
+  check('Zoom auf dem Bild: noch keine Minikarte', !(await mapShown()), short(p))
+  await press(cdp, '+')
+  p = await until(cdp, (x) => x.scale > base * 1.4)
+  check('+ fährt eine Stufe tiefer (1,5×)', p.scale > base * 1.4 && p.scale < base * 1.6 && p.zoomed, `${base} → ${p.scale}`)
+  check('im tiefen Zoom zeigt die Minikarte den Ausschnitt', await mapShown())
+  await sleep(500)
+  const cx0 = (await probe(cdp)).cx
+  await press(cdp, 'ArrowRight')
+  await sleep(600)
+  p = await probe(cdp)
+  check('→ verschiebt im tiefen Zoom den Ausschnitt, die Folie bleibt', p.slide === 0 && p.zoomed && Math.abs(p.cx - cx0) > 20, `cx ${cx0} → ${p.cx}, Folie ${p.slide + 1}`)
+  await press(cdp, '-')
+  await sleep(600)
+  p = await probe(cdp)
+  check('− fährt zurück auf die Stufe des Bildes, Minikarte weg', p.zoomed && Math.abs(p.scale - base) < base * 0.05 && !(await mapShown()), `${base} → ${p.scale}`)
+  await press(cdp, 'Escape')
+  p = await until(cdp, (x) => !x.zoomed && x.noTransform)
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: p.cx, y: p.cy, deltaX: 0, deltaY: -120, modifiers: 2 })
+  p = await until(cdp, (x) => x.zoomed && x.scale > 1.1, 2000)
+  check('Strg + Mausrad (Touchpad-Spreizen) startet den Zoom am Zeiger', p.zoomed && p.scale > 1.1, short(p))
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: p.cx, y: p.cy, deltaX: 0, deltaY: 120 })
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: p.cx, y: p.cy, deltaX: 0, deltaY: 400 })
+  p = await until(cdp, (x) => !x.zoomed && x.noTransform, 3000)
+  check('Mausrad zurück fährt heraus bis zur Normalansicht', !p.zoomed && p.noTransform, short(p))
+  await evalJs(cdp, `location.hash = '#zoom:4'`)
+  await until(cdp, (x) => x.slide === 3 && x.noTransform)
+  await sleep(500)
+  await press(cdp, 'z')
+  p = await until(cdp, (x) => x.zoomed && x.scale > 1.2, 3000)
+  check('Z vergrößert auch einen Codeblock', p.zoomed && p.scale > 1.2 && p.slide === 3, short(p))
+  await press(cdp, 'z')
   await until(cdp, (x) => !x.zoomed && x.noTransform)
   await evalJs(cdp, `location.hash = '#zoom:1'`)
   await until(cdp, (x) => x.slide === 0 && x.noTransform)

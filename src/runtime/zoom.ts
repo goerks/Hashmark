@@ -1,5 +1,5 @@
-// Bild in der Präsentation vergrößern: Eine Kamera fährt in die Folie hinein (Z oder Klick auf das Bild), Z, Esc oder Klick fährt
-// zurück. Die Kamera ist ein `transform` auf der Bühnenfläche der Folie (`.stage-slide`), die Bühne (`.stage`) schneidet ab; Titel und
+// Bild, Code, Diagramm oder Tabelle in der Präsentation vergrößern: Eine Kamera fährt in die Folie hinein (Z oder Klick), Z, Esc oder
+// Klick fährt zurück. + und − fahren tiefer bzw. heraus, Pfeile verschieben den Ausschnitt, Mausrad und Touchpad-Spreizen zoomen am Zeiger. Die Kamera ist ein `transform` auf der Bühnenfläche der Folie (`.stage-slide`), die Bühne (`.stage`) schneidet ab; Titel und
 // Text wandern also mit aus dem Bild, der Zusammenhang bleibt. Nur die laufende Präsentation (`media="live"`) nimmt teil.
 
 /** Zustand für die Presenter-View: gibt es ein Bild zum Vergrößern, und ist es vergrößert? */
@@ -12,26 +12,40 @@ const STAGE = { w: 1280, h: 720 }
 /** Rand um das vergrößerte Bild, Anteil der Bühne */
 const FIT = { w: 0.94, h: 0.9 }
 const MOVE = 'transform 0.9s cubic-bezier(.35,.1,.15,1)'
+const NUDGE = 'transform 0.35s cubic-bezier(.35,.1,.15,1)'
+/** größte Vergrößerung der Kamera (Bühne = 1) und Schritt von + und − */
+const MAX_SCALE = 8
+const STEP = 1.5
+/** Was sich vergrößern lässt: Bilder nur mit `zoom`, Code, Diagramme und Tabellen immer */
+const ZOOMABLE = 'img[data-zoom], .mermaid-block, figure.code-block, table.d-table-el'
 
 let root: HTMLElement | null = null
 let active = false
 let listener: (() => void) | null = null
 let token = 0
+/** Kamera: Skalierung und Verschiebung in Bühnenkoordinaten; `base` = Skalierung der ersten Fahrt (Bild füllt die Bühne) */
+let view = { s: 1, tx: 0, ty: 0 }
+let base = 1
+let map: HTMLElement | null = null
 
 const camera = (): HTMLElement | null => root?.parentElement ?? null
 const stage = (): HTMLElement | null => camera()?.parentElement ?? null
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
 const notify = () => listener?.()
 
-/** Bilder der Folie, die sich vergrößern lassen und gerade zu sehen sind (nicht in einem noch verborgenen Schritt) */
-function images(): HTMLImageElement[] {
+/** Ziele der Folie, die gerade zu sehen sind (nicht in einem noch verborgenen Schritt), Bilder zuerst */
+function targets(): HTMLElement[] {
   if (!root) return []
-  return [...root.querySelectorAll<HTMLImageElement>('img[data-zoom]')].filter((img) => !img.closest('.step-hidden') && img.offsetWidth > 0)
+  const all = [...root.querySelectorAll<HTMLElement>(ZOOMABLE)].filter((el) => !el.closest('.step-hidden') && el.offsetWidth > 0)
+  return [...all.filter((el) => el.tagName === 'IMG'), ...all.filter((el) => el.tagName !== 'IMG')]
 }
 
 export function zoomInfo(): ZoomInfo {
-  return { available: images().length > 0, active }
+  return { available: targets().length > 0, active }
 }
+
+/** Ist die Kamera tiefer hineingefahren als auf das Ziel? Dann verschieben die Pfeile den Ausschnitt. */
+const deep = () => active && view.s > base * 1.02
 
 /** Wird bei jeder Änderung aufgerufen (neue Folie, vergrößert, zurück) */
 export function onZoomChange(fn: (() => void) | null) {
@@ -42,7 +56,10 @@ export function onZoomChange(fn: (() => void) | null) {
 export function setZoomRoot(el: HTMLElement | null) {
   if (root === el) return
   resetZoom(true)
+  root?.removeEventListener('wheel', onWheel)
   root = el
+  // Mausrad und Spreizen: nicht passiv, sonst lässt sich das Scrollen der Seite nicht verhindern
+  root?.addEventListener('wheel', onWheel, { passive: false })
   // Bilder haben erst nach dem Laden eine Größe: dann erst „vergrößerbar“ melden
   for (const img of el?.querySelectorAll('img[data-zoom]') ?? []) if (!(img as HTMLImageElement).complete) img.addEventListener('load', notify, { once: true })
   notify()
@@ -64,8 +81,50 @@ const clearStyles = (cam: HTMLElement) => {
   cam.removeAttribute('data-zoomed')
 }
 
+const clamp = (v: { s: number; tx: number; ty: number }) => {
+  const s = Math.min(MAX_SCALE, Math.max(1, v.s))
+  return { s, tx: Math.min(0, Math.max(STAGE.w * (1 - s), v.tx)), ty: Math.min(0, Math.max(STAGE.h * (1 - s), v.ty)) }
+}
+
+/** Minikarte unten rechts: der sichtbare Ausschnitt der Folie, solange die Kamera tiefer steht als auf dem Ziel */
+function drawMap() {
+  const st = stage()
+  if (!st || !deep()) {
+    map?.remove()
+    map = null
+    return
+  }
+  if (!map) {
+    map = document.createElement('div')
+    map.className = 'zoom-map'
+    map.setAttribute('aria-hidden', 'true')
+    map.append(document.createElement('i'))
+    st.append(map)
+  }
+  const box = map.firstElementChild as HTMLElement
+  box.style.left = `${(-view.tx / (view.s * STAGE.w)) * 100}%`
+  box.style.top = `${(-view.ty / (view.s * STAGE.h)) * 100}%`
+  box.style.width = `${100 / view.s}%`
+  box.style.height = `${100 / view.s}%`
+}
+
+/** Kamera auf diese Ansicht stellen; `move` = Übergang ('none' ohne Fahrt) */
+function setView(v: { s: number; tx: number; ty: number }, move: string) {
+  const cam = camera()
+  if (!cam) return
+  view = v
+  token++
+  cam.style.transformOrigin = '0 0'
+  cam.style.transition = reduced() ? 'none' : move
+  cam.style.transform = `translate(${v.tx}px, ${v.ty}px) scale(${v.s})`
+  cam.setAttribute('data-zoomed', '')
+  active = true
+  drawMap()
+  notify()
+}
+
 /** Kamera auf das Bild richten, sodass es die Bühne füllt (mit Rand). false = nichts zu tun. */
-function zoomTo(img: HTMLImageElement): boolean {
+function zoomTo(img: HTMLElement): boolean {
   const cam = camera()
   const st = stage()
   // während des Übergangs zur Folie stimmen die Maße nicht
@@ -83,13 +142,8 @@ function zoomTo(img: HTMLImageElement): boolean {
   const tx = STAGE.w / 2 - (x + w / 2) * scale
   const ty = STAGE.h / 2 - (y + h / 2) * scale
   void cam.offsetWidth // Ausgangszustand festschreiben, dann fahren
-  token++
-  cam.style.transformOrigin = '0 0'
-  cam.style.transition = reduced() ? 'none' : MOVE
-  cam.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`
-  cam.setAttribute('data-zoomed', '')
-  active = true
-  notify()
+  base = scale
+  setView({ s: scale, tx, ty }, MOVE)
   return true
 }
 
@@ -97,6 +151,7 @@ function zoomTo(img: HTMLImageElement): boolean {
 export function resetZoom(instant = false) {
   if (!active) return
   active = false
+  drawMap()
   notify()
   const cam = camera()
   if (!cam) return
@@ -134,8 +189,55 @@ export function toggleZoom(): boolean {
     resetZoom()
     return true
   }
-  const img = images()[0]
-  return img ? (zoomTo(img), true) : false
+  const target = targets()[0]
+  return target ? (zoomTo(target), true) : false
+}
+
+/** + und −: eine Stufe tiefer bzw. heraus; ohne Zoom fährt + wie Z aufs erste Ziel. false = nichts zu tun. */
+export function zoomBy(factor: number, focus?: { x: number; y: number }, instant = false): boolean {
+  if (!active) return factor > 1 ? toggleZoom() : false
+  const fx = focus?.x ?? STAGE.w / 2
+  const fy = focus?.y ?? STAGE.h / 2
+  const s = Math.min(MAX_SCALE, view.s * factor)
+  // unter die Bühnengröße geht es nicht: das ist der Weg zurück
+  if (s < 1.02) {
+    resetZoom(instant)
+    return true
+  }
+  // der Punkt unter dem Fokus bleibt stehen
+  const px = (fx - view.tx) / view.s
+  const py = (fy - view.ty) / view.s
+  setView(clamp({ s, tx: fx - px * s, ty: fy - py * s }), instant ? 'none' : NUDGE)
+  return true
+}
+
+/** Pfeile verschieben den Ausschnitt, solange die Kamera tiefer steht als auf dem Ziel. true = behandelt. */
+export function panZoom(key: string): boolean {
+  if (!deep()) return false
+  const dir: Record<string, [number, number]> = { ArrowLeft: [1, 0], ArrowRight: [-1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }
+  const d = dir[key]
+  if (!d) return false
+  setView(clamp({ s: view.s, tx: view.tx + d[0] * STAGE.w * 0.3, ty: view.ty + d[1] * STAGE.h * 0.3 }), NUDGE)
+  return true
+}
+
+/** Mausrad zoomt am Zeiger, sobald die Kamera fährt; Strg + Rad (Touchpad-Spreizen) startet sie auch. */
+function onWheel(e: WheelEvent) {
+  const st = stage()
+  const cam = camera()
+  if (!st || !cam || (!active && !e.ctrlKey)) return
+  e.preventDefault()
+  const r = st.getBoundingClientRect()
+  const k = r.width / STAGE.w
+  if (!active) {
+    if (cam.getAnimations().length) return
+    // aus der Normalansicht heraus am Zeiger beginnen
+    cam.style.transition = 'none'
+    base = 1
+    view = { s: 1, tx: 0, ty: 0 }
+    active = true
+  }
+  zoomBy(Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.002)), { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k }, true)
 }
 
 /** Esc: zuerst zurückfahren, erst danach steigt Esc im Baum auf. true = behandelt. */
@@ -148,6 +250,6 @@ export function escapeZoom(): boolean {
 /** Klick auf ein vergrößerbares Bild fährt hinein, jeder Klick im vergrößerten Zustand zurück */
 export function zoomClick(e: MouseEvent) {
   if (active) return resetZoom()
-  const img = (e.target as Element | null)?.closest?.('img[data-zoom]') as HTMLImageElement | null
-  if (img && root?.contains(img) && !img.closest('.step-hidden')) zoomTo(img)
+  const target = (e.target as Element | null)?.closest?.(ZOOMABLE) as HTMLElement | null
+  if (target && root?.contains(target) && !target.closest('.step-hidden')) zoomTo(target)
 }

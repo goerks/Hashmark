@@ -76,5 +76,5 @@ export function openLink(partner: () => Window | null | undefined, onMessage: (m
 
 /** Tasten, die die Presenter-View an die Präsentation weiterreicht */
 export const FORWARDED_KEYS = new Set([
-  'ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', ' ', 'PageDown', 'PageUp', 'Enter', 'Escape', 'Home', 'b', 'B', '.', 'k', 'K', 'z', 'Z',
+  'ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', ' ', 'PageDown', 'PageUp', 'Enter', 'Escape', 'Home', 'b', 'B', '.', 'k', 'K', 'z', 'Z', '+', '=', '-', '_',
 ])

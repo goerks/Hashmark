@@ -15,7 +15,8 @@ Die Kurzreferenz für den Alltag. Ausführlich steht alles in der README des Pro
 | Space | dem Vortragsplan nach |
 | S / P / N | Presenter-View / Plan / Notizen |
 | K | Video der Folie starten / anhalten |
-| Z | Bild vergrößern (Kamera) / zurück |
+| Z | Bild, Code, Diagramm oder Tabelle vergrößern (Kamera) / zurück |
+| + / − | Zoom tiefer bzw. heraus; im tiefen Zoom verschieben die Pfeile den Ausschnitt (Minikarte), Mausrad zoomt am Zeiger |
 | Ctrl+K | Suche |
 | T | Plan aus/an |
 

@@ -212,6 +212,9 @@
     if (e.ctrlKey || e.metaKey || e.altKey) return
     // Presenter-Fernbedienung „Play“ würde hier sonst neu laden
     if (e.key === 'F5') { e.preventDefault(); return }
+    // Solange die Kamera der Präsentation fährt, gehören + und − ihr (tiefer/heraus), sonst der Schrift der Notizen
+    const zoomKey = e.key === '+' || e.key === '=' || e.key === '-' || e.key === '_'
+    if (zoomKey && zoom?.active) { e.preventDefault(); link?.send({ type: 'hashmark:presenter-key', key: e.key, shiftKey: e.shiftKey, target: target ?? undefined }); return }
     if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomNotes(2); return }
     if (e.key === '-') { e.preventDefault(); zoomNotes(-2); return }
     if (e.key === 't' || e.key === 'T') { e.preventDefault(); if (timer.running) pauseTimer(); else startTimer(); return }
@@ -327,7 +330,7 @@
         <span class="pv-right"><kbd>→</kbd> {nav.node(right.pos.id)?.title}</span>
       {/if}
       {#if zoom?.available}
-        <span class="pv-video" class:playing={zoom.active}>Bild: {zoom.active ? 'vergrößert' : 'normal'} · <kbd>Z</kbd> {zoom.active ? 'zurück' : 'vergrößern'}</span>
+        <span class="pv-video" class:playing={zoom.active}>Zoom: {zoom.active ? 'vergrößert' : 'normal'} · <kbd>Z</kbd> {zoom.active ? 'zurück, + / − tiefer' : 'vergrößern'}</span>
       {/if}
       {#if video}
         <span class="pv-video" class:playing={video.state === 'playing'}>
