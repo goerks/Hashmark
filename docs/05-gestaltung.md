@@ -50,6 +50,22 @@ Ein Theme-Ordner (`theme.css` und `layouts/`) lässt sich wiederverwenden. Das B
 Eine Datei `components/fact.html` macht aus `::: fact title="…"` einen eigenen Baustein. Die Vorlage ist bewusst **logikfrei** (Platzhalter und Schleifen über Kinder, keine Ausdrücke): Das hält Decks lesbar und portabel. Eingebaut sind `timeline`, `process`, `kpis` und `person`.
 :::
 
+## Video {id=video}
+
+````md
+![Demo](demo.mp4){play=1 start=0:05 end=0:50}
+````
+
+::: notes
+Ein Video schreibst du wie ein Bild. Die Dateiendung (`.mp4`, `.m4v`, `.webm`, `.ogv`) macht es zum Video. Es steht als **Standbild** auf der Folie, der nächste **Schritt (→)** startet es, **K** hält es an und setzt es fort. Läuft es noch, springt → ans Ende (das letzte Bild bleibt), das nächste → geht weiter. Die Presenter-View zeigt, ob das Video läuft, und gibt K aus dem zweiten Fenster weiter.
+
+Attribute: `play=2` startet erst mit Schritt 2 (`play=0` sofort mit der Folie), `start=` und `end=` schneiden einen Ausschnitt (`12`, `0:05`, `1:02:03`), `loop` wiederholt ihn, `muted` schaltet den Ton ab, `poster=bild.png` ersetzt das Standbild. Mit `controls` zeigt das Video die Leiste des Browsers und ist kein Schritt. `width`, `fit`, `pos`, `step` und `until` gelten wie bei Bildern.
+
+Das Video liegt als Datei im Deck-Ordner. Als Format empfehlen wir MP4 (H.264/AAC), das spielen Edge, Chrome, Safari und die Desktop-App unter Windows. WebM ist nicht überall gleich gut unterstützt, vor allem in Safari. Unter Linux und macOS ist die Wiedergabe in der Desktop-App noch nicht erprobt, unter Linux braucht der Webbetrachter vermutlich Systempakete (GStreamer). Videos von Webseiten und Einbettungen gibt es bewusst nicht, Hashmark läuft offline. Für einen Link eignet sich der QR-Code-Block. PDF und PowerPoint zeigen das Standbild.
+
+Im Browser startet ein Video mit Ton erst, nachdem im Präsentationsfenster einmal geklickt oder eine Taste gedrückt wurde. Bis dahin zeigt das Video seine Abspielleiste, ein Klick startet es. In der Desktop-App gilt die Einschränkung nicht.
+:::
+
 # Formeln und Diagramme {id=formeln}
 
 $$

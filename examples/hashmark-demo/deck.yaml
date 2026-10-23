@@ -9,6 +9,7 @@ mount:
   - file: 02-navigation.md
   - file: schritte.md
   - file: bilder.md
+  - file: video.md
   - file: gestaltung.md
   - file: story-map.md
   - file: werkzeuge.md

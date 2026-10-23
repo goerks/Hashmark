@@ -152,6 +152,7 @@ func main() {
 		time.Sleep(5 * time.Second)
 		return
 	}
+	allowAutoplay() // Videos in der Präsentation starten auch per Taste aus dem Presenter-Fenster
 	if *win != "" {
 		initCrashLog()
 		runChild(*win, *title, *mode, *screen)

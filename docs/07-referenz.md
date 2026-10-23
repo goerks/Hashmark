@@ -14,6 +14,7 @@ Die Kurzreferenz für den Alltag. Ausführlich steht alles in der README des Pro
 | ↓ / ↑ | abtauchen / zurück |
 | Space | dem Vortragsplan nach |
 | S / P / N | Presenter-View / Plan / Notizen |
+| K | Video der Folie starten / anhalten |
 | Ctrl+K | Suche |
 | T | Plan aus/an |
 
@@ -45,6 +46,7 @@ Alle Befehle laufen über `make`, Node.js liegt im Projekt. `make check` prüft 
 | `{layout=… id=…}` | Attribute |
 | `{steps}` / `{optional}` / `{fit}` | Flags |
 | `$a^2$` / `$$ … $$` | Formeln |
+| `![Demo](demo.mp4){play=1}` | Video (Schritt, K pausiert) |
 | ` ```mermaid ` | Diagramm |
 
 ::: notes

@@ -9,6 +9,8 @@ import os from 'node:os'
 import path from 'node:path'
 import type { AddressInfo } from 'node:net'
 import { build, type InlineConfig } from 'vite'
+import { VIDEO_MIME } from '../core/media.ts'
+import { serveFile } from '../vite/serve-file.ts'
 
 const BROWSERS: Record<string, string[]> = {
   win32: [
@@ -36,6 +38,7 @@ const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
   '.webp': 'image/webp', '.avif': 'image/avif', '.woff2': 'font/woff2', '.ico': 'image/x-icon',
+  ...VIDEO_MIME,
 }
 
 /** Minimaler statischer Server für den Build (nur 127.0.0.1, nur innerhalb von `root`). */
@@ -47,8 +50,8 @@ function serve(root: string): Promise<http.Server> {
       res.statusCode = 404
       return res.end()
     }
-    res.setHeader('Content-Type', MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream')
-    fs.createReadStream(file).pipe(res)
+    // mit Teilabrufen: Videos lassen sich sonst nicht ansteuern
+    serveFile(req, res, file, { type: MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream' })
   })
   return new Promise((resolve) => server.listen(0, '127.0.0.1', () => resolve(server)))
 }
@@ -78,9 +81,12 @@ async function connect(wsUrl: string) {
   return { send, errors, close: () => ws.close() }
 }
 
-async function launch(browser: string, profile: string): Promise<{ proc: ChildProcess; port: number }> {
+async function launch(browser: string, profile: string, extraArgs: string[] = []): Promise<{ proc: ChildProcess; port: number }> {
   const proc = spawn(browser, [
     '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--hide-scrollbars',
+    // Linux-Runner der CI erlauben dem Browser keine Sandbox
+    ...(process.env.HASHMARK_NO_SANDBOX ? ['--no-sandbox'] : []),
+    ...extraArgs,
     `--user-data-dir=${profile}`, '--remote-debugging-port=0', 'about:blank',
   ], { stdio: ['ignore', 'ignore', 'pipe'] })
   // Port aus stderr oder aus `DevToolsActivePort` im Profil. Neuere Edge-Versionen starten den Browser in einem
@@ -118,16 +124,27 @@ export interface PrintResult { pages: number; bytes: number; warnings: string[] 
 
 export type Cdp = Awaited<ReturnType<typeof connect>>
 
+export interface PageOptions {
+  /** vor der Navigation, z. B. Emulation einstellen */
+  setup?: (cdp: Cdp) => Promise<void>
+  /** JavaScript-Ausdruck, der wahr wird, sobald die Seite bereit ist */
+  ready: string
+  /** Meldung, wenn die Seite nicht bereit wird */
+  notReady: string
+  /** zusätzliche Argumente für den Browser */
+  args?: string[]
+}
+
 /**
- * Seite unter `url` (Druckansicht) in Edge/Chrome headless öffnen, auf das Signal `printReady` warten und `fn` ausführen.
- * Räumt Browser und Profil danach auf. Basis für den PDF-Export und `hashmark check`.
+ * Seite unter `url` in Edge/Chrome headless öffnen, warten bis `ready` gilt und `fn` ausführen.
+ * Räumt Browser und Profil danach auf. Basis für Druckansicht (PDF, `hashmark check`, PowerPoint) und die Prüfung der Präsentation.
  */
-export async function withPrintView<T>(url: string, browserPath: string | undefined, fn: (cdp: Cdp) => Promise<T>, setup?: (cdp: Cdp) => Promise<void>): Promise<T> {
+export async function withPage<T>(url: string, browserPath: string | undefined, fn: (cdp: Cdp) => Promise<T>, options: PageOptions): Promise<T> {
   const browser = findBrowser(browserPath)
   const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'hashmark-print-'))
   let proc: ChildProcess | undefined
   try {
-    const launched = await launch(browser, path.join(tmp, 'profile'))
+    const launched = await launch(browser, path.join(tmp, 'profile'), options.args)
     proc = launched.proc
     const targets = await (await fetch(`http://127.0.0.1:${launched.port}/json/list`)).json()
     const page = targets.find((t: { type: string }) => t.type === 'page')
@@ -135,14 +152,14 @@ export async function withPrintView<T>(url: string, browserPath: string | undefi
     try {
       await cdp.send('Runtime.enable')
       await cdp.send('Page.enable')
-      await setup?.(cdp)
+      await options.setup?.(cdp)
       await cdp.send('Page.navigate', { url })
 
       const deadline = Date.now() + 90_000
       for (;;) {
-        const r = await cdp.send('Runtime.evaluate', { expression: 'document.documentElement.dataset.printReady || ""', returnByValue: true })
-        if (r.result?.value === '1') break
-        if (Date.now() > deadline) throw new Error(`Druckansicht wurde nicht fertig.${cdp.errors.length ? '\n' + cdp.errors.join('\n') : ''}`)
+        const r = await cdp.send('Runtime.evaluate', { expression: `!!(${options.ready})`, returnByValue: true })
+        if (r.result?.value === true) break
+        if (Date.now() > deadline) throw new Error(`${options.notReady}${cdp.errors.length ? '\n' + cdp.errors.join('\n') : ''}`)
         await new Promise((res) => setTimeout(res, 200))
       }
       return await fn(cdp)
@@ -155,6 +172,11 @@ export async function withPrintView<T>(url: string, browserPath: string | undefi
     // Browser-Profil kann unter Windows kurz gesperrt sein
     await fsp.rm(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }).catch(() => {})
   }
+}
+
+/** Druckansicht unter `url` öffnen und auf das Signal `printReady` warten. Basis für den PDF-Export und `hashmark check`. */
+export function withPrintView<T>(url: string, browserPath: string | undefined, fn: (cdp: Cdp) => Promise<T>, setup?: (cdp: Cdp) => Promise<void>): Promise<T> {
+  return withPage(url, browserPath, fn, { setup, ready: `document.documentElement.dataset.printReady === '1'`, notReady: 'Druckansicht wurde nicht fertig.' })
 }
 
 /**

@@ -54,6 +54,8 @@
 .pv-dive { color: var(--color-accent); }
 .pv-dive button { color: var(--color-accent); text-decoration: underline; text-underline-offset: 2px; }
 .pv-right { color: var(--color-muted); }
+.pv-video { color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.pv-video.playing { color: var(--color-accent); font-weight: 600; }
 .pv-budget { margin-left: auto; font-variant-numeric: tabular-nums; }
 .pv-budget.over { color: var(--color-danger); font-weight: 700; }
 

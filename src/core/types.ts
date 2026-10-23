@@ -76,6 +76,8 @@ export interface Manifest {
   maxDepth?: number
   /** alle lokalen Bilder als Base64 in den Deck-Baum einbetten */
   embedImages?: boolean
+  /** Videos im Einzel-HTML-Export einbetten (bis 25 MB je Datei); sonst liegen sie in einem Ordner neben der Datei */
+  embedMedia?: boolean
   layout?: string
   /** Default-Layout je Ebene, z. B. `{ 1: section, 2: default }` */
   layouts?: Record<string, string>

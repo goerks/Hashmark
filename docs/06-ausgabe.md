@@ -12,6 +12,8 @@
 Aus derselben Quelle entstehen mehrere Ausgaben. Das **PDF** kommt aus der Druckansicht mit dem installierten Edge oder Chrome, ohne zusätzliche Software, eine Folie pro Seite mit Lesezeichen und klickbaren Querverweisen. Das **Handout** setzt Sprechernotizen neben die Folien (A4 hoch, auch 2, 3 oder 6 Folien je Seite). `make export` erzeugt **eine einzelne HTML-Datei**, die offline per Doppelklick läuft, samt Presenter-View.
 
 Mit `PLAN=path` richtet sich die Auswahl nach dem Vortragsplan, `DEPTH=1` druckt nur den Hauptpfad.
+
+**Videos** sind groß: `make export` bettet sie nicht in die HTML-Datei ein, sondern legt sie in einen Ordner `<name>-medien` daneben. Gib beides zusammen weiter. Mit `embedMedia: true` in der `deck.yaml` werden Videos bis 25 MB je Datei eingebettet. `make build` und der Webdienst liefern die Videodateien mit dem Deck aus. PDF und PowerPoint zeigen das Standbild.
 :::
 
 ## PowerPoint {id=powerpoint}

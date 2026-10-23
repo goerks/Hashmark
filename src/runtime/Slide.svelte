@@ -3,8 +3,9 @@
   import type { DeckNode } from '../core/types.ts'
   import { renderMermaid } from './mermaid.ts'
   import { MIN_ZOOM, fitSlide } from './fit.ts'
+  import { clearLiveRoot, prepareVideos, setLiveRoot, syncVideos, type MediaMode } from './video.ts'
 
-  let { node, slide, layout, step = Infinity, titleTag = 'h1' }: {
+  let { node, slide, layout, step = Infinity, titleTag = 'h1', media = 'off' }: {
     node: DeckNode
     slide: number
     layout: string
@@ -12,6 +13,8 @@
     step?: number
     /** Element des Titels, z. B. h2 im PDF (Lesezeichen-Hierarchie) oder div für Folgeseiten */
     titleTag?: string
+    /** Videos: `live` spielt (nur die laufende Präsentation), `still` zeigt ein Standbild, `off` lädt nichts (Übersicht, Lesemodus) */
+    media?: MediaMode
   } = $props()
 
   let el: HTMLElement
@@ -70,6 +73,24 @@
 
   $effect(() => {
     applySteps(el, step)
+  })
+
+  // Videos: nach dem Rendern vorbereiten, in der Präsentation dem Schritt folgen (K, → und Anzeige im Presenter siehe video.ts)
+  $effect(() => {
+    void html
+    untrack(() => prepareVideos(el, media))
+  })
+  let previousStep: number | null = null
+  $effect(() => {
+    if (media !== 'live') return
+    void html
+    const current = step
+    untrack(() => {
+      setLiveRoot(el)
+      syncVideos(el, current, previousStep)
+      previousStep = current
+    })
+    return () => clearLiveRoot(el)
   })
 </script>
 

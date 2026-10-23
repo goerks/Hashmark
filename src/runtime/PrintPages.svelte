@@ -5,10 +5,12 @@
   import { printPages, type PrintOptions } from '../core/print.ts'
   import type { Deck, DeckNode } from '../core/types.ts'
   import Slide from './Slide.svelte'
+  import type { MediaMode } from './video.ts'
 
   // Die druckbaren Seiten eines Decks – genutzt von der Druckansicht (?print)
   // und unsichtbar von der Präsentation (damit Ctrl+P alle Folien druckt).
-  let { deck, options, states = {}, onready }: { deck: Deck; options: PrintOptions; states?: PlanStates; onready?: () => void } = $props()
+  /** `media`: Videos als Standbild (`still`, Druckansicht und PDF) oder gar nicht laden (`off`, unsichtbare Seiten der Präsentation) */
+  let { deck, options, states = {}, onready, media = 'still' }: { deck: Deck; options: PrintOptions; states?: PlanStates; onready?: () => void; media?: MediaMode } = $props()
 
   const nav = $derived(new Navigator(deck.nodes, { states }))
   const pages = $derived(printPages(deck.nodes, options, nav))
@@ -27,6 +29,14 @@
       await new Promise((r) => setTimeout(r, 100))
     }
     await Promise.all([...root.querySelectorAll('img')].map((img) => img.decode().catch(() => {})))
+    // Standbilder der Videos: das erste Bild muss da sein (höchstens 5 s, falls eine Datei fehlt oder das Format fehlt)
+    if (media === 'still') {
+      await Promise.all([...root.querySelectorAll<HTMLVideoElement>('video')].map((v) => v.readyState >= 2 ? undefined : new Promise<void>((resolve) => {
+        v.addEventListener('loadeddata', () => resolve(), { once: true })
+        v.addEventListener('error', () => resolve(), { once: true })
+        setTimeout(resolve, 5000)
+      })))
+    }
     await document.fonts.ready
   }
 
@@ -57,7 +67,7 @@
       data-title={page.node.title} data-transition={page.node.attrs.transition ?? (page.node.depth > 1 && page.first ? 'zoom' : 'slide')} data-depth={page.node.depth} data-section={page.trail[0]?.title ?? page.node.title}>
       <div class="print-slide">
         <div class="print-stage">
-          <Slide node={page.node} slide={page.slide} step={page.step} layout={layoutOf(page.node)} titleTag={titleTag(page.node, page.first)} />
+          <Slide node={page.node} slide={page.slide} step={page.step} layout={layoutOf(page.node)} titleTag={titleTag(page.node, page.first)} {media} />
           <!-- eine im Deck eingestellte Fußzeile (deck.yaml: footer/slideNumber) ersetzt die Druck-Fußzeile, sonst lägen beide übereinander -->
           {#if options.footer && !page.node.footer}
             <div class="print-crumb">{#if page.role && page.role !== 'path'}<b>{PLAN_LABEL[page.role]}</b> · {/if}{page.trail.map((t) => t.title).join(' › ')}</div>

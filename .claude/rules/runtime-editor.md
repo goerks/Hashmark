@@ -10,7 +10,8 @@ paths:
 ```
 src/vite/     plugin.ts: virtual:hashmark/deck (JSON), virtual:hashmark/theme.css, File-Watcher → HMR-Event
               'hashmark:deck', Bild-Middleware, Asset-Emit (auch `.hashmark/plan.json` als `__hashmark/plan`);
-              editor-api.ts: Datei-API nur für `hashmark edit`, `planApi` (GET/PUT /__hashmark/plan → .hashmark/plan.json) immer
+              editor-api.ts: Datei-API nur für `hashmark edit`, `planApi` (GET/PUT /__hashmark/plan → .hashmark/plan.json) immer;
+              serve-file.ts: `serveFile` mit Teilabrufen (Range, 206/416, HEAD) für Bilder und Videos im Dev-Server, im Live-Server (Desktop-App, Webdienst) und im statischen Server von PDF/Check/PPTX; ohne Range lässt sich ein Video nicht vorspulen
 src/cli/      index.ts (cac: dev | edit | serve | build | preview | export | pdf | check), serve.ts (Webdienst: Seed, Runtime, Live-Server mit `web`-Option), config.ts (gemeinsame Vite-Konfiguration),
               export.ts (Single-File), pdf.ts (CDP), scaffold.ts (Deck-Gerüst für make new)
 src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print)
@@ -23,6 +24,7 @@ src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print
   PlanPanel.svelte  Vortragsplan bearbeiten (Presenter-View, Taste P): Rolle je Knoten, Vorlagen, Fahrpläne, Zeitsumme;
                     plan-store.ts lädt/speichert (Server-Datei, sonst localStorage)
   NavControls/NavOverview/KeyHelp/PrintView/PrintPages, transitions.ts, mermaid.ts
+  video.ts          Video in der Präsentation (siehe unten): `prepareVideos`/`syncVideos` aus Slide.svelte, K (`toggleVideo`), → (`skipVideo`), `videoInfo` für die Presenter-View
   ReaderView.svelte + Lazy.svelte + reader.css   ?reader = Lesemodus (Handbuch): Baum als Inhaltsverzeichnis, Notizen als Fließtext, Folien als Karten (ScaledSlide, erst im Sichtbereich gerendert); CardView.svelte: ?card#id:folie&step=n = eine Folie, per postMessage `{type:'hashmark:card', id, slide, step}` umschaltbar (Einbettung in die Startseite). Beide in main.ts
   base.css, print.css, themes/*.css (nur Design-Tokens: --color-*, --font-*, --shiki-*, …)
   editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*): codemirror.ts (Setup, API), hashmark-lang.ts (Decorations für ::: und {…}, Highlight-Klassen .tok-*/.st-*),
@@ -58,6 +60,14 @@ src/runtime/deck-source.ts  onDeckUpdate(): Vite-HMR ('hashmark:deck') bzw. Even
 - **Desktop-Modus der Seiten:** Das Vite-Plugin mit `onAppAction` setzt `window.__HASHMARK_DESKTOP__` (transformIndexHtml). Dann gehen P/S/PDF/Präsentieren/Ctrl+W per `POST /__hashmark/app` (Header `X-Hashmark-Editor`) an den Sidecar statt per `window.open`.
 - **Editor-API:** nur localhost, Header `X-Hashmark-Editor: 1`, nur Pfade im Deck, nur `.md`/`.yaml`/Bilder. `hashmark edit` hat bewusst kein `--host`.
 - Die Datei-API-Pfade und `deck-assets/` sind **relativ**, damit Builds auch in Unterverzeichnissen laufen (`base: './'`).
+
+## Video (video.ts)
+
+- **Nur die laufende Präsentation spielt.** `Slide.svelte` hat die Eigenschaft `media`: `live` (App.svelte, nicht in der Editor-Vorschau), `still` (Druckansicht, Presenter-Vorschau, Editor-Vorschau: `preload=metadata`, keine Leiste) und `off` (Übersicht, Lesemodus, unsichtbare Druckseiten der Präsentation: `preload=none`). Sonst würden alle Videos eines Decks gleichzeitig laden. Neue Stellen, die eine Folie zeigen, müssen `media` bewusst setzen.
+- **Schritt und Tasten:** `syncVideos(root, step, previous)` startet ein Video, wenn der Schritt `data-play` erreicht wird (`previous === null` = Folie wird erst angezeigt, dann startet nur `play=0`); wer rückwärts auf die Folie zurückkehrt, sieht das Standbild. Bei Schritten davor wird zurückgesetzt. K und → (laufendes Video springt ans Ende) stehen in `navKey` (App.svelte) vor der Navigation. Die Presenter-View reicht K weiter (`FORWARDED_KEYS`) und zeigt den Zustand (`VideoInfo` in `presenter-state`).
+- **Autoplay:** Der Start kommt oft aus dem Presenter-Fenster, also nicht als Eingabe im Präsentationsfenster. Chrome/Edge verlangen dann eine frühere Eingabe; schlägt `play()` fehl, zeigt das Video seine Leiste (`controls`), ein Klick startet es. Die Desktop-App setzt `--autoplay-policy=no-user-gesture-required` (`desktop-go/autoplay.go`).
+- **Einzel-HTML-Export:** `inlineAssets` (plugin.ts) bettet Bilder ein, Videos bleiben Dateien im Ordner `<name>-medien` neben der HTML-Datei (`MediaSink`, `mediaSink()` in cli/export.ts; Warnung im Export und im App-Dialog). `embedMedia: true` bettet bis 25 MB je Video ein.
+- **Prüfung im Browser:** `scripts/video-e2e.ts` (CI-Job `video-e2e`, Chrome des Runners) spielt die Folie „Video“ des Beispiel-Decks durch. Lokal: `node scripts/video-e2e.ts` (Browser über `HASHMARK_BROWSER`). Die Testvideos sind WebM (VP9): Playwright-Chromium kann kein H.264, Chrome und Edge schon.
 
 ## Editor (CodeMirror 6)
 

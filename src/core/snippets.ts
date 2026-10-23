@@ -49,6 +49,11 @@ export const SNIPPETS: Snippet[] = [
     text: '$$\n§E = mc^2\n$$\n',
   },
   {
+    label: 'Video', kind: 'Inhalt', keywords: 'film clip mp4 webm abspielen',
+    title: 'Video aus dem Deck-Ordner: → startet es, K hält an (play=2: ab Schritt 2, start=/end= schneiden, controls = Abspielleiste)',
+    text: '![§Beschreibung](medien/video.mp4){play=1}\n',
+  },
+  {
     label: 'Karten', kind: 'Inhalt', keywords: 'cards card icon kachel',
     title: 'Karten mit Icon und Titel im Raster (icon=user, star, target, …)',
     text: '::: cards cols=3\n::: card icon=user title="§Titel"\nText\n:::\n::: card icon=target title="Titel"\nText\n:::\n::: card icon=check title="Titel"\nText\n:::\n:::\n',

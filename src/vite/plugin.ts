@@ -7,8 +7,10 @@ import { listExamples } from '../cli/examples.ts'
 import { realPath } from '../cli/paths.ts'
 import { loadDeck, type LoadResult } from '../core/deck.ts'
 import { PLAN_PATH } from '../core/plan.ts'
-import { ASSET_PREFIX, IMAGE_MIME, toDataUri } from '../core/render.ts'
+import { MAX_EMBED_BYTES, isVideoUrl, mediaName } from '../core/media.ts'
+import { ASSET_PREFIX, MEDIA_MIME, toDataUri } from '../core/render.ts'
 import { editorApi, planApi } from './editor-api.ts'
+import { serveFile } from './serve-file.ts'
 
 export const DECK_ID = 'virtual:hashmark/deck'
 export const THEME_ID = 'virtual:hashmark/theme.css'
@@ -18,10 +20,20 @@ const RESOLVED_THEME = '\0hashmark-theme.css'
 /** Payload für den Client: entweder ein Deck oder eine Fehlermeldung. */
 type Payload = { deck: LoadResult['deck'] } | { error: string }
 
+/** Videos des Einzel-HTML-Exports: bleiben Dateien in einem Ordner neben der HTML-Datei, statt als Text eingebettet zu werden */
+export interface MediaSink {
+  /** Ordnername neben der HTML-Datei, z. B. `vortrag-medien` */
+  dir: string
+  /** absolute Quelldatei → Pfad im Ordner (URL-kodiert, mit `/`) */
+  files: Map<string, string>
+}
+
 export interface HashmarkOptions {
   deckDir: string
   /** Bilder als Data-URI in den Deck-Baum einbetten (Single-File-Export) */
   inlineAssets?: boolean
+  /** Single-File-Export: wohin die Videos kommen (ohne Angabe werden sie bis 25 MB eingebettet) */
+  media?: MediaSink
   /** Datei-API für den Editor aktivieren (nur `hashmark edit`, nur localhost) */
   editor?: boolean
   /** Dev-Server: Ordner mit Beispiel-Decks, zwischen denen die Seite umschalten darf (`make dev` ohne `DECK=`) */
@@ -84,7 +96,10 @@ export function hashmark(options: HashmarkOptions): Plugin {
       }
       if (id !== RESOLVED_DECK) return
       let json = JSON.stringify(await payload())
-      if (options.inlineAssets) json = inlineAssets(json, deckDir, (msg) => this.warn(msg))
+      if (options.inlineAssets) {
+        const embedMedia = (await current.catch(() => undefined))?.embedMedia === true
+        json = inlineAssets(json, deckDir, (msg) => this.warn(msg), options.media, embedMedia)
+      }
       return `export default ${json}`
     },
 
@@ -130,9 +145,7 @@ export function hashmark(options: HashmarkOptions): Plugin {
         const rel = decodeURIComponent((req.url ?? '').split('?')[0]).replace(/^\/+/, '')
         const file = path.resolve(deckDir, rel)
         if (path.relative(deckDir, file).startsWith('..') || !fs.existsSync(file)) return next()
-        const type = IMAGE_MIME[path.extname(file).toLowerCase()]
-        if (type) res.setHeader('Content-Type', type)
-        fs.createReadStream(file).pipe(res)
+        serveFile(req, res, file, { type: MEDIA_MIME[path.extname(file).toLowerCase()] })
       })
     },
 
@@ -148,7 +161,7 @@ export function hashmark(options: HashmarkOptions): Plugin {
       if (fs.existsSync(planFile)) this.emitFile({ type: 'asset', fileName: '__hashmark/plan', source: fs.readFileSync(planFile) })
       for (const asset of (await current).assets) {
         if (!fs.existsSync(asset)) {
-          this.warn(`Bild nicht gefunden: ${path.relative(deckDir, asset)}`)
+          this.warn(`${mediaName(asset)} nicht gefunden: ${path.relative(deckDir, asset)}`)
           continue
         }
         this.emitFile({
@@ -161,16 +174,34 @@ export function hashmark(options: HashmarkOptions): Plugin {
   }
 }
 
-/** Ersetzt `deck-assets/…`-Verweise im Deck-JSON durch Data-URIs. */
-function inlineAssets(json: string, deckDir: string, warn: (msg: string) => void): string {
+/**
+ * Ersetzt `deck-assets/…`-Verweise im Deck-JSON: Bilder werden Data-URIs. Videos sind groß und bleiben Dateien neben der
+ * HTML-Datei (`media`), außer `embedMedia: true` (dann bis 25 MB je Datei). Ein Anker wie `#t=5` bleibt erhalten.
+ */
+function inlineAssets(json: string, deckDir: string, warn: (msg: string) => void, media?: MediaSink, embedMedia = false): string {
   // im JSON endet der Pfad am escapten Anführungszeichen (\") bzw. an ")" in style-URLs
   const pattern = new RegExp(ASSET_PREFIX + String.raw`([^"\\)\s]+)`, 'g')
-  return json.replace(pattern, (match, rel: string) => {
+  return json.replace(pattern, (match, ref: string) => {
+    const hashAt = ref.indexOf('#')
+    const rel = hashAt < 0 ? ref : ref.slice(0, hashAt)
+    const hash = hashAt < 0 ? '' : ref.slice(hashAt)
     const file = path.resolve(deckDir, decodeURIComponent(rel))
     if (path.relative(deckDir, file).startsWith('..') || !fs.existsSync(file)) {
-      warn(`Bild nicht gefunden: ${rel}`)
+      warn(`${mediaName(rel)} nicht gefunden: ${rel}`)
       return match
     }
-    return toDataUri(file)
+    if (isVideoUrl(file)) {
+      const small = fs.statSync(file).size <= MAX_EMBED_BYTES
+      if (embedMedia && small) return toDataUri(file) + hash
+      if (embedMedia) warn(`Video ${decodeURIComponent(rel)} ist größer als ${MAX_EMBED_BYTES / 1024 / 1024} MB und wird nicht eingebettet`)
+      if (media) {
+        media.files.set(file, rel)
+        return `${encodeURIComponent(media.dir)}/${rel}${hash}`
+      }
+      if (small) return toDataUri(file) + hash
+      warn(`Video ${decodeURIComponent(rel)} ist größer als ${MAX_EMBED_BYTES / 1024 / 1024} MB und fehlt im Export`)
+      return match
+    }
+    return toDataUri(file) + hash
   })
 }
