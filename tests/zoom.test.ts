@@ -60,7 +60,7 @@ describe('Bild-Zoom', () => {
     expect(slide.html).toContain('data-zoom="true"')
     expect(slide.html).toContain('data-zoomstep="2"')
     expect(slide.html).toContain('data-zoomuntil="4"')
-    expect(slide.steps).toBe(4)
+    expect(slide.steps).toHaveLength(4)
     expect(warnings).toEqual([])
   })
 
