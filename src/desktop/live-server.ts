@@ -4,7 +4,6 @@
 // Anders als der Vite-Dev-Server muss er nichts vorbündeln – Start und erstes Laden dauern Sekunden.
 
 import fs from 'node:fs'
-import crypto from 'node:crypto'
 import http from 'node:http'
 import path from 'node:path'
 import type { AddressInfo } from 'node:net'
@@ -28,9 +27,9 @@ export interface LiveServerOptions {
   initial?: LoadResult
   /**
    * Betrieb als Webdienst (`hashmark serve`): Adresse und Port, Gesundheitsprüfung unter /healthz.
-   * Die Präsentation ist öffentlich, der Editor nur mit Passwort (HTTP Basic). Ohne Passwort gibt es keinen Editor.
+   * Präsentation und Editor sind öffentlich, es gibt keine Anmeldung.
    */
-  web?: { host?: string; port?: number; editorUser?: string; editorPassword?: string; editorOpen?: boolean; siteDir?: string }
+  web?: { host?: string; port?: number; siteDir?: string }
 }
 
 export interface LiveServer {
@@ -83,28 +82,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
   const editor = editorApi(deckDir, web ? { allowHost: () => true } : {})
   const plan = planApi(deckDir, web ? { allowHost: () => true } : {})
 
-  // Webdienst: nur Deck, Theme, Ereignisse und Bilder sind öffentlich; Editor-Seite und Datei-API brauchen das Passwort
-  const PUBLIC_API = new Set(['/__hashmark/deck.json', '/__hashmark/theme.css', '/__hashmark/events'])
-  const equal = (a: string, b: string) => {
-    const ha = crypto.createHash('sha256').update(a).digest()
-    const hb = crypto.createHash('sha256').update(b).digest()
-    return crypto.timingSafeEqual(ha, hb)
-  }
-  /** true, wenn die Anfrage weiterlaufen darf; sonst ist die Antwort schon gesendet */
-  function authorize(req: http.IncomingMessage, res: http.ServerResponse): boolean {
-    if (!web) return true
-    if (web.editorOpen) return true // bewusst ohne Passwort (Vorschau eines Pull Requests)
-    if (!web.editorPassword) { res.statusCode = 404; res.end(); return false }
-    const [scheme, token] = (req.headers.authorization ?? '').split(' ')
-    const [user, ...rest] = scheme?.toLowerCase() === 'basic' && token ? Buffer.from(token, 'base64').toString('utf8').split(':') : ['']
-    if (equal(user, web.editorUser ?? 'editor') && equal(rest.join(':'), web.editorPassword)) return true
-    // Fehlversuche bremsen
-    setTimeout(() => {
-      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Hashmark Editor", charset="UTF-8"', 'Content-Type': 'text/plain; charset=utf-8' })
-      res.end('Anmeldung nötig')
-    }, 400)
-    return false
-  }
+  // Webdienst: Präsentation, Editor und Datei-API sind ohne Anmeldung erreichbar (bewusste Entscheidung, siehe webdienst.md)
 
   /** mit Teilabrufen (Range), damit man in Videos vorspulen kann */
   function sendFile(req: http.IncomingMessage, res: http.ServerResponse, file: string, cache: string) {
@@ -131,7 +109,6 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
       const file = inside(web.siteDir, rel) ?? inside(web.siteDir, path.posix.join(rel, 'index.html'))
       return file ? sendFile(req, res, file, 'no-cache') : notFound()
     }
-    if (web && (pathname === '/editor.html' || (pathname.startsWith('/__hashmark/') && !PUBLIC_API.has(pathname))) && !authorize(req, res)) return
 
     if (pathname === '/__hashmark/deck.json') {
       res.setHeader('Content-Type', 'application/json')

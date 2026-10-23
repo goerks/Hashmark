@@ -53,7 +53,7 @@ Alle Schreibweisen, Tasten und Befehle stehen im Teil „Nachschlagen“ des [Ha
 
 1. **App laden:** Paket für deine Plattform aus den [Releases](https://github.com/goerks/Hashmark/releases/latest) entpacken, `Hashmark.exe` starten. Kein Installer nötig.
 2. **Neues Deck** anlegen (Strg+N) oder ein Beispiel öffnen, schreiben, mit **F5** präsentieren.
-3. **Ausprobieren ohne Download:** [hashmark.onrender.com](https://hashmark.onrender.com) zeigt den Webdienst mit Beispiel-Deck (Präsentation öffentlich, Editor mit Passwort).
+3. **Ausprobieren ohne Download:** [hashmark.onrender.com](https://hashmark.onrender.com) zeigt den Webdienst mit Beispiel-Deck (Präsentation und Editor ohne Anmeldung).
 
 Die ausführliche Anleitung steht im Teil „Lernen“ des [Handbuchs](https://goerks.github.io/Hashmark/handbuch/?reader).
 

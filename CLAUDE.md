@@ -40,7 +40,7 @@ Regeln je Bereich:
 | `make app-test` / `make sidecar-smoke` | E2E der Desktop-App **headless** über WebView2-CDP (`VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json`) / Node-Sidecar wie aus der App angesprochen (`SIDECAR_BUNDLE=1`: das Bündel) |
 | `make docs` / `make docs-serve` | Dokumentation als statische Seiten nach `public/` (`DOCS_OUT`, `DOCS_PORT`, Standard 4000): Handbuch `handbuch/`, Beispiele `beispiele/`, Startseite (`scripts/docs-landing.ts`), Funktionsseiten `funktionen/` (`scripts/docs-features.ts`). `HASHMARK_PROJECT_URL` setzt die Projektadresse der Download-Karten, `HASHMARK_SHOTS` den Ordner der Bilder aus `node scripts/make-screenshots.ts --out …` |
 | `make build-examples` / `make docker-examples` | alle `examples/*` als statische Seiten mit Auswahlseite / Docker-Image `hashmark/beispiele` |
-| `make serve` / `make image` / `make image-run` | Webdienst lokal (`EDITOR_PASSWORD`, Standard „geheim“) / Docker-Image des Webdienstes (`Dockerfile` im Root) bauen / starten |
+| `make serve` / `make image` / `make image-run` | Webdienst lokal (Editor ohne Anmeldung) / Docker-Image des Webdienstes (`Dockerfile` im Root) bauen / starten |
 | `make deps-update` | neue Pakete online holen, landen im lokalen Cache `vendor/npm-cache` |
 | `node scripts/make-icon.ts [logo.png]` | Programm-Icon und Favicon aus `assets/hashmark.png` neu erzeugen |
 | `hashmark --version` | Version `<letzter Tag ohne v>.<Kurz-Hash>`, per `-ldflags "-X main.version=…"` eingebettet (`VERSION=…` überschreibt) |

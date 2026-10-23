@@ -46,7 +46,7 @@ cli
   })
 
 cli
-  .command('serve [deck]', 'Webdienst (Docker/Render): Präsentation öffentlich, Editor mit Passwort (EDITOR_PASSWORD)')
+  .command('serve [deck]', 'Webdienst (Docker/Render): Präsentation und Editor ohne Anmeldung')
   .option('--port <port>', 'Port (Standard: $PORT oder 3030)')
   .option('--host <host>', 'Adresse', { default: '0.0.0.0' })
   .option('--seed <dir>', 'Deck, das in einen leeren Deck-Ordner kopiert wird')
@@ -57,9 +57,6 @@ cli
       reseed: process.env.DECK_SEED_RESET === '1',
       host: opts.host,
       port: Number(opts.port ?? process.env.PORT ?? 3030),
-      editorUser: process.env.EDITOR_USER || undefined,
-      editorPassword: process.env.EDITOR_PASSWORD || undefined,
-      editorOpen: process.env.EDITOR_OPEN === '1',
       siteDir: process.env.SITE_DIR || undefined,
     })
   })
