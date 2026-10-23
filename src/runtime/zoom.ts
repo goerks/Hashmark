@@ -1,5 +1,5 @@
 // Bild, Code, Diagramm oder Tabelle in der Präsentation vergrößern: Eine Kamera fährt in die Folie hinein (Z oder Klick), Z, Esc oder
-// Klick fährt zurück. + und − fahren tiefer bzw. heraus, Pfeile verschieben den Ausschnitt, Mausrad und Touchpad-Spreizen zoomen am Zeiger. Die Kamera ist ein `transform` auf der Bühnenfläche der Folie (`.stage-slide`), die Bühne (`.stage`) schneidet ab; Titel und
+// Klick fährt zurück. + und − fahren tiefer bzw. heraus, Pfeile verschieben den Ausschnitt, Mausrad und Touchpad-Spreizen zoomen am Zeiger. Am Touchscreen: zwei Finger spreizen/zusammenführen, ein Finger verschiebt, Tasten − + × unten links. Die Kamera ist ein `transform` auf der Bühnenfläche der Folie (`.stage-slide`), die Bühne (`.stage`) schneidet ab; Titel und
 // Text wandern also mit aus dem Bild, der Zusammenhang bleibt. Nur die laufende Präsentation (`media="live"`) nimmt teil.
 
 /** Zustand für die Presenter-View: gibt es ein Bild zum Vergrößern, und ist es vergrößert? */
@@ -27,6 +27,7 @@ let token = 0
 let view = { s: 1, tx: 0, ty: 0 }
 let base = 1
 let map: HTMLElement | null = null
+let tools: HTMLElement | null = null
 
 const camera = (): HTMLElement | null => root?.parentElement ?? null
 const stage = (): HTMLElement | null => camera()?.parentElement ?? null
@@ -57,9 +58,21 @@ export function setZoomRoot(el: HTMLElement | null) {
   if (root === el) return
   resetZoom(true)
   root?.removeEventListener('wheel', onWheel)
+  root?.removeEventListener('pointerdown', onPointerDown)
+  root?.removeEventListener('pointermove', onPointerMove)
+  root?.removeEventListener('pointerup', onPointerEnd)
+  root?.removeEventListener('pointercancel', onPointerEnd)
+  root?.removeEventListener('gesturestart', blockGesture)
   root = el
   // Mausrad und Spreizen: nicht passiv, sonst lässt sich das Scrollen der Seite nicht verhindern
   root?.addEventListener('wheel', onWheel, { passive: false })
+  root?.addEventListener('pointerdown', onPointerDown)
+  root?.addEventListener('pointermove', onPointerMove)
+  root?.addEventListener('pointerup', onPointerEnd)
+  root?.addEventListener('pointercancel', onPointerEnd)
+  // Safari am iPhone zoomt sonst die ganze Seite statt der Kamera
+  root?.addEventListener('gesturestart', blockGesture)
+  pointers.clear()
   // Bilder haben erst nach dem Laden eine Größe: dann erst „vergrößerbar“ melden
   for (const img of el?.querySelectorAll('img[data-zoom]') ?? []) if (!(img as HTMLImageElement).complete) img.addEventListener('load', notify, { once: true })
   notify()
@@ -80,6 +93,8 @@ const clearStyles = (cam: HTMLElement) => {
   cam.style.transformOrigin = ''
   cam.removeAttribute('data-zoomed')
 }
+
+const blockGesture = (e: Event) => e.preventDefault()
 
 const clamp = (v: { s: number; tx: number; ty: number }) => {
   const s = Math.min(MAX_SCALE, Math.max(1, v.s))
@@ -108,6 +123,32 @@ function drawMap() {
   box.style.height = `${100 / view.s}%`
 }
 
+/** Schaltflächen − + × unten links, solange die Kamera fährt: für Touchscreens ohne Tastatur. Größe unabhängig vom Fensterverhältnis (`--scale` der Bühne). */
+function drawTools() {
+  const st = stage()
+  if (!st || !active) {
+    tools?.remove()
+    tools = null
+    return
+  }
+  if (tools) return
+  tools = document.createElement('div')
+  tools.className = 'zoom-tools'
+  const add = (label: string, title: string, act: () => void) => {
+    const b = document.createElement('button')
+    b.type = 'button'
+    b.textContent = label
+    b.title = title
+    b.setAttribute('aria-label', title)
+    b.addEventListener('click', (e) => { e.stopPropagation(); act() })
+    tools!.append(b)
+  }
+  add('−', 'Zoom heraus', () => { zoomBy(1 / STEP) })
+  add('+', 'Zoom tiefer', () => { zoomBy(STEP) })
+  add('×', 'Zoom beenden', () => resetZoom())
+  st.append(tools)
+}
+
 /** Kamera auf diese Ansicht stellen; `move` = Übergang ('none' ohne Fahrt) */
 function setView(v: { s: number; tx: number; ty: number }, move: string) {
   const cam = camera()
@@ -120,6 +161,7 @@ function setView(v: { s: number; tx: number; ty: number }, move: string) {
   cam.setAttribute('data-zoomed', '')
   active = true
   drawMap()
+  drawTools()
   notify()
 }
 
@@ -152,6 +194,7 @@ export function resetZoom(instant = false) {
   if (!active) return
   active = false
   drawMap()
+  drawTools()
   notify()
   const cam = camera()
   if (!cam) return
@@ -221,6 +264,74 @@ export function panZoom(key: string): boolean {
   return true
 }
 
+/** Fingerbewegungen: zwei Finger zoomen und verschieben, ein Finger (oder die Maus mit gedrückter Taste) verschiebt die Kamera */
+const pointers = new Map<number, { x: number; y: number }>()
+/** Eine Geste hat sich bewegt: der Klick, der danach noch kommt, soll nichts auslösen */
+let gesture = false
+let travelled = 0
+
+function stagePoint(x: number, y: number) {
+  const r = stage()!.getBoundingClientRect()
+  const k = r.width / STAGE.w
+  return { x: (x - r.left) / k, y: (y - r.top) / k, k }
+}
+
+/** Aus der Normalansicht heraus an Ort und Stelle beginnen (kein Ziel nötig). false = gerade nicht möglich. */
+function beginFree(): boolean {
+  const cam = camera()
+  if (!cam || cam.getAnimations().length) return false
+  cam.style.transition = 'none'
+  base = 1
+  view = { s: 1, tx: 0, ty: 0 }
+  active = true
+  return true
+}
+
+/** Der Punkt unter `from` wandert nach `to`, dabei ändert sich die Größe um `factor` */
+function applyGesture(factor: number, from: { x: number; y: number }, to: { x: number; y: number }) {
+  const s = Math.min(MAX_SCALE, view.s * factor)
+  if (s < 1.02) return resetZoom(true)
+  const px = (from.x - view.tx) / view.s
+  const py = (from.y - view.ty) / view.s
+  setView(clamp({ s, tx: to.x - px * s, ty: to.y - py * s }), 'none')
+}
+
+function onPointerDown(e: PointerEvent) {
+  if (e.pointerType === 'mouse' && e.button !== 0) return
+  pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+  if (pointers.size === 1) {
+    gesture = false
+    travelled = 0
+  } else gesture = true
+}
+
+function onPointerMove(e: PointerEvent) {
+  const prev = pointers.get(e.pointerId)
+  if (!prev || !stage()) return
+  const cur = { x: e.clientX, y: e.clientY }
+  pointers.set(e.pointerId, cur)
+  if (pointers.size === 2) {
+    const other = [...pointers.entries()].find(([id]) => id !== e.pointerId)![1]
+    const d0 = Math.hypot(prev.x - other.x, prev.y - other.y)
+    const d1 = Math.hypot(cur.x - other.x, cur.y - other.y)
+    if (d0 < 1) return
+    if (!active && !beginFree()) return
+    const m0 = stagePoint((prev.x + other.x) / 2, (prev.y + other.y) / 2)
+    const m1 = stagePoint((cur.x + other.x) / 2, (cur.y + other.y) / 2)
+    applyGesture(d1 / d0, m0, m1)
+  } else if (pointers.size === 1 && active) {
+    travelled += Math.hypot(cur.x - prev.x, cur.y - prev.y)
+    if (travelled < 8 && !gesture) return
+    gesture = true
+    const k = stagePoint(0, 0).k
+    setView(clamp({ s: view.s, tx: view.tx + (cur.x - prev.x) / k, ty: view.ty + (cur.y - prev.y) / k }), 'none')
+  }
+}
+
+function onPointerEnd(e: PointerEvent) {
+  pointers.delete(e.pointerId)
+}
+
 /** Mausrad zoomt am Zeiger, sobald die Kamera fährt; Strg + Rad (Touchpad-Spreizen) startet sie auch. */
 function onWheel(e: WheelEvent) {
   const st = stage()
@@ -249,6 +360,7 @@ export function escapeZoom(): boolean {
 
 /** Klick auf ein vergrößerbares Bild fährt hinein, jeder Klick im vergrößerten Zustand zurück */
 export function zoomClick(e: MouseEvent) {
+  if (gesture) { gesture = false; return }
   if (active) return resetZoom()
   const target = (e.target as Element | null)?.closest?.(ZOOMABLE) as HTMLElement | null
   if (target && root?.contains(target) && !target.closest('.step-hidden')) zoomTo(target)

@@ -65,9 +65,12 @@ Keine Installation nötig: Die Präsentation läuft im Browser. Für die Present
 - **Z**, dann **+**: eine Stufe tiefer
 - **Pfeile** verschieben den Ausschnitt, die **Minikarte** zeigt, wo man ist
 - **−** fährt zurück, **Esc** ganz heraus
+- **Am Telefon:** zwei Finger spreizen, ein Finger verschiebt, Tasten **− + ×** unten links
 
 ::: notes
 **Prüfen:** Z drücken, dann mehrmals +. Unten rechts erscheint die Minikarte, die Pfeile verschieben den Ausschnitt (→ blättert hier nicht, Space schon). Mit − wieder heraus. Mausrad: sobald die Kamera fährt, zoomt es am Zeiger. Strg + Mausrad (Touchpad-Spreizen) startet den Zoom auch aus der Normalansicht.
+
+**Am Telefon:** Bild antippen, dann zwei Finger spreizen bzw. zusammenführen, ein Finger verschiebt. Unten links stehen − + ×, ein Tipp auf × beendet den Zoom.
 :::
 
 # Code und Diagramm {id=zoom-code}
@@ -135,7 +138,7 @@ zoom: true
 
 ::: cards cols=2
 ::: card icon=target title="Echte Geräte"
-Touchpad-Spreizen und Mausrad habe ich nur mit künstlichen Ereignissen geprüft, nicht mit echten Geräten. Wie sich die Minikarte und der tiefe Zoom beim Vortragen anfühlen, kann ich nicht beurteilen.
+Touch (Spreizen, Verschieben, Schaltflächen), Touchpad-Spreizen und Mausrad habe ich nur mit künstlichen Ereignissen in Chrome geprüft, nicht auf einem echten iPhone (Safari). Wie sich die Minikarte und der tiefe Zoom beim Vortragen anfühlen, kann ich nicht beurteilen.
 :::
 ::: card icon=user title="Desktop-App"
 Presenter-Fenster der App und Vollbild auf dem Beamer.

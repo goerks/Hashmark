@@ -257,6 +257,49 @@ async function run(cdp: Cdp) {
   p = await probe(cdp)
   check('„Animationen reduzieren“: zurück ohne Fahrt', !p.zoomed && p.noTransform, short(p))
 
+  // 9 · Touch: zwei Finger spreizen, ein Finger verschiebt, Schaltflächen − + ×, Antippen
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 })
+  const touch = (type: 'touchStart' | 'touchMove' | 'touchEnd', pts: { x: number; y: number; id: number }[]) =>
+    cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts })
+  p = await probe(cdp)
+  const gx = p.cx
+  const gy = p.cy
+  await touch('touchStart', [{ x: gx - 30, y: gy, id: 1 }, { x: gx + 30, y: gy, id: 2 }])
+  for (let i = 1; i <= 6; i++) await touch('touchMove', [{ x: gx - 30 - i * 12, y: gy, id: 1 }, { x: gx + 30 + i * 12, y: gy, id: 2 }])
+  await touch('touchEnd', [])
+  p = await until(cdp, (x) => x.zoomed && x.scale > 1.3, 2000)
+  check('Zwei Finger spreizen starten den Zoom', p.zoomed && p.scale > 1.3, short(p))
+  const before = p
+  await touch('touchStart', [{ x: p.cx, y: p.cy, id: 1 }])
+  for (let i = 1; i <= 6; i++) await touch('touchMove', [{ x: p.cx - i * 15, y: p.cy, id: 1 }])
+  await touch('touchEnd', [])
+  await sleep(300)
+  p = await probe(cdp)
+  check('Ein Finger verschiebt den Ausschnitt, ohne zu schließen', p.zoomed && p.cx < before.cx - 40, `cx ${before.cx} → ${p.cx}, ${short(p)}`)
+  const btn = (act: string) => evalJs<{ x: number; y: number; w: number } | null>(cdp, `(() => {
+    const b = [...document.querySelectorAll('.stage .zoom-tools button')].find((x) => x.textContent === '${act}')
+    if (!b) return null
+    const r = b.getBoundingClientRect()
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width }
+  })()`)
+  const plus = await btn('+')
+  check('Schaltflächen − + × erscheinen beim Zoom, groß genug zum Antippen', !!plus && plus.w >= 30, JSON.stringify(plus))
+  const s1 = p.scale
+  if (plus) await click(cdp, plus.x, plus.y)
+  await sleep(300)
+  p = await probe(cdp)
+  check('Schaltfläche + fährt tiefer', p.zoomed && p.scale > s1 * 1.3, `${s1} → ${p.scale}`)
+  const close = await btn('×')
+  if (close) await click(cdp, close.x, close.y)
+  p = await until(cdp, (x) => !x.zoomed && x.noTransform, 2000)
+  check('Schaltfläche × beendet den Zoom, die Schaltflächen verschwinden', !p.zoomed && p.noTransform && (await btn('×')) === null, short(p))
+  await touch('touchStart', [{ x: p.cx, y: p.cy, id: 1 }])
+  await touch('touchEnd', [])
+  p = await until(cdp, (x) => x.zoomed, 2000)
+  check('Antippen des Bildes fährt hinein', p.zoomed, short(p))
+  await press(cdp, 'Escape')
+  await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false })
+
   check('keine Fehler im Browser', cdp.errors.length === 0, cdp.errors.join(' | '))
 }
 
