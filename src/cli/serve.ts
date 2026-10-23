@@ -18,6 +18,8 @@ export interface ServeOptions {
   editorUser?: string
   /** Ohne Passwort gibt es keinen Editor, nur die Präsentation */
   editorPassword?: string
+  /** Editor ohne Passwort erreichbar (EDITOR_OPEN=1): nur für Vorschauen mit zurückgesetztem Deck, nie als Standard */
+  editorOpen?: boolean
   /** fertig gebaute Webseite (make docs), unter /webseite/ ausgeliefert; nur in der Vorschau eines Pull Requests */
   siteDir?: string
 }
@@ -45,11 +47,13 @@ export async function serve(opts: ServeOptions) {
     deckDir: realPath(deckDir),
     runtimeDir,
     onAppAction: () => {},
-    web: { host: opts.host, port: opts.port, editorUser: opts.editorUser, editorPassword: opts.editorPassword, siteDir },
+    web: { host: opts.host, port: opts.port, editorUser: opts.editorUser, editorPassword: opts.editorPassword, editorOpen: opts.editorOpen, siteDir },
   })
   console.log(`[hashmark] Präsentation: ${server.url}`)
   if (siteDir) console.log(`[hashmark] Webseite:     ${server.url}webseite/`)
-  console.log(opts.editorPassword
+  console.log(opts.editorOpen
+    ? `[hashmark] Editor:       ${server.url}editor.html (OFFEN, ohne Passwort: EDITOR_OPEN=1)`
+    : opts.editorPassword
     ? `[hashmark] Editor:       ${server.url}editor.html (Benutzer „${opts.editorUser ?? 'editor'}“, Passwort aus EDITOR_PASSWORD)`
     : '[hashmark] Editor aus: EDITOR_PASSWORD ist nicht gesetzt, es gibt nur die Präsentation')
 

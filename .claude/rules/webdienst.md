@@ -10,6 +10,7 @@ paths:
 # Webdienst (`hashmark serve`, Docker/Render)
 
 - Ein Prozess, ein Container: `live-server.ts` mit Option `web` liefert die Präsentation öffentlich und `/editor.html` plus Datei-API nur mit HTTP-Basic-Passwort (`EDITOR_PASSWORD`, ohne Passwort gibt es keinen Editor). `/healthz` für Render. Live-Instanz: https://hashmark.onrender.com
+- **Editor ohne Passwort:** `EDITOR_OPEN=1` (Option `web.editorOpen`) öffnet `/editor.html` und die Datei-API ohne Anmeldung, auch wenn `EDITOR_PASSWORD` gesetzt ist. Standard ist aus. Das Image setzt es nur über `--build-arg EDITOR_OPEN=1`, und das tut `docker.yml` (Job `preview`) für die Vorschau eines Pull Requests, deren Deck bei jedem Start zurückgesetzt wird. Auf der Live-Instanz bleibt das Passwort, bis dort bewusst die Umgebungsvariable `EDITOR_OPEN=1` gesetzt wird.
 - Die Datei-API prüft im Webbetrieb weiter den Header `X-Hashmark-Editor` und dass `Origin` zum `Host` passt (Basic-Zugangsdaten gehen sonst auch von fremden Seiten mit). `/__hashmark/app` bleibt localhost-only.
 - Das Image installiert online per `npm ci` (der Vendor-Cache enthält nur Windows-Binärdateien) und baut die Runtime beim Bauen vor. Läuft als root, weil Render-Festplatten root gehören.
 - Image: `make image` baut es lokal. Lokal gibt es kein Docker: das Image wurde nicht gebaut, nur `hashmark serve` ist getestet.

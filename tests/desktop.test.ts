@@ -129,7 +129,7 @@ describe('Sidecar-Befehle', () => {
 describe('Webdienst (hashmark serve)', () => {
   const basic = (user: string, pw: string) => 'Basic ' + Buffer.from(`${user}:${pw}`).toString('base64')
 
-  async function start(password?: string) {
+  async function start(password?: string, editorOpen = false) {
     const { startLiveServer } = await import('../src/desktop/live-server.ts')
     const deckDir = tmp()
     fs.writeFileSync(path.join(deckDir, 'a.md'), '# A')
@@ -138,9 +138,23 @@ describe('Webdienst (hashmark serve)', () => {
     fs.writeFileSync(path.join(runtimeDir, 'editor.html'), '<title>editor</title>')
     return startLiveServer({
       deckDir, runtimeDir, onAppAction: () => {}, log: () => {},
-      web: { host: '127.0.0.1', port: 0, editorPassword: password },
+      web: { host: '127.0.0.1', port: 0, editorPassword: password, editorOpen },
     })
   }
+
+  it('mit editorOpen ist der Editor ohne Passwort erreichbar, ohne die Option bleibt er geschützt', async () => {
+    const open = await start(undefined, true)
+    const closed = await start(undefined, false)
+    try {
+      const get = (base: string, p: string) => fetch(base + p.replace(/^\//, ''), { headers: { 'X-Hashmark-Editor': '1' } })
+      expect((await get(open.url, '/editor.html')).status).toBe(200)
+      expect((await get(open.url, '/__hashmark/files')).status).toBe(200)
+      expect((await get(closed.url, '/editor.html')).status).toBe(404)
+    } finally {
+      await open.close()
+      await closed.close()
+    }
+  })
 
   it('Präsentation und Gesundheitsprüfung sind öffentlich, der Editor braucht das Passwort', async () => {
     const server = await start('geheim')

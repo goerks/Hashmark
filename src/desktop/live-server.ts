@@ -30,7 +30,7 @@ export interface LiveServerOptions {
    * Betrieb als Webdienst (`hashmark serve`): Adresse und Port, Gesundheitsprüfung unter /healthz.
    * Die Präsentation ist öffentlich, der Editor nur mit Passwort (HTTP Basic). Ohne Passwort gibt es keinen Editor.
    */
-  web?: { host?: string; port?: number; editorUser?: string; editorPassword?: string; siteDir?: string }
+  web?: { host?: string; port?: number; editorUser?: string; editorPassword?: string; editorOpen?: boolean; siteDir?: string }
 }
 
 export interface LiveServer {
@@ -93,6 +93,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
   /** true, wenn die Anfrage weiterlaufen darf; sonst ist die Antwort schon gesendet */
   function authorize(req: http.IncomingMessage, res: http.ServerResponse): boolean {
     if (!web) return true
+    if (web.editorOpen) return true // bewusst ohne Passwort (Vorschau eines Pull Requests)
     if (!web.editorPassword) { res.statusCode = 404; res.end(); return false }
     const [scheme, token] = (req.headers.authorization ?? '').split(' ')
     const [user, ...rest] = scheme?.toLowerCase() === 'basic' && token ? Buffer.from(token, 'base64').toString('utf8').split(':') : ['']

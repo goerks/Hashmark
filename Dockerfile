@@ -5,6 +5,7 @@
 # Bauen:     docker build -t hashmark .
 # Starten:   docker run --rm -p 10000:10000 -e EDITOR_PASSWORD=geheim -v hashmark-data:/data hashmark
 # Umgebung:  EDITOR_PASSWORD  schaltet den Editor frei (ohne gibt es nur die Präsentation)
+#            EDITOR_OPEN      =1 öffnet den Editor ohne Passwort (nur für Vorschauen, siehe unten)
 #            EDITOR_USER      Benutzername, Standard „editor“
 #            PORT             Standard 10000 (Render setzt ihn selbst)
 #            DECK_DIR         Deck-Ordner, Standard /data/deck
@@ -35,12 +36,15 @@ RUN node src/desktop/runtime-build.ts
 # Vorschau eines Pull Requests: --build-arg SEED=abnahme --build-arg SEED_RESET=1 zeigt die Abnahme-Präsentation statt des Beispiels
 ARG SEED=examples/hashmark-demo
 ARG SEED_RESET=0
+# Editor ohne Passwort: nur die Vorschau eines Pull Requests setzt 1 (das Deck wird dort bei jedem Start zurückgesetzt)
+ARG EDITOR_OPEN=0
 
 ENV NODE_ENV=production \
     PORT=10000 \
     DECK_DIR=/data/deck \
     DECK_SEED=/app/${SEED} \
     DECK_SEED_RESET=${SEED_RESET} \
+    EDITOR_OPEN=${EDITOR_OPEN} \
     SITE_DIR=/app/webseite
 
 EXPOSE 10000

@@ -106,6 +106,7 @@ jobs:
           build-args: |
             SEED=abnahme
             SEED_RESET=1
+            EDITOR_OPEN=1
       - name: Vorschau bei Render anlegen
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
