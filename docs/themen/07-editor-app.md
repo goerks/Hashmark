@@ -53,16 +53,14 @@ Windows ist erprobt; Linux und macOS werden gebaut, sind aber noch wenig geteste
 
 | Variable | Bedeutung |
 | --- | --- |
-| `EDITOR_PASSWORD` | schaltet den Editor frei, ohne gibt es nur die Präsentation |
-| `EDITOR_USER` | Benutzername, Standard `editor` |
 | `PORT` | Standard 10000, Render setzt ihn selbst |
 | `DECK_DIR` | Deck-Ordner, Standard `/data/deck` |
 | `DECK_SEED` | wird beim ersten Start in einen leeren `DECK_DIR` kopiert |
 
 ::: notes
-Ein einziger Container liefert die Präsentation (`/`, öffentlich) und den Editor (`/editor.html`, mit Passwort). Beide arbeiten auf demselben Deck-Ordner: Änderungen im Editor erscheinen sofort in der Präsentation, es braucht also nur **eine Bereitstellung**. Lokal startest du ihn mit `make serve` (Passwort „geheim“) oder als Image mit `make image` und `make image-run`.
+Ein einziger Container liefert die Präsentation (`/`, öffentlich) und den Editor (`/editor.html`, ohne Anmeldung). Beide arbeiten auf demselben Deck-Ordner: Änderungen im Editor erscheinen sofort in der Präsentation, es braucht also nur **eine Bereitstellung**. Lokal startest du ihn mit `make serve` oder als Image mit `make image` und `make image-run`.
 
-Das Image läuft auf jedem Container-Dienst: Port aus `PORT`, Health Check `/healthz`, eine Festplatte auf `/data` und `EDITOR_PASSWORD` gesetzt. Die Zugangsdaten gehen per HTTP Basic, deshalb nur über HTTPS betreiben (Render beendet TLS selbst).
+Das Image läuft auf jedem Container-Dienst: Port aus `PORT`, Health Check `/healthz`, eine Festplatte auf `/data`. Gib die Adresse nur an Menschen weiter, die das Deck ändern dürfen: **Der Editor hat keinen Passwortschutz, wer die Adresse kennt, kann Dateien des Decks ändern.**
 
 **Wichtig:** Ohne Festplatte ist das Dateisystem bei Render flüchtig, Änderungen aus dem Editor gehen bei jedem Neustart verloren (kostenlose Dienste haben keine Festplatte). Mit der Festplatte auf `/data` bleiben sie erhalten. Eine Live-Instanz mit Beispiel-Deck läuft unter `https://hashmark.onrender.com`.
 :::

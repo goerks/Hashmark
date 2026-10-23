@@ -1,4 +1,4 @@
-# Docker-Image des Webdienstes (Präsentation öffentlich, Editor mit Passwort) in die GitHub Container Registry:
+# Docker-Image des Webdienstes (Präsentation und Editor ohne Anmeldung) in die GitHub Container Registry:
 # ghcr.io/<benutzer>/<projekt>:latest und :<commit>. Läuft bei jedem Push auf den Hauptzweig und stößt danach Render an.
 # Bei Pull Requests (Jobs `preview` und `preview-cleanup`) entsteht das Image mit dem Tag pr-<Nummer>-<commit> und bei Render eine
 # eigene Vorschau-Instanz desselben Dienstes (API „Create preview for image-backed service“): Die Live-Instanz und `latest` bleiben

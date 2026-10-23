@@ -119,8 +119,8 @@ function guard(req: IncomingMessage, allowHost: (host: string) => boolean) {
 
 export interface EditorApiOptions {
   /**
-   * Welche Host-Header zugelassen sind. Standard: nur localhost. `hashmark serve` lässt jeden zu, schützt den
-   * Editor aber mit Passwort (der Server prüft das, bevor die Anfrage hier ankommt).
+   * Welche Host-Header zugelassen sind. Standard: nur localhost. `hashmark serve` lässt jeden zu, der Editor
+   * ist dort ohne Anmeldung erreichbar (Header und Ursprung prüft `guard` weiterhin).
    */
   allowHost?: (host: string) => boolean
 }
