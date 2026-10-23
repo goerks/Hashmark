@@ -140,6 +140,18 @@ async function run(cdp: Cdp, baseUrl: string) {
   check('Ausschnitt bleibt zwischen 1,4 und 5 s', inside, short(p))
   check('Schleife: das Video beginnt am Ende des Ausschnitts von vorn', looped && p.state === 'playing', short(p))
 
+  // 7b · Presenter-Kopplung: ein zweites Fenster meldet sich über denselben Kanal, liest den Zustand und schickt K
+  const seen = await evalJs<(string | null)[]>(cdp, `new Promise((resolve) => {
+    const ch = new BroadcastChannel('hashmark-presenter:' + location.pathname)
+    const states = []
+    ch.onmessage = (e) => { if (e.data && e.data.type === 'hashmark:presenter-state') states.push(e.data.video ? e.data.video.state : null) }
+    ch.postMessage({ type: 'hashmark:presenter-hello' })
+    setTimeout(() => ch.postMessage({ type: 'hashmark:presenter-key', key: 'k', shiftKey: false }), 400)
+    setTimeout(() => ch.postMessage({ type: 'hashmark:presenter-key', key: 'k', shiftKey: false }), 1200)
+    setTimeout(() => { ch.close(); resolve(states) }, 2400)
+  })`)
+  check('Presenter bekommt den Zustand des Videos (läuft, angehalten, läuft wieder)', seen.includes('playing') && seen.includes('paused') && seen[seen.length - 1] === 'playing', JSON.stringify([...new Set(seen)]))
+
   // 8 · Abspielleiste: kein Schritt
   await press(cdp, 'ArrowRight') // Ausschnitt läuft: springt ans Ende (Schleife zählt nicht als Ende)
   await sleep(300)
