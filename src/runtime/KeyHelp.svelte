@@ -21,6 +21,8 @@
         ['▶ / ◀ (PageDown / PageUp)', 'wie Space / Shift+Space'],
         ['Play (F5)', 'Vollbild an/aus'],
         ['Schwarzbild (B / .)', 'Bildschirm schwarz / zurück'],
+        ['+ / −', 'Zoom tiefer bzw. heraus; im tiefen Zoom verschieben die Pfeile den Ausschnitt (Minikarte unten rechts), Mausrad und Touchpad-Spreizen zoomen am Zeiger; am Touchscreen wischen links/rechts blättert, spreizen, ein Finger verschiebt, Schaltflächen − + × unten links'],
+        ['Z', 'Bild, Code, Diagramm oder Tabelle vergrößern: die Kamera fährt hinein, Z, Esc oder Klick fährt zurück (Bilder mit {zoom}; {zoomstep=2} fährt bei Schritt 2 von selbst hinein)'],
         ['K', 'Video der Folie starten, anhalten, fortsetzen (→ bei laufendem Video springt ans Ende)'],
         ['S', 'Presenter-View im zweiten Fenster: Notizen, nächste Folie, Timer, Baum'],
         ['P (in der Presenter-View)', 'Vortragsplan bearbeiten: Pfad, Optional, Anhang, Zeitbudget'],

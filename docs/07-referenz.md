@@ -15,6 +15,9 @@ Die Kurzreferenz für den Alltag. Ausführlich steht alles in der README des Pro
 | Space | dem Vortragsplan nach |
 | S / P / N | Presenter-View / Plan / Notizen |
 | K | Video der Folie starten / anhalten |
+| Z | Bild, Code, Diagramm oder Tabelle vergrößern (Kamera) / zurück |
+| Touch | Wischen links/rechts blättert (weiter/zurück), Antippen zoomt auf ein Ziel, zwei Finger spreizen/zusammenführen zoomt, ein Finger verschiebt, Schaltflächen − + × unten links |
+| + / − | Zoom tiefer bzw. heraus; im tiefen Zoom verschieben die Pfeile den Ausschnitt (Minikarte), Mausrad zoomt am Zeiger |
 | Ctrl+K | Suche |
 | T | Plan aus/an |
 
@@ -47,6 +50,8 @@ Alle Befehle laufen über `make`, Node.js liegt im Projekt. `make check` prüft 
 | `{steps}` / `{optional}` / `{fit}` | Flags |
 | `$a^2$` / `$$ … $$` | Formeln |
 | `![Demo](demo.mp4){play=1}` | Video (Schritt, K pausiert) |
+| `![Bild](bild.png){zoom}` | Bild mit Z vergrößerbar |
+| `![Bild](bild.png){zoomstep=2 zoomuntil=3}` | Kamera fährt bei Schritt 2 von selbst aufs Bild, bei Schritt 3 heraus (`zoomuntil` optional) |
 | ` ```mermaid ` | Diagramm |
 
 ::: notes

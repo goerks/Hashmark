@@ -32,6 +32,8 @@ export interface RenderContext {
   assets: Set<string>
   /** alle lokalen Bilder als Data-URI einbetten (deck.yaml: embedImages) */
   embedImages?: boolean
+  /** alle Bilder mit Z vergrößerbar machen (deck.yaml: zoom) */
+  zoomImages?: boolean
   /** Hinweise, z. B. fehlende Bilder */
   warnings?: string[]
   /** Vorlagen eigener Container (`components/*.html`) */
@@ -284,18 +286,20 @@ type AnyNode = RootContent & { name?: string; attributes?: Record<string, string
 /** `![](x.png){width=60% .rund}`: Attribute im Text direkt nach dem Bild */
 const OBJECT_FITS = ['cover', 'contain', 'fill', 'none', 'scale-down']
 
-function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn, video?: (url: string) => string) {
+const ZOOM_OFF = ['off', 'false', 'no', '0']
+
+function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn, video?: (url: string) => string, zoomDefault = false) {
   const next = parent.children?.[index + 1] as { type: string; value: string } | undefined
   const m = next?.type === 'text' ? next.value.match(/^\{([^{}]*)\}/) : null
   if (!m) {
     // `{ratio=16:9}`: der Doppelpunkt zerreißt den Text, die Attribute bleiben sichtbar stehen
     if (next?.type === 'text' && /^\{\w+=[^{}]*$/.test(next.value)) warn(`Bild-Attribute nicht lesbar: „${next.value.slice(0, 40)}…“ (kein Doppelpunkt im Wert, z. B. ratio=16/9)`)
-    // ein Video braucht auch ohne Attribute seine Eigenschaften (Standbild bis zum ersten Schritt)
-    if (!video) return
+    // ein Video braucht auch ohne Attribute seine Eigenschaften (Standbild bis zum ersten Schritt), ein Bild bei `zoom: true` im Deck das Zoom-Attribut
+    if (!video && !zoomDefault) return
   }
   if (m) next!.value = next!.value.slice(m[0].length)
   const attrs = m ? parseAttrs(m[1]) : {}
-  const known = ['width', 'height', 'fit', 'pos', 'ratio', 'step', 'until', 'style', 'class', 'id', ...(video ? VIDEO_ATTRS : [])]
+  const known = ['width', 'height', 'fit', 'pos', 'ratio', 'step', 'until', 'style', 'class', 'id', ...(video ? VIDEO_ATTRS : ['zoom', 'zoomstep', 'zoomuntil'])]
   const what = video ? 'Video' : 'Bild'
   for (const key of Object.keys(attrs)) {
     if (!known.includes(key)) warn(`${what}-Attribut „${key}“ ist unbekannt (bekannt: ${known.join(', ')})`)
@@ -318,6 +322,23 @@ function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn, v
   if (/^\d+$/.test(attrs.until ?? '')) props.dataUntil = attrs.until
   if (attrs.class) props.className = attrs.class.split(/\s+/)
   if (attrs.id) props.id = attrs.id
+  if (!video) {
+    // `{zoom}`: in der Präsentation mit Z (oder Klick) vergrößern; `{zoom=off}` nimmt ein Bild von `zoom: true` im Deck aus
+    if (attrs.zoom !== undefined && attrs.zoom !== 'true' && !ZOOM_OFF.includes(attrs.zoom.toLowerCase())) warn(`Bild: zoom="${attrs.zoom}" ist ungültig (zoom oder zoom=off)`)
+    const off = attrs.zoom !== undefined && ZOOM_OFF.includes(attrs.zoom.toLowerCase())
+    // `zoomstep=2`: ab Schritt 2 fährt die Kamera von selbst aufs Bild, `zoomuntil=3`: ab Schritt 3 wieder heraus (sonst bis die Folie wechselt)
+    for (const key of ['zoomstep', 'zoomuntil']) if (attrs[key] !== undefined && !/^[1-9]\d*$/.test(attrs[key])) warn(`Bild: ${key}="${attrs[key]}" ist ungültig (Schrittnummer ab 1)`)
+    const zoomStep = /^[1-9]\d*$/.test(attrs.zoomstep ?? '') ? Number(attrs.zoomstep) : undefined
+    const zoomUntil = /^[1-9]\d*$/.test(attrs.zoomuntil ?? '') ? Number(attrs.zoomuntil) : undefined
+    if (attrs.zoomuntil !== undefined && zoomStep === undefined) warn('Bild: zoomuntil gilt nur zusammen mit zoomstep')
+    if (zoomStep !== undefined && off) warn('Bild: zoomstep gilt nicht, das Bild ist mit zoom=off ausgenommen')
+    if (zoomStep !== undefined && zoomUntil !== undefined && zoomUntil <= zoomStep) warn(`Bild: zoomuntil=${zoomUntil} muss nach zoomstep=${zoomStep} liegen`)
+    if (zoomStep !== undefined && !off) {
+      props.dataZoom = 'true'
+      props.dataZoomstep = String(zoomStep)
+      if (zoomUntil !== undefined && zoomUntil > zoomStep) props.dataZoomuntil = String(zoomUntil)
+    } else if (attrs.zoom === undefined ? zoomDefault : !off) props.dataZoom = 'true'
+  }
   if (video) {
     // `<video>` statt `<img>`: die Startzeit hängt als Medienfragment an der Adresse, das Standbild zeigt dann diese Stelle
     const img = node as unknown as { url: string; alt?: string | null }
@@ -617,7 +638,7 @@ function applyDirectives(root: Root, ctx: RenderContext) {
       const isVideo = isVideoUrl(img.url)
       img.url = resolveImage(img.url, ctx)
       if (isVideo && /^https?:/i.test(img.url)) warn(`Video „${img.url}“ liegt im Netz und läuft offline nicht`)
-      if (parent && index !== undefined) imageAttrs(node, index, parent, warn, isVideo ? (u) => resolveImage(u, ctx) : undefined)
+      if (parent && index !== undefined) imageAttrs(node, index, parent, warn, isVideo ? (u) => resolveImage(u, ctx) : undefined, ctx.zoomImages === true)
     }
   })
 }
@@ -738,6 +759,7 @@ async function blocksToHtml(blocks: AnyNode[], ctx: RenderContext): Promise<{ ht
   const count = Math.max(0,
     ...[...html.matchAll(/data-step="(\d+)"/g)].map((m) => Number(m[1])),
     ...[...html.matchAll(/data-play="(\d+)"/g)].map((m) => Number(m[1])),
+    ...[...html.matchAll(/data-zoom(?:step|until)="(\d+)"/g)].map((m) => Number(m[1])),
     ...[...html.matchAll(/data-hl-count="(\d+)"/g)].map((m) => Number(m[1]) - 1))
   for (let k = 1; k <= count; k++) steps.push({ selector: `[data-step="${k}"]`, state: { visible: 'true' } })
   return { html, steps }

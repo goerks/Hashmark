@@ -78,6 +78,8 @@ export interface Manifest {
   embedImages?: boolean
   /** Videos im Einzel-HTML-Export einbetten (bis 25 MB je Datei); sonst liegen sie in einem Ordner neben der Datei */
   embedMedia?: boolean
+  /** alle Bilder lassen sich in der Präsentation mit Z vergrößern (einzeln abwählen mit `{zoom=off}`) */
+  zoom?: boolean
   layout?: string
   /** Default-Layout je Ebene, z. B. `{ 1: section, 2: default }` */
   layouts?: Record<string, string>

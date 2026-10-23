@@ -66,6 +66,24 @@ Das Video liegt als Datei im Deck-Ordner. Als Format empfehlen wir MP4 (H.264/AA
 Im Browser startet ein Video mit Ton erst, nachdem im Präsentationsfenster einmal geklickt oder eine Taste gedrückt wurde. Bis dahin zeigt das Video seine Abspielleiste, ein Klick startet es. In der Desktop-App gilt die Einschränkung nicht.
 :::
 
+## Bild, Code und Diagramm vergrößern {id=bild-zoom}
+
+````md
+![Status](status.png){zoom}
+````
+
+::: notes
+Mit `{zoom}` hinter dem Bild lässt es sich in der Präsentation vergrößern: **Z** oder ein Klick auf das Bild fährt die Kamera in die Folie hinein, bis das Bild die Bühne füllt. Titel und Text wandern dabei mit aus dem Bild, so bleibt der Zusammenhang sichtbar. **Z**, **Esc** oder ein Klick fährt zurück, Weiterblättern setzt die Kamera ebenfalls zurück. Die Presenter-View zeigt, ob die Folie ein Bild zum Vergrößern hat, und gibt Z weiter.
+
+In der `deck.yaml` macht `zoom: true` alle Bilder des Decks vergrößerbar, `{zoom=off}` nimmt ein einzelnes Bild aus. Hat die Folie mehrere vergrößerbare Bilder, fährt Z auf das erste sichtbare, ein Klick auf ein bestimmtes Bild auf dieses. Wer die Bewegung nicht mag, stellt im Betriebssystem „Animationen reduzieren“ ein: Dann springt die Kamera ohne Fahrt. PDF, PowerPoint und Handout zeigen das Bild unverändert.
+
+Wer nur mit → durchsteppt (auch aus dem Presenter), muss nicht an Z denken: `{zoomstep=2}` lässt die Kamera bei Schritt 2 von selbst aufs Bild fahren, `{zoomstep=2 zoomuntil=3}` fährt bei Schritt 3 wieder heraus (ohne `zoomuntil` bleibt sie, bis die Folie wechselt). ← kehrt jeden Schritt um. Der Zoom zählt als Schritt der Folie und steht in der Schrittanzeige; Z, Klick und Esc gehen zusätzlich weiter.
+
+Tiefer hinein: **+** und **−** fahren eine Stufe tiefer bzw. wieder heraus, unter die Ausgangsgröße ist − der Weg zurück. Sobald die Kamera tiefer steht als beim ersten Z, verschieben die **Pfeiltasten** den Ausschnitt, und unten rechts zeigt eine **Minikarte**, wo man auf der Folie ist; Space und Bild ab gehen weiter, → blättert erst nach Esc oder Z. Das **Mausrad** zoomt am Zeiger, sobald die Kamera fährt, **Strg + Mausrad** (Spreizen auf dem Touchpad) startet sie auch. **Am Telefon oder Tablet** ohne Tastatur: Antippen eines Bildes, Codeblocks, Diagramms oder einer Tabelle fährt hinein, **zwei Finger spreizen** bzw. zusammenführen zoomt (auch aus der Normalansicht), **ein Finger** verschiebt den Ausschnitt. Unten links stehen die Schaltflächen **−**, **+** und **×** (Zoom beenden), unten rechts die Minikarte. Tippen auf die Folie fährt ebenfalls zurück. Zum Blättern ohne Tastatur **wischt** man auf der Folie nach links (weiter) bzw. rechts (zurück), solange die Kamera nicht fährt; das Steuerkreuz unten rechts ist auf Touchscreens fingergroß. In der Presenter-View gehören + und − der Kamera, solange sie fährt, sonst der Schrift der Notizen.
+
+Auch **Codeblöcke, Mermaid-Diagramme und Tabellen** lassen sich vergrößern, ohne Angabe im Markdown: Z fährt auf das erste sichtbare Ziel (Bilder zuerst), ein Klick auf ein bestimmtes Ziel auf dieses.
+:::
+
 # Formeln und Diagramme {id=formeln}
 
 $$

@@ -4,6 +4,7 @@
   import { renderMermaid } from './mermaid.ts'
   import { MIN_ZOOM, fitSlide } from './fit.ts'
   import { clearLiveRoot, prepareVideos, setLiveRoot, syncVideos, type MediaMode } from './video.ts'
+  import { clearZoomRoot, refreshZoom, setZoomRoot, syncZoom, zoomClick } from './zoom.ts'
 
   let { node, slide, layout, step = Infinity, titleTag = 'h1', media = 'off' }: {
     node: DeckNode
@@ -87,13 +88,17 @@
     const current = step
     untrack(() => {
       setLiveRoot(el)
+      setZoomRoot(el)
+      refreshZoom()
       syncVideos(el, current, previousStep)
+      syncZoom(el, current, previousStep)
       previousStep = current
     })
-    return () => clearLiveRoot(el)
+    return () => { clearLiveRoot(el); clearZoomRoot(el) }
   })
 </script>
 
+<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -- Klick auf ein Bild ist nur eine Abkürzung für die Taste Z (siehe zoom.ts) -->
 <section
   class="slide layout-{layout} {node.attrs.class ?? ''}"
   class:has-bg={!!node.attrs.bg}
@@ -103,6 +108,7 @@
   style:--banner-h={node.attrs.bannerh ? (/^[\d.]+$/.test(node.attrs.bannerh) ? node.attrs.bannerh + 'px' : node.attrs.bannerh) : undefined}
   data-fit={zoom < 1 ? zoom : undefined}
   data-overflow={overflow ? '' : undefined}
+  onclick={media === 'live' ? zoomClick : undefined}
   bind:this={el}
 >
   {#if overflow && showOverflow}

@@ -49,6 +49,11 @@ export const SNIPPETS: Snippet[] = [
     text: '$$\n§E = mc^2\n$$\n',
   },
   {
+    label: 'Bild mit Zoom', kind: 'Inhalt', keywords: 'zoom vergrößern bild kamera zoomstep',
+    title: 'Bild, auf das die Kamera von selbst fährt: bei Schritt 1 hinein (zoomstep=1), bei Schritt 2 wieder heraus (zoomuntil=2); ohne zoomstep nur mit Z oder Klick ({zoom})',
+    text: '![§Beschreibung](bilder/bild.png){zoomstep=1 zoomuntil=2 width=40%}\n',
+  },
+  {
     label: 'Video', kind: 'Inhalt', keywords: 'film clip mp4 webm abspielen',
     title: 'Video aus dem Deck-Ordner: → startet es, K hält an (play=2: ab Schritt 2, start=/end= schneiden (5s, 1m30s), controls = Abspielleiste)',
     text: '![§Beschreibung](medien/video.mp4){play=1}\n',

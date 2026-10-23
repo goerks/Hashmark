@@ -224,7 +224,7 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
   const assets = new Set<string>()
   const warnings: string[] = []
   const theme = resolveTheme(deckDir, manifest.theme)
-  const nodes = await finalize(top, '', { deckDir, assets, warnings, embedImages: manifest.embedImages === true, manifest, components: theme.components })
+  const nodes = await finalize(top, '', { deckDir, assets, warnings, embedImages: manifest.embedImages === true, zoomImages: manifest.zoom === true, manifest, components: theme.components })
   injectAgendas(nodes)
   applyFooter(nodes, manifest, warnings)
   const duration = parseDuration(manifest.duration)

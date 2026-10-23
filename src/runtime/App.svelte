@@ -17,6 +17,7 @@
   import { openLink, type PresenterMessage } from './presenter-link.ts'
   import type { VideoInfo } from '../core/media.ts'
   import { onVideoChange, skipVideo, toggleVideo, videoInfo } from './video.ts'
+  import { escapeZoom, onSwipe, onZoomChange, panZoom, resetZoom, toggleZoom, zoomBy, zoomInfo, type ZoomInfo } from './zoom.ts'
   import { onDeckUpdate } from './deck-source.ts'
   import { desktopAction, isDesktop } from './desktop.ts'
 
@@ -105,6 +106,8 @@
 
   function go(move: Move | null) {
     if (!move) return
+    // Weiterblättern fährt die Kamera zurück; Schritte derselben Folie steuert syncZoom (zoomstep)
+    if (!pos || pos.id !== move.pos.id || pos.slide !== move.pos.slide) resetZoom(true)
     dir = move.dir
     pos = move.pos
     // Ausflüge beenden, in denen die neue Position nicht mehr liegt
@@ -184,14 +187,19 @@
 
   // Video der aktuellen Folie: Zustand für die Presenter-View (läuft, angehalten, Zeit)
   let video = $state.raw<VideoInfo | null>(null)
+  // Bild-Zoom der aktuellen Folie: vergrößerbar und vergrößert, für die Presenter-View
+  let zoom = $state.raw<ZoomInfo | null>(null)
   onMount(() => {
     onVideoChange(() => (video = videoInfo()))
-    return () => onVideoChange(null)
+    onZoomChange(() => (zoom = zoomInfo()))
+    // Wischen am Touchscreen: nach links = weiter (→), nach rechts = zurück (←)
+    onSwipe((dir) => navKey(dir === 'left' ? 'ArrowRight' : 'ArrowLeft', false))
+    return () => { onVideoChange(null); onZoomChange(null); onSwipe(null) }
   })
 
   // Stand an die Presenter-View melden
   $effect(() => {
-    if (pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all, video })
+    if (pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all, video, zoom })
   })
 
   // Desktop-App: aktuelle Folie melden (für „Präsentieren ab aktueller Folie“)
@@ -218,6 +226,13 @@
       trip = nav.trip
       return true
     }
+    // Z: Kamera fährt aufs Bild (und zurück), Esc fährt zuerst zurück, bevor es im Baum aufsteigt
+    if (key === 'z' || key === 'Z') return toggleZoom()
+    if (key === 'Escape' && escapeZoom()) return true
+    // + / −: tiefer hinein bzw. heraus; im tiefen Zoom verschieben die Pfeile den Ausschnitt (Space und Bild ab gehen weiter)
+    if (key === '+' || key === '=') return zoomBy(1.5)
+    if (key === '-' || key === '_') return zoomBy(1 / 1.5)
+    if (panZoom(key)) return true
     // K: Video der Folie starten, anhalten, fortsetzen. → bei laufendem Video springt ans Ende, erst das nächste → geht weiter.
     if (key === 'k' || key === 'K') return toggleVideo()
     if ((key === 'ArrowRight' || key === 'PageDown' || (key === ' ' && !shiftKey)) && skipVideo()) return true
@@ -296,7 +311,7 @@
     // Tasten und Sprünge nur, wenn sie an diese Präsentation gerichtet sind
     if ((msg.type === 'hashmark:presenter-key' || msg.type === 'hashmark:presenter-goto') && msg.target && msg.target !== session) return
     if (msg.type === 'hashmark:presenter-hello') presenterUntil = Date.now() + 3500
-    if (msg.type === 'hashmark:presenter-hello' && pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all, video })
+    if (msg.type === 'hashmark:presenter-hello' && pos) link?.send({ type: 'hashmark:presenter-state', pos, black, session, trip: [...trip], all: nav.all, video, zoom })
     else if (msg.type === 'hashmark:presenter-plan') applyPlan(msg.plan)
     else if (msg.type === 'hashmark:presenter-key') {
       wake()
