@@ -30,7 +30,7 @@ export interface LiveServerOptions {
    * Betrieb als Webdienst (`hashmark serve`): Adresse und Port, Gesundheitsprüfung unter /healthz.
    * Die Präsentation ist öffentlich, der Editor nur mit Passwort (HTTP Basic). Ohne Passwort gibt es keinen Editor.
    */
-  web?: { host?: string; port?: number; editorUser?: string; editorPassword?: string }
+  web?: { host?: string; port?: number; editorUser?: string; editorPassword?: string; siteDir?: string }
 }
 
 export interface LiveServer {
@@ -123,6 +123,13 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     const notFound = () => { res.statusCode = 404; res.end() }
 
     if (web && pathname === '/healthz') { res.setHeader('Content-Type', 'text/plain'); return void res.end('ok') }
+    // Vorschau eines Pull Requests: fertig gebaute Webseite (make docs) unter /webseite/, öffentlich wie die Präsentation
+    if (web?.siteDir && (pathname === '/webseite' || pathname.startsWith('/webseite/'))) {
+      if (pathname === '/webseite') { res.writeHead(301, { Location: '/webseite/' }); return void res.end() }
+      const rel = pathname.slice('/webseite/'.length)
+      const file = inside(web.siteDir, rel) ?? inside(web.siteDir, path.posix.join(rel, 'index.html'))
+      return file ? sendFile(req, res, file, 'no-cache') : notFound()
+    }
     if (web && (pathname === '/editor.html' || (pathname.startsWith('/__hashmark/') && !PUBLIC_API.has(pathname))) && !authorize(req, res)) return
 
     if (pathname === '/__hashmark/deck.json') {

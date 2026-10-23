@@ -18,6 +18,8 @@ export interface ServeOptions {
   editorUser?: string
   /** Ohne Passwort gibt es keinen Editor, nur die Präsentation */
   editorPassword?: string
+  /** fertig gebaute Webseite (make docs), unter /webseite/ ausgeliefert; nur in der Vorschau eines Pull Requests */
+  siteDir?: string
 }
 
 const isEmpty = (dir: string) => !fs.existsSync(dir) || fs.readdirSync(dir).filter((f) => !f.startsWith('.')).length === 0
@@ -37,13 +39,16 @@ export async function serve(opts: ServeOptions) {
   if (isEmpty(deckDir)) throw new Error(`Deck-Ordner ist leer oder fehlt: ${deckDir} (--seed <ordner> legt ein Beispiel an)`)
 
   const runtimeDir = await ensureRuntime(console.log)
+  // ein leerer Ordner (Image ohne Webseite) zählt nicht
+  const siteDir = opts.siteDir && fs.existsSync(path.join(opts.siteDir, 'index.html')) ? path.resolve(opts.siteDir) : undefined
   const server = await startLiveServer({
     deckDir: realPath(deckDir),
     runtimeDir,
     onAppAction: () => {},
-    web: { host: opts.host, port: opts.port, editorUser: opts.editorUser, editorPassword: opts.editorPassword },
+    web: { host: opts.host, port: opts.port, editorUser: opts.editorUser, editorPassword: opts.editorPassword, siteDir },
   })
   console.log(`[hashmark] Präsentation: ${server.url}`)
+  if (siteDir) console.log(`[hashmark] Webseite:     ${server.url}webseite/`)
   console.log(opts.editorPassword
     ? `[hashmark] Editor:       ${server.url}editor.html (Benutzer „${opts.editorUser ?? 'editor'}“, Passwort aus EDITOR_PASSWORD)`
     : '[hashmark] Editor aus: EDITOR_PASSWORD ist nicht gesetzt, es gibt nur die Präsentation')

@@ -13,5 +13,6 @@ paths:
 - Die Datei-API prüft im Webbetrieb weiter den Header `X-Hashmark-Editor` und dass `Origin` zum `Host` passt (Basic-Zugangsdaten gehen sonst auch von fremden Seiten mit). `/__hashmark/app` bleibt localhost-only.
 - Das Image installiert online per `npm ci` (der Vendor-Cache enthält nur Windows-Binärdateien) und baut die Runtime beim Bauen vor. Läuft als root, weil Render-Festplatten root gehören.
 - Image: `make image` baut es lokal. Lokal gibt es kein Docker: das Image wurde nicht gebaut, nur `hashmark serve` ist getestet.
+- **Webseite in der Vorschau:** Mit `SITE_DIR` (Option `web.siteDir`) liefert der Webdienst eine fertig gebaute Webseite (`make docs`) öffentlich unter `/webseite/` aus. Das Image füllt den Ordner nur in der Vorschau eines Pull Requests: Die Dockerfile-Stufe `webseite` ist leer, `docker.yml` (Job `preview`) baut die Seite mit Bildern und ersetzt die Stufe per `build-contexts`. Ein leerer Ordner (Live-Instanz) schaltet die Route ab.
 - Dateien des Decks (auch Videos) liefert `live-server.ts` mit Teilabrufen (`serve-file.ts`), Vorspulen im Video geht also auch im Webdienst.
 - `docker.yml` legt das Image bei jedem Push auf `main` ab und ruft danach den Render-Deploy-Hook auf (Secret `RENDER_DEPLOY_HOOK_URL`). Das heißt: **jeder Merge auf `main` deployt die Live-Instanz.**

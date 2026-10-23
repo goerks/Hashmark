@@ -27,18 +27,18 @@ Prüfen: Passt die Aufteilung so, wie in der Analyse entschieden (Variante A)? D
 # So siehst du die Webseite
 
 ::: steps
-- Im Pull Request auf **Checks** und dort beim Lauf **CI** auf **Summary**
-- Unten bei **Artifacts** den Download **probe-webseite** laden und entpacken
-- **Webseite ansehen.cmd** doppelklicken, der Browser öffnet sich
+- In dieser Vorschau hinter die Adresse **/webseite/** setzen
+- Startseite, Funktionsseiten und Handbuch sind dort komplett, mit allen Bildern
+- Der Link steht auch im Kommentar „Vorschau bei Render“ im Pull Request
 :::
 
 > [!NOTE]
 > Nach der Freigabe erscheint dieselbe Seite unter goerks.github.io/Hashmark.
 
 ::: notes
-Der kleine Starter liefert den Ordner auf deinem Rechner unter http://localhost:4000 aus; ohne ihn laden die eingebetteten Folien nicht. Windows fragt eventuell, ob PowerShell starten darf. Beenden: das schwarze Fenster schließen.
+Die Vorschau baut die Webseite bei jedem Stand neu, genau so, wie sie später auf GitHub Pages steht. Ohne Internet geht es auch: Im Pull Request unter Checks › CI › Summary den Download „probe-webseite“ laden, entpacken und „Webseite ansehen.cmd“ doppelklicken.
 
-Prüfen: Öffnet sich die Startseite mit dem großen Bild der Presenter-View?
+Prüfen: Öffnet sich unter /webseite/ die Startseite mit dem großen Bild der Presenter-View?
 :::
 
 # Startseite
@@ -125,7 +125,7 @@ Prüfen: Stimmen die Texte fachlich? Ein Test stellt sicher, dass die Tabellen u
 
 - Die Bilder der Webseite entstehen erst in der Pipeline, ich habe sie nicht selbst gesehen
 - Die Seiten mit echten Folien liefen nur ohne Handbuch im Browser
-- „Webseite ansehen.cmd“ ist unter Windows nicht ausprobiert
+- „Webseite ansehen.cmd“ (Download ohne Internet) ist unter Windows nicht ausprobiert
 - Die vier Bilder der README zeigen noch das alte Inhaltsverzeichnis
 
 ::: notes

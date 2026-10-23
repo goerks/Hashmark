@@ -80,11 +80,28 @@ jobs:
         run: |
           REPO=$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
           echo "image=ghcr.io/$REPO:pr-$PR-${SHA::7}" >> "$GITHUB_OUTPUT"
+      # Die Webseite (Startseite, Funktionsseiten, Handbuch) mit Bildern aus der App bauen; die Vorschau zeigt sie unter /webseite/
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
+      - name: Webseite bauen
+        env:
+          HASHMARK_BROWSER: /usr/bin/google-chrome
+          HASHMARK_NO_SANDBOX: '1'
+          HASHMARK_PROJECT_URL: ${{ github.server_url }}/${{ github.repository }}
+          HASHMARK_SHOTS: ${{ runner.temp }}/shots
+        run: |
+          git fetch --tags --quiet || true
+          node scripts/make-screenshots.ts --out "$RUNNER_TEMP/shots"
+          node scripts/build-docs.ts --out "$RUNNER_TEMP/webseite/site"
       - uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: ${{ steps.tag.outputs.image }}
+          build-contexts: |
+            webseite=${{ runner.temp }}/webseite
           # die Vorschau zeigt die Abnahme-Präsentation (Ordner abnahme/) und setzt sie bei jedem Start neu auf
           build-args: |
             SEED=abnahme
@@ -127,7 +144,8 @@ jobs:
             url="${url%/}"
             text+="**Abnahme-Präsentation:** $url/"$'\n'
             text+="- Lesemodus (zum Nachlesen): $url/?reader"$'\n'
-            text+="- Editor: $url/editor.html"$'\n\n'
+            text+="- Editor: $url/editor.html"$'\n'
+            text+="- **Neue Webseite** (Startseite, Funktionen, Handbuch): $url/webseite/"$'\n\n'
             text+="Die Präsentation zeigt die Neuerung selbst (Taste F5 für Vollbild, S für die Presenter-View)."$'\n\n'
           else
             text+="Die Vorschau wurde angelegt, die Adresse steht im Render-Dashboard (Dienst \`$NAME\`)."$'\n\n'

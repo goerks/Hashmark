@@ -9,6 +9,12 @@
 #            PORT             Standard 10000 (Render setzt ihn selbst)
 #            DECK_DIR         Deck-Ordner, Standard /data/deck
 #            DECK_SEED        wird beim ersten Start in einen leeren DECK_DIR kopiert (Standard: Beispiel-Deck)
+#            SITE_DIR         gebaute Webseite unter /webseite/ (nur in der Vorschau eines Pull Requests gefüllt)
+# Vorschau eines Pull Requests: die fertig gebaute Webseite (make docs) unter /webseite/. Die Pipeline ersetzt diese Stufe per
+# `build-contexts: webseite=<ordner>` (der Ordner enthält site/); ohne das bleibt sie leer und der Webdienst zeigt keine Webseite.
+FROM node:24-bookworm-slim AS webseite
+RUN mkdir -p /site
+
 FROM node:24-bookworm-slim
 
 WORKDIR /app
@@ -21,6 +27,7 @@ COPY src ./src
 COPY examples ./examples
 # Abnahme-Präsentation des offenen Pull Requests (siehe .claude/rules/git-workflow.md); im Normalbetrieb ein kurzer Ruhezustand
 COPY abnahme ./abnahme
+COPY --from=webseite /site ./webseite
 
 # Oberfläche (Präsentation, Editor) einmal vorbauen, damit der Start nur Sekunden dauert
 RUN node src/desktop/runtime-build.ts
@@ -33,7 +40,8 @@ ENV NODE_ENV=production \
     PORT=10000 \
     DECK_DIR=/data/deck \
     DECK_SEED=/app/${SEED} \
-    DECK_SEED_RESET=${SEED_RESET}
+    DECK_SEED_RESET=${SEED_RESET} \
+    SITE_DIR=/app/webseite
 
 EXPOSE 10000
 
