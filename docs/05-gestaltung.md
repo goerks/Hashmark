@@ -66,6 +66,18 @@ Das Video liegt als Datei im Deck-Ordner. Als Format empfehlen wir MP4 (H.264/AA
 Im Browser startet ein Video mit Ton erst, nachdem im Präsentationsfenster einmal geklickt oder eine Taste gedrückt wurde. Bis dahin zeigt das Video seine Abspielleiste, ein Klick startet es. In der Desktop-App gilt die Einschränkung nicht.
 :::
 
+## Bild vergrößern {id=bild-zoom}
+
+````md
+![Status](status.png){zoom}
+````
+
+::: notes
+Mit `{zoom}` hinter dem Bild lässt es sich in der Präsentation vergrößern: **Z** oder ein Klick auf das Bild fährt die Kamera in die Folie hinein, bis das Bild die Bühne füllt. Titel und Text wandern dabei mit aus dem Bild, so bleibt der Zusammenhang sichtbar. **Z**, **Esc** oder ein Klick fährt zurück, Weiterblättern setzt die Kamera ebenfalls zurück. Die Presenter-View zeigt, ob die Folie ein Bild zum Vergrößern hat, und gibt Z weiter.
+
+In der `deck.yaml` macht `zoom: true` alle Bilder des Decks vergrößerbar, `{zoom=off}` nimmt ein einzelnes Bild aus. Hat die Folie mehrere vergrößerbare Bilder, fährt Z auf das erste sichtbare, ein Klick auf ein bestimmtes Bild auf dieses. Wer die Bewegung nicht mag, stellt im Betriebssystem „Animationen reduzieren“ ein: Dann springt die Kamera ohne Fahrt. PDF, PowerPoint und Handout zeigen das Bild unverändert.
+:::
+
 # Formeln und Diagramme {id=formeln}
 
 $$

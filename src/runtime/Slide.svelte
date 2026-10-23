@@ -4,6 +4,7 @@
   import { renderMermaid } from './mermaid.ts'
   import { MIN_ZOOM, fitSlide } from './fit.ts'
   import { clearLiveRoot, prepareVideos, setLiveRoot, syncVideos, type MediaMode } from './video.ts'
+  import { clearZoomRoot, refreshZoom, setZoomRoot, zoomClick } from './zoom.ts'
 
   let { node, slide, layout, step = Infinity, titleTag = 'h1', media = 'off' }: {
     node: DeckNode
@@ -87,10 +88,12 @@
     const current = step
     untrack(() => {
       setLiveRoot(el)
+      setZoomRoot(el)
+      refreshZoom()
       syncVideos(el, current, previousStep)
       previousStep = current
     })
-    return () => clearLiveRoot(el)
+    return () => { clearLiveRoot(el); clearZoomRoot(el) }
   })
 </script>
 
@@ -103,6 +106,7 @@
   style:--banner-h={node.attrs.bannerh ? (/^[\d.]+$/.test(node.attrs.bannerh) ? node.attrs.bannerh + 'px' : node.attrs.bannerh) : undefined}
   data-fit={zoom < 1 ? zoom : undefined}
   data-overflow={overflow ? '' : undefined}
+  onclick={media === 'live' ? zoomClick : undefined}
   bind:this={el}
 >
   {#if overflow && showOverflow}

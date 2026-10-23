@@ -9,6 +9,7 @@
   import { desktopAction, isDesktop } from './desktop.ts'
   import { formatClock, pace } from '../core/timing.ts'
   import type { VideoInfo } from '../core/media.ts'
+  import type { ZoomInfo } from './zoom.ts'
   import ScaledSlide from './ScaledSlide.svelte'
   import Notes from './Notes.svelte'
   import Search from './Search.svelte'
@@ -32,6 +33,8 @@
   let all = $state(false)
   /** Video der aktuellen Folie in der Präsentation (läuft, angehalten …) */
   let video = $state.raw<VideoInfo | null>(null)
+  /** Bild-Zoom der aktuellen Folie in der Präsentation */
+  let zoom = $state.raw<ZoomInfo | null>(null)
   const VIDEO_STATE: Record<VideoInfo['state'], string> = { idle: 'Standbild', playing: '▶ läuft', paused: '❚❚ angehalten', ended: 'zu Ende' }
   const VIDEO_KEY: Record<VideoInfo['state'], string> = { idle: 'Start', playing: 'Pause', paused: 'weiter', ended: 'von vorn' }
   let trip = $state.raw<Excursion[]>([])
@@ -171,6 +174,7 @@
     black = msg.black
     all = msg.all
     video = msg.video ?? null
+    zoom = msg.zoom ?? null
     trip = msg.trip
   }
 
@@ -321,6 +325,9 @@
       {/if}
       {#if right && right.pos.id !== pos?.id}
         <span class="pv-right"><kbd>→</kbd> {nav.node(right.pos.id)?.title}</span>
+      {/if}
+      {#if zoom?.available}
+        <span class="pv-video" class:playing={zoom.active}>Bild: {zoom.active ? 'vergrößert' : 'normal'} · <kbd>Z</kbd> {zoom.active ? 'zurück' : 'vergrößern'}</span>
       {/if}
       {#if video}
         <span class="pv-video" class:playing={video.state === 'playing'}>

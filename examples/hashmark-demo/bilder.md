@@ -3,9 +3,9 @@
 ::: columns
 ::: col
 ### Datei einbinden
-![Schichten](bilder/schichten.svg){width=100%}
+![Schichten](bilder/schichten.svg){width=100% zoom}
 
-`![Schichten](bilder/schichten.svg){width=100%}`
+`![Schichten](bilder/schichten.svg){width=100% zoom}`
 :::
 ::: col
 ### Base64 eingebettet
@@ -22,6 +22,7 @@
 - **Datei außerhalb** (z. B. `../shared/logo.png`) → automatisch als Base64 eingebettet
 - **`embedImages: true`** in `deck.yaml` → alle Bilder als Base64
 - **`{width=60% height=200 .klasse}`** direkt hinter dem Bild
+- **`{zoom}`** hinter dem Bild: in der Präsentation fährt **Z** (oder ein Klick) die Kamera aufs Bild, noch einmal Z zurück
 
 ## draw.io mit Ebenen
 

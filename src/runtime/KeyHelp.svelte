@@ -21,6 +21,7 @@
         ['▶ / ◀ (PageDown / PageUp)', 'wie Space / Shift+Space'],
         ['Play (F5)', 'Vollbild an/aus'],
         ['Schwarzbild (B / .)', 'Bildschirm schwarz / zurück'],
+        ['Z', 'Bild vergrößern: die Kamera fährt hinein, Z, Esc oder Klick fährt zurück (Bilder mit {zoom})'],
         ['K', 'Video der Folie starten, anhalten, fortsetzen (→ bei laufendem Video springt ans Ende)'],
         ['S', 'Presenter-View im zweiten Fenster: Notizen, nächste Folie, Timer, Baum'],
         ['P (in der Presenter-View)', 'Vortragsplan bearbeiten: Pfad, Optional, Anhang, Zeitbudget'],

@@ -12,6 +12,7 @@
 import type { Excursion, Position } from '../core/navigator.ts'
 import type { PlanFile } from '../core/plan.ts'
 import type { VideoInfo } from '../core/media.ts'
+import type { ZoomInfo } from './zoom.ts'
 
 export type PresenterMessage =
   /** Presenter → Präsentation, regelmäßig: „ich bin da“ */
@@ -23,7 +24,7 @@ export type PresenterMessage =
   /** Presenter → Präsentation: Fahrplan wurde geändert bzw. beim Koppeln abgleichen */
   | { type: 'hashmark:presenter-plan'; plan: PlanFile }
   /** Präsentation → Presenter: aktueller Stand, dazu laufende Ausflüge und ob der Plan ausgeschaltet ist (Taste T) */
-  | { type: 'hashmark:presenter-state'; pos: Position; black: boolean; session: string; trip: Excursion[]; all: boolean; video?: VideoInfo | null }
+  | { type: 'hashmark:presenter-state'; pos: Position; black: boolean; session: string; trip: Excursion[]; all: boolean; video?: VideoInfo | null; zoom?: ZoomInfo | null }
 
 /** Unter file:// ist der Origin undurchsichtig („null“), dort bleibt nur `*`; der Empfänger prüft die Quelle. */
 export const targetOrigin = () => (/^https?:$/.test(location.protocol) ? location.origin : '*')
@@ -75,5 +76,5 @@ export function openLink(partner: () => Window | null | undefined, onMessage: (m
 
 /** Tasten, die die Presenter-View an die Präsentation weiterreicht */
 export const FORWARDED_KEYS = new Set([
-  'ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', ' ', 'PageDown', 'PageUp', 'Enter', 'Escape', 'Home', 'b', 'B', '.', 'k', 'K',
+  'ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', ' ', 'PageDown', 'PageUp', 'Enter', 'Escape', 'Home', 'b', 'B', '.', 'k', 'K', 'z', 'Z',
 ])

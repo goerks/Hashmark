@@ -26,8 +26,8 @@ jobs:
       - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
       - run: npx vitest run
 
-  # Video in der Präsentation im echten Browser (Chrome des Runners): Start per Schritt, K, Überspringen, Ausschnitt, Teilabrufe
-  video-e2e:
+  # Präsentation im echten Browser (Chrome des Runners): Video (Start per Schritt, K, Überspringen, Ausschnitt, Teilabrufe) und Bild-Zoom
+  browser-e2e:
     runs-on: ubuntu-latest
     env:
       HASHMARK_BROWSER: /usr/bin/google-chrome
@@ -39,6 +39,7 @@ jobs:
           node-version: 24
       - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
       - run: node scripts/video-e2e.ts
+      - run: node scripts/zoom-e2e.ts
 
   # Go-Hülle ohne CGO: der Go-Compiler genügt, auch für die anderen Plattformen
   build-app:
