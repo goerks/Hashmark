@@ -15,7 +15,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 
 Regeln je Bereich:
 
-- `git-workflow.md` – **immer**: Feature-Branch + Pull Request, nie auf `main`
+- `git-workflow.md` – **immer**: Ticket, Feature-Branch + Pull Request, Abnahme, Merge durch Claude, nie auf `main`
 - `architektur-core.md` – `src/core/**`, `tests/**`: Datenmodell, Parser, Navigator, Plan, Syntax, Komponenten
 - `runtime-editor.md` – `src/runtime/**`, `src/vite/**`, `src/cli/**`: Svelte-App, Editor, Druck, Presenter-Link, Fahrpläne
 - `desktop-go.md` – `desktop-go/**`, `src/desktop/**`: Go-Hülle, Sidecar, Abstürze, Kaltstart
@@ -25,7 +25,7 @@ Regeln je Bereich:
 
 ## Workflow
 
-Jede Änderung auf einem **Feature-Branch** (`/feature <thema>`), per **Pull Request** nach `main` (`/pr`), PR-Titel = Changelog-Zeile. Nie direkt auf `main` (ein Hook blockiert das). Details: `.claude/rules/git-workflow.md`.
+**Ticket → Analyse mit Varianten und Entscheidung (`/analyse`) → Feature-Branch mit Pull Request → Umsetzung → Abnahme durch den Auftraggeber → Merge durch Claude.** Der Auftraggeber bleibt fachlich: Er hat mit Branches, Commits, PRs und Merges nichts zu tun. Claude macht den ganzen technischen Ablauf selbstständig (Skills `/feature`, `/pr`), spricht in Ticket- und Abnahmesprache und mergt (Squash) **nur nach ausdrücklicher Freigabe** und grüner CI. PR-Titel = Changelog-Zeile. Nie direkt auf `main` (ein Hook blockiert das). Details: `.claude/rules/git-workflow.md`.
 
 ## Befehle (immer über `make`, Node liegt im Projekt)
 

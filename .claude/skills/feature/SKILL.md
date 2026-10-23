@@ -1,15 +1,16 @@
 ---
 name: feature
-description: Legt für ein neues Thema einen Feature-Branch von aktuellem main an (feat/fix/docs/chore). Aufruf mit /feature <thema>.
+description: Startet die Arbeit an einem Ticket: Branch von aktuellem main und Entwurfs-Pull-Request. Claude benutzt es selbst, der Auftraggeber muss es nicht aufrufen. Aufruf mit /feature <Ticketnummer oder Thema>.
 ---
 
-# /feature <thema>
+# /feature <#ticket | thema>
 
-Startet Arbeit immer auf einem eigenen Branch. Regeln: `.claude/rules/git-workflow.md`.
+Startet Arbeit immer auf einem eigenen Branch mit Ticket und Entwurfs-PR. Regeln: `.claude/rules/git-workflow.md`. Der Auftraggeber bleibt fachlich: nichts davon verlangt eine Entscheidung von ihm.
 
-1. **Thema und Art bestimmen.** Aus dem Argument den Namen ableiten: Art `feat` (neue Funktion), `fix` (Fehler), `docs` (nur Doku), `chore` (Aufräumen, Tooling). Name klein, mit Bindestrichen, ohne Umlaute: `docs/readme-schaufenster`. Fehlt das Argument, kurz nachfragen.
-2. **Arbeitsbaum ansehen:** `git status -sb`. Liegen unversionierte oder geänderte Dateien vor, dem Nutzer sagen, was es ist, und fragen, ob sie mit auf den neuen Branch sollen. Nichts verwerfen.
-3. **Branch anlegen:**
-   - Auf `main`: `git pull --ff-only` (falls ein Remote erreichbar ist), dann `git checkout -b <art>/<thema>`.
-   - Auf einem anderen Branch: nachfragen, ob er der Ausgangspunkt sein soll oder von `main` abgezweigt wird.
-4. **Ergebnis melden:** Branchname und Ausgangspunkt in einer Zeile. Noch nichts committen oder pushen.
+0. **Analyse vorher:** Legt das Ticket Verhalten, Syntax oder Aussehen fest und gibt es noch keine Entscheidung des Auftraggebers, zuerst `/analyse` ausführen und die Entscheidung abwarten.
+1. **Ticket klären.** Mit Nummer: Ticket lesen (`issue_read`). Ohne Ticket: zuerst eins nach `.github/ISSUE_TEMPLATE/auftrag.md` anlegen (vorher `search_issues` auf Dubletten) und die Nummer nennen.
+2. **Art und Namen bestimmen:** `feat` (neue Funktion), `fix` (Fehler), `docs` (nur Doku), `chore` (Aufräumen, Tooling). Name klein, mit Bindestrichen, ohne Umlaute: `feat/video-und-bildzoom`. Gibt die Umgebung einen Branch vor, diesen nehmen.
+3. **Arbeitsbaum ansehen:** `git status -sb`. Fremde Änderungen (der Auftraggeber arbeitet parallel im Deck) nie verwerfen, kurz erwähnen.
+4. **Branch anlegen:** von aktuellem `main` (`git fetch origin main`, `git checkout -b <branch> origin/main`). Gehören schon Commits auf dem Branch zum Thema, bleiben sie.
+5. **Entwurfs-PR öffnen**, sobald es einen ersten Commit gibt: Titel = Changelog-Zeile, Beschreibung nach Vorlage mit `Closes #<Nr>`. Danach umsetzen (siehe `/pr` für den Abschluss).
+6. **Meldung an den Auftraggeber:** ein Satz in Ticketsprache („Ich arbeite an #4“), keine Branch-Namen nötig.
