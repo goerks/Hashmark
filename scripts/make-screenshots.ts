@@ -1,11 +1,13 @@
-// Bilder für README und Startseite erzeugen: node scripts/make-screenshots.ts [--out assets/screenshots]
+// Bilder für README und Webseite erzeugen: node scripts/make-screenshots.ts [--out <ordner>]
 //
-// Baut die Dokumentation in einen temporären Ordner, liefert sie lokal aus und fotografiert mit Edge/Chrome headless (CDP):
-//   lesemodus.jpg   das Handbuch im Lesemodus
-//   baum.jpg        Folie „Der Baum“ (Mermaid-Diagramm)
-//   karten.jpg      Folie mit Karten
-//   presenter.jpg   Presenter-View, gekoppelt an die Präsentation
-// Die Bilder sind klein (JPEG) und gehören ins Repo, damit README und Seiten nicht von einem Build abhängen.
+// Baut die Dokumentation in einen temporären Ordner, liefert sie lokal aus und fotografiert mit Edge/Chrome headless (CDP).
+// Welche Bilder es gibt, steht in SHOTS (scripts/docs-features.ts): Folien als Einzelkarte (?card), Lesemodus, Druckansicht,
+// Übersicht (Taste O), Presenter-View neben der Präsentation und den Editor (über `hashmark edit`).
+//
+//   ohne --out   nur die vier Bilder der README nach assets/screenshots (klein, liegen im Repository)
+//   --out <dir>  alle Bilder; die Pipeline (pages.yml, ci.yml) legt sie beim Bau der Seiten an (HASHMARK_SHOTS)
+//
+// Ein Bild, das nicht fertig wird (Folie fehlt, Zeitüberschreitung), wird übersprungen; die Seite zeigt dann die Folie.
 
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
 import fs from 'node:fs'
@@ -14,10 +16,14 @@ import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
 import { findBrowser } from '../src/cli/pdf.ts'
+import { SHOTS, type Shot } from './docs-features.ts'
 
 const root = path.resolve(import.meta.dirname, '..')
 const outArg = process.argv.indexOf('--out')
 const outDir = path.resolve(root, outArg > 0 ? process.argv[outArg + 1] : 'assets/screenshots')
+/** Bilder der README (liegen im Repository) */
+const README_SHOTS = ['presenter.jpg', 'lesemodus.jpg', 'baum.jpg', 'karten.jpg']
+const wanted = SHOTS.filter((s) => outArg > 0 || README_SHOTS.includes(s.name))
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
@@ -59,6 +65,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 async function main() {
   const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'hashmark-shots-'))
   let proc: ChildProcess | undefined
+  let editor: ChildProcess | undefined
   let server: http.Server | undefined
   try {
     const site = path.join(tmp, 'site')
@@ -70,7 +77,8 @@ async function main() {
     const profile = path.join(tmp, 'profile')
     proc = spawn(findBrowser(process.env.HASHMARK_BROWSER), [
       '--headless=new', '--disable-gpu', '--no-first-run', '--no-default-browser-check', '--hide-scrollbars',
-      `--user-data-dir=${profile}`, '--remote-debugging-port=0', 'about:blank',
+      `--user-data-dir=${profile}`, '--remote-debugging-port=0',
+      ...(process.env.HASHMARK_NO_SANDBOX ? ['--no-sandbox'] : []), 'about:blank',
     ], { stdio: 'ignore' })
     let port = 0
     for (let i = 0; i < 200 && !port; i++) {
@@ -78,43 +86,85 @@ async function main() {
     }
     if (!port) throw new Error('Browser startet nicht')
 
-    /** neuer Tab in der gewünschten Größe, wartet auf `ready` (JS-Ausdruck) */
-    const open = async (url: string, w: number, h: number, ready = 'true') => {
+    /** neuer Tab in der gewünschten Größe, wartet auf `ready` (JS-Ausdruck); null, wenn die Seite nicht fertig wird */
+    const open = async (url: string, w = 1280, h = 720, ready = 'true') => {
       const t = await (await fetch(`http://127.0.0.1:${port}/json/new?${encodeURIComponent(url)}`, { method: 'PUT' })).json()
       const cdp = await connect(t.webSocketDebuggerUrl)
       await cdp.send('Page.enable')
       await cdp.send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: false })
-      for (let i = 0; i < 100; i++) {
-        const r = await cdp.send('Runtime.evaluate', { expression: ready, returnByValue: true })
-        if (r.result?.value) break
-        await sleep(200)
+      let ok = false
+      for (let i = 0; i < 100 && !ok; i++) {
+        const r = await cdp.send('Runtime.evaluate', { expression: ready, returnByValue: true }).catch(() => null)
+        if (r?.result?.value) ok = true
+        else await sleep(200)
       }
       await sleep(1200)
-      return cdp
+      return { cdp, ok }
     }
-    const shot = async (cdp: Awaited<ReturnType<typeof open>>, name: string) => {
-      const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 82 })
+    const shot = async (cdp: Awaited<ReturnType<typeof connect>>, name: string) => {
+      const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 80 })
       await fsp.mkdir(outDir, { recursive: true })
       await fsp.writeFile(path.join(outDir, name), Buffer.from(data, 'base64'))
       console.log(`  ${path.relative(root, path.join(outDir, name))}  ${(Buffer.byteLength(data, 'base64') / 1024).toFixed(0)} KB`)
     }
+    const key = (k: string) => `document.body.dispatchEvent(new KeyboardEvent('keydown', { key: ${JSON.stringify(k)}, bubbles: true }))`
+    const APP = 'document.querySelector("#app")?.children.length > 0'
+
+    /** Editor: `hashmark edit` mit dem Beispiel-Deck auf einem eigenen Port */
+    let editorBase = ''
+    const startEditor = async () => {
+      const editPort = 3000 + Math.floor(Math.random() * 900)
+      editor = spawn(process.execPath, [path.join(root, 'src/cli/index.ts'), 'edit', path.join(root, 'examples/hashmark-demo'), '--port', String(editPort), '--no-open'], { cwd: root, stdio: 'ignore' })
+      for (let i = 0; i < 150; i++) {
+        try { if ((await fetch(`http://localhost:${editPort}/editor.html`)).ok) return `http://localhost:${editPort}` } catch {}
+        await sleep(200)
+      }
+      throw new Error('Editor startet nicht')
+    }
+
+    const take = async (s: Shot) => {
+      const w = s.width ?? 1280, h = s.height ?? 720
+      if (s.kind === 'presenter') {
+        // erst die Präsentation (Sender), dann die Presenter-View im selben Browser (BroadcastChannel)
+        const pres = await open(`${base}/${s.url}`, 1280, 720, APP)
+        const c = await open(`${base}/handbuch/?presenter`, w, h, APP)
+        await sleep(2500)
+        if (pres.ok && c.ok) await shot(c.cdp, s.name)
+        c.cdp.close(); pres.cdp.close()
+        return pres.ok && c.ok
+      }
+      if (s.kind === 'editor') {
+        editorBase ||= await startEditor()
+        // Aufwärmen: Vite optimiert beim ersten Aufruf die Abhängigkeiten und lädt die Seite neu
+        const warm = await open(`${editorBase}/${s.url}`, w, h, 'document.querySelector(".cm-editor")')
+        warm.cdp.close()
+        await sleep(3000)
+        const c = await open(`${editorBase}/${s.url}`, w, h, 'document.querySelector(".cm-editor") && document.querySelector("iframe")')
+        await sleep(3000)
+        if (c.ok) await shot(c.cdp, s.name)
+        c.cdp.close()
+        return c.ok
+      }
+      const c = await open(`${base}/${s.url}`, w, h, s.kind === 'overview' ? APP : s.ready ?? APP)
+      if (c.ok && s.kind === 'overview') {
+        await c.cdp.send('Runtime.evaluate', { expression: key('o') })
+        await sleep(1500)
+      }
+      if (c.ok) await shot(c.cdp, s.name)
+      c.cdp.close()
+      return c.ok
+    }
+
     console.log('Aufnahmen …')
-    let c = await open(`${base}/handbuch/?reader`, 1440, 900, 'document.querySelectorAll("section, article").length > 3')
-    await shot(c, 'lesemodus.jpg'); c.close()
-
-    c = await open(`${base}/handbuch/?card#baum`, 1280, 720, 'document.querySelector(".mermaid svg, .mermaid-state svg")')
-    await shot(c, 'baum.jpg'); c.close()
-
-    c = await open(`${base}/handbuch/?card&step=9#gestaltung`, 1280, 720)
-    await shot(c, 'karten.jpg'); c.close()
-
-    // Presenter: erst die Präsentation (Sender), dann die Presenter-View im selben Browser (BroadcastChannel)
-    const pres = await open(`${base}/handbuch/#baum`, 1280, 720)
-    c = await open(`${base}/handbuch/?presenter`, 1440, 900)
-    await sleep(2500)
-    await shot(c, 'presenter.jpg'); c.close(); pres.close()
+    const skipped: string[] = []
+    for (const s of wanted) {
+      const ok = await take(s).catch((e) => { console.warn(`  ${s.name}: ${(e as Error).message}`); return false })
+      if (!ok) skipped.push(s.name)
+    }
+    if (skipped.length) console.warn(`Übersprungen (die Seite zeigt dort die Folie): ${skipped.join(', ')}`)
   } finally {
     proc?.kill()
+    editor?.kill()
     server?.close()
     await fsp.rm(tmp, { recursive: true, force: true, maxRetries: 10, retryDelay: 300 }).catch(() => {})
   }

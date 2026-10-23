@@ -1,4 +1,5 @@
-# Dokumentation auf GitHub Pages: Startseite, Handbuch (docs/, ein Hashmark-Deck mit Lesemodus) und alle Beispiel-Decks.
+# Dokumentation auf GitHub Pages: Startseite, Funktionsseiten, Handbuch (docs/, ein Hashmark-Deck mit Lesemodus) und alle
+# Beispiel-Decks. Die Bilder nimmt scripts/make-screenshots.ts beim Bau aus der echten App auf.
 # Lokal dasselbe: make docs-serve. Einmalig: Settings → Pages → Source „GitHub Actions“.
 # Die Startseite verweist auf den neuesten Release (letzter Tag); release.yml ruft diesen Ablauf nach dem Release auf.
 name: Pages
@@ -32,9 +33,16 @@ jobs:
         with:
           node-version: 24
       - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
+      # Bilder der Webseite aus der echten App (Chrome des Runners), nicht im Repository
+      - name: Bilder aufnehmen
+        env:
+          HASHMARK_BROWSER: /usr/bin/google-chrome
+          HASHMARK_NO_SANDBOX: '1'
+        run: node scripts/make-screenshots.ts --out "$RUNNER_TEMP/shots"
       - name: Dokumentation bauen
         env:
           HASHMARK_PROJECT_URL: ${{ github.server_url }}/${{ github.repository }}
+          HASHMARK_SHOTS: ${{ runner.temp }}/shots
         run: node scripts/build-docs.ts --out public
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

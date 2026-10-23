@@ -102,6 +102,39 @@ jobs:
           retention-days: 7
           if-no-files-found: error
 
+  # Webseite wie auf GitHub Pages, mit Bildern aus der App: prüft den Bau und liegt bei Pull Requests als Download
+  # bereit (probe-webseite: entpacken, „Webseite ansehen.cmd“ doppelklicken; die Iframes mit echten Folien brauchen einen Server)
+  docs:
+    runs-on: ubuntu-latest
+    env:
+      HASHMARK_BROWSER: /usr/bin/google-chrome
+      HASHMARK_NO_SANDBOX: '1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Tags für den neuesten Release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
+      - name: Bilder aufnehmen
+        run: node scripts/make-screenshots.ts --out "$RUNNER_TEMP/shots"
+      - name: Dokumentation bauen
+        env:
+          HASHMARK_PROJECT_URL: ${{ github.server_url }}/${{ github.repository }}
+          HASHMARK_SHOTS: ${{ runner.temp }}/shots
+        run: node scripts/build-docs.ts --out public
+      - name: Starter zum Ansehen unter Windows
+        if: github.event_name == 'pull_request'
+        run: cp scripts/webseite-ansehen.ps1 public/ && cp scripts/webseite-ansehen.cmd "public/Webseite ansehen.cmd"
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        with:
+          name: probe-webseite
+          path: public/
+          retention-days: 7
+          if-no-files-found: error
+
   # Image bauen, aber nicht veröffentlichen (das macht docker.yml auf main)
   image:
     runs-on: ubuntu-latest

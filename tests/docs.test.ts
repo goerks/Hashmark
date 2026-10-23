@@ -5,8 +5,10 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { loadDeck } from '../src/core/deck.ts'
-import { DEMOS, demosFromHandbook, docsDir, sectionSource } from '../scripts/build-docs.ts'
+import { DEMOS, cardSteps, demosFromHandbook, docsDir, sectionSource } from '../scripts/build-docs.ts'
+import { FEATURES, SHOTS, fallbackUrl, featurePage, featuresIndexPage } from '../scripts/docs-features.ts'
 import { landingPage } from '../scripts/docs-landing.ts'
+import { BUILTIN_LAYOUTS, CONTAINERS, KNOWN_ATTRS, TRANSITIONS } from '../src/core/vocab.ts'
 
 describe('Handbuch (docs/)', () => {
   it('lädt ohne Hinweise und hat die Knoten für die Beispiele', async () => {
@@ -20,18 +22,38 @@ describe('Handbuch (docs/)', () => {
 
   it('jedes Kapitel hat einen Erklärtext in den Notizen (Lesemodus)', async () => {
     const { deck } = await loadDeck(docsDir)
-    const without = deck.nodes.filter((n) => !n.slides.some((s) => s.notes))
+    const chapters = deck.nodes.flatMap((n) => [n, ...n.children])
+    const without = chapters.filter((n) => !n.slides.some((s) => s.notes))
     expect(without.map((n) => n.title)).toEqual([])
+  })
+
+  it('hat die drei Teile, die Themen heißen wie die Funktionsseiten', async () => {
+    const { deck } = await loadDeck(docsDir)
+    expect(deck.nodes.map((n) => n.id)).toEqual(['start', 'lernen', 'themen', 'nachschlagen'])
+    const themen = deck.nodes.find((n) => n.id === 'themen')!.children
+    expect(themen.map((n) => n.title)).toEqual(FEATURES.map((f) => f.title))
+    expect(themen.map((n) => n.id)).toEqual(FEATURES.map((f) => f.doc))
+  })
+
+  it('die Tabellen unter „Nachschlagen“ nennen alles, was die App kennt', () => {
+    const text = fs.readFileSync(path.join(docsDir, 'nachschlagen', '01-syntax.md'), 'utf8')
+    const missing = [
+      ...BUILTIN_LAYOUTS.filter((l) => !text.includes(`| \`${l}\` |`)).map((l) => `Layout ${l}`),
+      ...TRANSITIONS.filter((t) => !text.includes(`| \`${t}\` |`)).map((t) => `Übergang ${t}`),
+      ...CONTAINERS.filter((c) => !text.includes(`| \`::: ${c}\` |`)).map((c) => `Container ${c}`),
+      ...KNOWN_ATTRS.filter((a) => !(a === 'class' ? text.includes('`.klasse`') : new RegExp(`\\| \`${a}[=\`]`).test(text))).map((a) => `Attribut ${a}`),
+    ]
+    expect(missing).toEqual([])
   })
 
   it('liest die Quelltexte der Beispiele aus den Markdown-Dateien', async () => {
     const demos = await demosFromHandbook()
-    const steps = demos.find((d) => d.id === 'schritte')!
+    const steps = demos.find((d) => d.id === 'themen/schritte')!
     expect(steps.source).toContain('# Schritte')
     expect(steps.source).toContain('::: steps')
     expect(steps.source).not.toContain('::: notes') // Notizen gehören nicht zum Beispiel
     expect(steps.steps).toBe(3)
-    const formula = demos.find((d) => d.id === 'formeln')!
+    const formula = demos.find((d) => d.id === 'themen/medien/formeln')!
     expect(formula.source).toContain('\\htmlData')
     expect(formula.steps).toBe(2)
   })
@@ -66,5 +88,38 @@ describe('Startseite', () => {
     expect(html).toContain('https://github.example/g/p/releases')
     expect(html).not.toMatch(/(src|href)="https?:\/\/(?!github.example)/)
     expect(html).not.toMatch(/url\(https?:/)
+  })
+})
+
+describe('Funktionsseiten', () => {
+  it('jede eingebettete Folie und jeder Verweis ins Handbuch existiert', async () => {
+    const stepsOf = await cardSteps()
+    expect(stepsOf(FEATURES.find((f) => f.id === 'schritte')!.card)).toBe(3)
+  })
+
+  it('jede Rubrik hat ein Vorschaubild aus der Liste der Aufnahmen, Namen sind eindeutig', () => {
+    const names = SHOTS.map((s) => s.name)
+    expect(new Set(names).size).toBe(names.length)
+    for (const f of FEATURES) {
+      expect(names, f.id).toContain(f.thumb)
+      for (const h of f.highlights) if (h.shot) expect(names, `${f.id}: ${h.title}`).toContain(h.shot)
+      for (const h of f.highlights) expect(fallbackUrl(h), `${f.id}: ${h.title} braucht eine Folie, falls das Bild fehlt`).toBeTruthy()
+    }
+  })
+
+  const site = { shots: new Set(['baum.jpg']), stepsOf: () => 2, projectUrl: 'https://github.example/g/p' }
+
+  it('zeigt Bilder, wo vorhanden, sonst die echte Folie, und verlinkt ins Handbuch', () => {
+    const html = featurePage(FEATURES[0], site)
+    expect(html).toContain('src="../../screenshots/baum.jpg"')
+    expect(html).toContain('../../handbuch/?card&step=3#themen/navigation/ausflug') // Ausflug: ohne Bild die Folie
+    expect(html).toContain('../../handbuch/?reader#themen/navigation')
+    expect(html).toContain('id="stepbtn"')
+    expect(html).not.toMatch(/(src|href)="https?:\/\/(?!github.example)/)
+  })
+
+  it('die Übersicht verlinkt alle Rubriken', () => {
+    const html = featuresIndexPage(site)
+    for (const f of FEATURES) expect(html).toContain(`href="../funktionen/${f.id}/"`)
   })
 })
