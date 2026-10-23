@@ -147,88 +147,105 @@ Der Belegtext nennt Tests und Fundstellen. „Test“ meint Vitest-Fälle im Rep
 
 ---
 
-## 3. Kano-Merkmale für die nächsten Tickets
+## 3. Finalize und Kano-Merkmale für die nächsten Tickets
 
-Zuordnung nach Kano, jeweils aus Sicht der Hauptzielgruppen (Entwickler:innen, die technisch vortragen; Teams, die ein Deck pflegen).
+Die Liste hat vier Kategorien. Die erste (**Finalize**) liegt vor Kano: Sie enthält nur, was Hashmark schon **zusagt, aber nicht ganz einlöst**. Danach folgen die neuen Merkmale nach Kano. Die Finalize-Punkte gehören zuerst erledigt, weil sie das Vertrauen in das Bestehende betreffen. Neue Funktionen, die darauf aufbauen, kommen danach.
 
+**Was zählt als „Versprechen“?** Eine Zusage in der README, im Handbuch, in einem Kommentar oder ein ✅ in der Roadmap, das ein „Offen:“ nach sich zieht, oder eine Zusage, die sich im Code nicht belegen lässt. Die Quelle steht je Zeile.
+
+- **Finalize:** Zugesagt, aber unvollständig oder ungeprüft. Kein Kano-Merkmal, sondern Schuld aus dem Bestand.
 - **Basismerkmal:** Wird erwartet. Fehlt es, ärgert es. Vorhanden fällt es nicht auf.
 - **Leistungsmerkmal:** Mehr davon ist besser, proportional zur Zufriedenheit.
 - **Begeisterungsmerkmal:** Wird nicht erwartet, überrascht positiv, begründet eine Empfehlung.
 
-Aufwand: **S** (Tage), **M** (1–3 Wochen), **L** (mehr). Das ist eine grobe Schätzung vom Code her, nicht belastbar. „Verw.“ verweist auf Abhängigkeiten.
+Aufwand: **S** (Tage), **M** (1–3 Wochen), **L** (mehr), grob vom Code her geschätzt, nicht belastbar.
 
-### Basismerkmale
+### Finalize: Zusagen einlösen
+
+| ID | Titel | Zusage und Lücke | Quelle | Aufw. |
+| --- | --- | --- | --- | --- |
+| F1 | **Linux und macOS prüfen und Zusage anpassen** | Die README wirbt mit „Standalone-App für Windows, Linux und macOS“. Menü, Vollbild und Monitorwahl sind nur kompiliert und nie gelaufen. Das Handbuch sagt dagegen „noch wenig getestet“. Ziel: Headless-E2E je System in CI, bis dahin die README ehrlich formulieren. | README, `desktop-go.md`, Handbuch „App“ | M |
+| F2 | **Pakete für Linux/macOS je System prüfen** | Der Release baut alle sechs Ziele mit `--online`, aber das Paket braucht je System ein eigenes Node und native npm-Pakete. Ob ein entpacktes Paket startet, ist nirgends geprüft (Rauchtest nach dem Packen). | Roadmap „Desktop-App“, `release.yml` | M |
+| F3 | **`prefers-reduced-motion` in Präsentation und Übergängen** | Die Roadmap nennt es „Pflicht“. Im Code kommt die Abfrage nur im Editor-CSS vor, nicht in `src/runtime` für Übergänge und Schritte. | Roadmap „Animationen“ | S |
+| F4 | **Vortragsplan: Priorität je Knoten und Fahrplan-Auswahl beim Start** | Beides steht unter „Offen“ des als fertig markierten Vortragsplans. Ohne Priorität wirft das Zeitbudget Knoten nur nach Reihenfolge raus. | Roadmap „Presenter-Modus“ | M |
+| F5 | **Auto-Fit und Prüfung vervollständigen** | Offen: Miniatur-Hinweis bei Überlauf im Presenter, Prüfungen für Notizen und Schritte in `hashmark check`. | Roadmap „Layouts und Styles“ | S |
+| F6 | **Theme v2: Hell/Dunkel und Ketten zwischen Theme-Ordnern** | Offen: Hell/Dunkel-Varianten, `extends` zwischen Theme-Ordnern. Die Roadmap verspricht außerdem Taste T für Hell/Dunkel (T ist heute für „alle Knoten“ belegt). | Roadmap „Themes“ | M |
+| F7 | **Druck: Handout 2/3/6 pro Seite, Titelseite mit Baum, Gliederung als Text, `{print=false}`** | In der Roadmap als „Ergänzungen“ zum fast fertigen Druck genannt. `{print=false}` habe ich im Code nicht gefunden. Heute nur eine Folie pro Seite. | Roadmap „Druck“ | M |
+| F8 | **PPTX: Lücken der Animationen schließen** | Offen: Gruppen innerhalb von SVG, Tabellenspalten, Codezeilen abdunkeln, andere Effekte als Einblenden. | Roadmap „Wettbewerbsbacklog 1“ | M |
+| F9 | **PPTX: Folienmaster und Layouts aus dem Theme, Formen statt Hintergrundbild** | Der Export erzeugt ein einziges Layout mit Titel-Platzhalter. Kacheln, Karten und Rahmen liegen im Hintergrundbild, SVG ist ein Bild. Das schmälert „bearbeitbares PowerPoint“ (README). | Roadmap, README | L |
+| F10 | **PPTX: fehlende Schriften erkennen und warnen** | Cascadia → Consolas ist abgedeckt, Web-Schriften nicht. Die Datei kann auf dem Zielrechner anders aussehen, ohne Hinweis. | Roadmap „Wettbewerbsbacklog 1“ | S |
+| F11 | **Editor-Inspector** | Roadmap Stufe 2 führt „Inspector/Autocomplete/Diagnose“. Autocomplete und Diagnose gibt es, der Inspector (Layout, Übergang, Id, Klassen, `duration`) fehlt, ebenso das Formular für `deck.yaml`. | Roadmap „Editor“, Stufe 2 | M |
+| F12 | **Formeln: `macros:` in der `deck.yaml`** | Die Roadmap nennt es offen. Im Code ist `macros: {}` fest leer (`math.ts`). | Roadmap „Wettbewerbsbacklog 3“ | S |
+| F13 | **Publikum folgt live** | Das Handbuch sagt ausdrücklich „noch nicht umgesetzt“. Die Roadmap führt es unter Stufe 6 und unter Live-Funktionen. Es ist die größte offene Zusage der FAQ. | FAQ „Videokonferenz“, Roadmap | L |
+| F14 | **Roadmap und Doku bereinigen** | Die Roadmap nennt das Layout `diagram` offen, es existiert aber (`vocab.ts`). Der Inspector steht unter „Stufe 2“ ohne Hinweis, dass er fehlt. Die Roadmap hat zwei „Stände“ (29.09. und später). Ziel: eine ehrliche Statusliste je Zeile. | `roadmap.md` | S |
+| F15 | **UI-Tests in CI (Playwright-Smoke)** | Die Kernlogik ist getestet, Runtime und Editor nur per Windows-Skript und von Hand. Wer „funktioniert“ zusagt, braucht einen automatischen Beleg. | `runtime-editor.md`, `ci.yml` | M |
+
+Reihenfolge innerhalb von Finalize: zuerst die billigen und ehrlichen Punkte (F3, F5, F10, F12, F14), danach F1/F2/F15 (Beleg), dann F4, F6, F7, F11, F8, zuletzt die großen F9 und F13.
+
+### Basismerkmale (neu)
 
 | ID | Titel | Nutzen und Begründung | Aufw. | Verw. |
 | --- | --- | --- | --- | --- |
-| B1 | **Lizenz klären** (z. B. MIT/Apache oder duale Lizenz mit kommerzieller Option) | Ohne klare, firmentaugliche Lizenz kein Einsatz im Unternehmen, keine Beiträge. Reine Entscheidungs- und Doku-Aufgabe. | S | |
-| B2 | **Linux und macOS wirklich testen und paketieren**, CI-Lauf je System (Headless-E2E) | README verspricht es. Ohne Test ist es ein Risiko für das Vertrauen. | M | |
-| B3 | **`prefers-reduced-motion` beachten**, Übergänge abschaltbar | In der Roadmap als „Pflicht“ markiert. Schutz für Nutzer mit Vestibularstörung. | S | |
-| B4 | **Barrierefreiheits-Prüfung in `hashmark check`**: Alt-Texte, Kontrast der Tokens, Lesereihenfolge, Sprachangabe | Behörden und Konzerne verlangen es. Passt zum vorhandenen Linter. | M | |
-| B5 | **Hell/Dunkel-Variante je Theme** und Umschalter (Taste T ist belegt, andere Taste nötig) | Räume und Projektoren unterscheiden sich. Standard in anderen Tools. | M | |
-| B6 | **Mehr eingebaute Themes** (high-contrast, paper, blueprint, solarized) | Zwei Themes sind für einen ersten Eindruck zu wenig. | M | B5 |
-| B7 | **Bild-Zoom und Video/Embed** (`![](video.mp4)`, iframe nur mit Opt-in) | Typisches Vortragsmaterial. Offline-Regel beachten (lokale Dateien). | M | |
-| B8 | **Includes** (`!include datei.md`, Codeauszug mit Zeilenbereich aus dem Repo) | Wiederverwendung und echter Code statt Kopien. Üblich in Konkurrenzprodukten. | M | |
-| B9 | **Handout 2/3/6 pro Seite und Titelseite mit Baum** | Standard bei gedruckten Unterlagen, in der Roadmap vorgemerkt. | M | |
-| B10 | **Undo/Autosave/Konfliktwarnung im Editor** (Webdienst: Änderung durch Dritte erkennen) | Datenverlust ist der schwerste Fehler. Besonders wegen des geteilten Passworts im Webdienst. | M | |
-| B11 | **Englische Oberfläche und Doku** (i18n der UI-Texte, Handbuch übersetzen) | Voraussetzung für Reichweite jenseits des deutschsprachigen Raums. Code bleibt, Texte wandern in Sprachdateien. | L | |
-| B12 | **Fehlende Systemschriften im PPTX-Export** erkennen und warnen, Schriften einbetten | Wenn der Zielrechner die Schrift nicht hat, sieht die Datei anders aus. Das ist ein Vertrauensbruch. | S | |
-| B13 | **PDF/PPTX ohne installierten Browser** (mitgelieferte Chromium-Variante oder klare Fehlermeldung mit Anleitung) | Heute hängt der Export an Edge/Chrome. Auf Servern und gesperrten Rechnern scheitert er. | M | |
-| B14 | **UI-Tests für Runtime und Editor in CI** (Playwright-Smoke: starten, navigieren, Presenter, Export) | Die Kernlogik ist getestet, die Oberfläche nicht automatisch. Verhindert Rückfälle. | M | |
+| B1 | **Lizenz klären** (z. B. MIT/Apache oder duale Lizenz mit kommerzieller Option) | Ohne firmentaugliche Lizenz kein Einsatz im Unternehmen, keine Beiträge. Reine Entscheidungs- und Doku-Aufgabe. | S | |
+| B2 | **Barrierefreiheit in `hashmark check`**: Alt-Texte, Kontrast der Tokens, Lesereihenfolge, Sprachangabe | Behörden und Konzerne verlangen es. Passt zum vorhandenen Linter. | M | |
+| B3 | **Mehr eingebaute Themes** (high-contrast, paper, blueprint, solarized) | Zwei Themes sind für den ersten Eindruck zu wenig. | M | F6 |
+| B4 | **Bild-Zoom und Video/Embed** (lokale Videos, iframe nur mit Opt-in) | Typisches Vortragsmaterial. Offline-Regel beachten. | M | |
+| B5 | **Includes** (`!include datei.md`, Codeauszug mit Zeilenbereich aus dem Repo) | Wiederverwendung und echter Code statt Kopien. | M | |
+| B6 | **Undo, Autosave und Konfliktwarnung im Editor** (Webdienst: Änderung durch Dritte erkennen) | Datenverlust ist der schwerste Fehler. Besonders wegen des geteilten Passworts im Webdienst. | M | |
+| B7 | **Englische Oberfläche und Doku** (UI-Texte in Sprachdateien, Handbuch übersetzen) | Voraussetzung für Reichweite jenseits des deutschsprachigen Raums. | L | |
+| B8 | **PDF und PPTX ohne installierten Browser** (mitgeliefertes Chromium oder klare Fehlermeldung mit Anleitung) | Heute hängt der Export an Edge/Chrome. Auf Servern und gesperrten Rechnern scheitert er. | M | |
+| B9 | **Kein Datenabfluss im Export**: Warnung, wenn Notizen im Klartext in HTML oder Build landen | Das Handbuch weist darauf hin, die App nicht. Wer ein Deck teilt, sollte es vorher sehen. | S | |
 
-### Leistungsmerkmale
+### Leistungsmerkmale (neu)
 
 | ID | Titel | Nutzen und Begründung | Aufw. | Verw. |
 | --- | --- | --- | --- | --- |
-| L1 | **Editor-Inspector** für den Knoten unter dem Cursor (Layout, Übergang, Id, Klassen, `duration`, Plan-Rolle) | Schreibt Markdown, kein WYSIWYG. Senkt den Einstieg, passt zur Grundregel. | M | |
-| L2 | **Formular für `deck.yaml`** mit Prüfung | Heute reine Textarbeit. Fehler (Theme, Mounts) fallen spät auf. | M | L1 |
-| L3 | **Outliner: Drag & Drop, Ebene höher/tiefer, Umbenennen, dateiübergreifend** | Der Baum ist das Kernmodell, also sollte man ihn auch direkt bearbeiten können. | L | |
-| L4 | **Plugin-API** für Diagrammrenderer, Container und Komponenten mit Logik, mit Cache per Inhalts-Hash | Voraussetzung für ein Ökosystem. Entkoppelt neue Sprachen vom Kern. | L | B1 |
-| L5 | **Diagrammsprachen** Graphviz (WASM), Vega-Lite/ECharts, Markmap; PlantUML/D2 nur optional | Technische Vorträge brauchen mehr als Mermaid. | L | L4 |
-| L6 | **Diagramme aus Daten** (CSV/JSON einbinden, Diagramm aus Tabelle) | Zahlen ohne Handarbeit. | M | L5 |
-| L7 | **Corporate-Theme** (Logo, Fußzeile, Farben aus der Konfiguration) und **Theme-Ketten** (`extends` über Ordner) | Zweiter Schritt nach den Basis-Themes. Der Erfolg bei Firmen hängt daran. | M | B5 |
-| L8 | **PPTX: Folienmaster und Layouts aus dem Theme**, Kacheln/Karten/Rahmen als echte Formen, SVG als Vektor | Heute ein einziges Layout. Erst damit lässt sich die Datei in Firmenvorlagen weiterbearbeiten. | L | L7 |
-| L9 | **PPTX-Animationen vervollständigen** (Gruppen in SVG, Tabellenspalten, Codezeilen abdunkeln) | Schließt die in der Roadmap genannten Lücken. | M | |
-| L10 | **Animationen**: Schritt-Effekte (`fade-up`, `dim`, `highlight`), Zoom aus der Kachel, Auto-Animate (View Transitions), Magic Move für Code | Der räumliche Baum verspricht „Eintauchen“. Das sollte man sehen. | L | B3 |
-| L11 | **Zeitbudget mit Priorität je Knoten** und Fahrplan-Auswahl beim Start | Offene Punkte des Vortragsplans, direkter Mehrwert. | M | |
-| L12 | **Presenter: Miniatur-Hinweis bei Überlauf**, Prüfungen für Notizen und Schritte in `check` | Ergänzt die vorhandene Überlaufprüfung. | S | |
-| L13 | **Live-Folgen für das Publikum** (WebSocket oder WebRTC, Link/QR) | Ersetzt „Fenster teilen“ bei Remote-Vorträgen. Heute offener Punkt in der FAQ. | L | |
-| L14 | **Handy als Fernbedienung und Presenter-Ansicht** (Notizen, Timer, Navigation per QR-Code) | Häufiger Wunsch, ohne Zusatzhardware. Nutzt die vorhandene Presenter-Verbindung. | M | L13 |
-| L15 | **Zeichnen/Laserpointer/Hervorheben** in der Präsentation | Standardfunktion in Konkurrenzprodukten. | M | |
-| L16 | **Mehrbenutzer im Webdienst** (Konten oder Token je Person, Sperre/Merge je Datei) | Das gemeinsame Passwort genügt für ein Team nicht. | L | B10 |
-| L17 | **VS-Code-Erweiterung** (Vorschau, Linter, Vorschläge aus `vocab.ts`/`complete.ts`) | Viele schreiben lieber im eigenen Editor. Kern ist schon als reine Funktionen vorhanden. | M | |
-| L18 | **Deck-Vorlagen und Beispielgalerie erweitern** (Pitch, Konferenztalk, Schulung, Architektur-Review) | Senkt die Hürde für den ersten Wurf. | M | B6 |
-| L19 | **Import-Pfade** (Marp/reveal-Markdown, später PPTX-Text) | Migration von Bestandsfolien. Der PPTX-Import wurde schon einmal gebaut und verworfen, hier nur der leichtere Weg. | M | |
+| L1 | **Outliner: Drag & Drop, Ebene höher/tiefer, Umbenennen, dateiübergreifend** | Der Baum ist das Kernmodell, also sollte man ihn auch direkt bearbeiten können. | L | F11 |
+| L2 | **Plugin-API** für Diagrammrenderer, Container und Komponenten mit Logik, Cache per Inhalts-Hash | Voraussetzung für ein Ökosystem. Entkoppelt neue Sprachen vom Kern. | L | B1 |
+| L3 | **Diagrammsprachen**: Graphviz (WASM), Vega-Lite/ECharts, Markmap; PlantUML/D2 nur optional | Technische Vorträge brauchen mehr als Mermaid. | L | L2 |
+| L4 | **Diagramme aus Daten** (CSV/JSON einbinden) | Zahlen ohne Handarbeit. | M | L3 |
+| L5 | **Corporate-Theme** (Logo, Fußzeile, Farben aus der Konfiguration) | Zweiter Schritt nach den Basis-Themes. Der Erfolg bei Firmen hängt daran. | M | F6 |
+| L6 | **Animationen**: Schritt-Effekte (`fade-up`, `dim`, `highlight`), Zoom aus der Kachel, Auto-Animate (View Transitions), Magic Move für Code | Der räumliche Baum verspricht „Eintauchen“. Das sollte man sehen. | L | F3 |
+| L7 | **Handy als Fernbedienung und Presenter-Ansicht** (Notizen, Timer, Navigation per QR-Code) | Häufiger Wunsch, ohne Zusatzhardware. Nutzt die vorhandene Presenter-Verbindung. | M | F13 |
+| L8 | **Zeichnen, Laserpointer, Hervorheben** in der Präsentation | Standardfunktion der Konkurrenz. | M | |
+| L9 | **Mehrbenutzer im Webdienst** (Konten oder Token je Person, Sperre/Merge je Datei) | Das gemeinsame Passwort genügt für ein Team nicht. | L | B6 |
+| L10 | **VS-Code-Erweiterung** (Vorschau, Linter, Vorschläge aus `vocab.ts`/`complete.ts`) | Viele schreiben lieber im eigenen Editor. Der Kern liegt schon als reine Funktionen vor. | M | |
+| L11 | **Deck-Vorlagen und Beispielgalerie erweitern** (Pitch, Konferenztalk, Schulung, Architektur-Review) | Senkt die Hürde für den ersten Wurf. | M | B3 |
+| L12 | **Import-Pfade** (Marp/reveal-Markdown, später PPTX-Text) | Migration von Bestandsfolien. Der PPTX-Import wurde schon einmal gebaut und verworfen, hier nur der leichtere Weg. | M | |
+| L13 | **Formeln als bearbeitbare PowerPoint-Formeln** (LaTeX → OMML) | Roadmap-Idee. Heute Bilder. | L | F9 |
+| L14 | **Mehrsprachige Decks** (Texte je Sprache aus einer Quelle) | Folgt aus B7 und dem Baum: ein Deck, mehrere Sprachfahrpläne. | M | B7 |
 
-### Begeisterungsmerkmale
+### Begeisterungsmerkmale (neu)
 
 Diese Punkte nutzen das, was nur Hashmark hat: Baum und Plan. Sie sind das Argument, warum jemand wechselt.
 
 | ID | Titel | Nutzen und Begründung | Aufw. | Verw. |
 | --- | --- | --- | --- | --- |
-| D1 | **Publikumsvarianten aus einer Quelle**: 10-/30-/60-Minuten-Fahrplan als Export (PDF, PPTX, HTML), Handout je Fahrplan | Dasselbe Deck für Lightning-Talk und Workshop. Das kann sonst kein Tool. In der Roadmap als Wettbewerbsvorteil notiert. | M | L11 |
-| D2 | **Live-Zeitassistent**: „Du liegst 4 Minuten hinten. Vorschlag: Kapitel X (optional) überspringen“, per Tastendruck übernehmen | Macht aus Plan und Timer einen Coach. Rechnet mit `duration` und Plan, die Daten gibt es schon. | M | L11 |
-| D3 | **Fragen-Radar**: Frage tippen (oder Publikum schickt sie), Suche springt zum passenden Detailknoten und merkt sich den Ausflug | Verwandelt „Fragen aus dem Publikum“ von Risiko in Stärke. Nutzt Suche und Ausflug. | M | L13 |
-| D4 | **Vortragsprotokoll**: Nach dem Vortrag zeigt Hashmark den tatsächlich gezeigten Pfad, Zeiten je Knoten, übersprungene und abgetauchte Knoten. Ergebnis fließt in `duration`-Vorschläge ein | Probe und Auswertung in einem. Verbessert jeden nächsten Vortrag. | M | |
-| D5 | **Probenmodus** mit Zeitmessung je Knoten und Kalibrierung der `duration` | Zeitangaben stimmen endlich. Macht den Zeitplan glaubwürdig. | M | D4 |
-| D6 | **Karte statt Liste**: Übersichtsansicht als zoombare Baumlandkarte (auch fürs Publikum), Zoom aus der Kachel in den Knoten | Verkauft die Baumidee visuell auf einen Blick. | L | L10 |
-| D7 | **Baum-Diff für Pull Requests**: Bot kommentiert „+2 Folien in Kapitel 3, Plan geändert, Überlauf auf Folie 14“ mit Vorschaubildern | Macht Git-Reviews von Präsentationen real. Nutzt `check` und die Druckansicht. | L | B14 |
+| D1 | **Publikumsvarianten aus einer Quelle**: 10-/30-/60-Minuten-Fahrplan als Export (PDF, PPTX, HTML), Handout je Fahrplan | Dasselbe Deck für Lightning-Talk und Workshop. Das kann sonst kein Tool. | M | F4 |
+| D2 | **Live-Zeitassistent**: „Du liegst 4 Minuten hinten. Vorschlag: Kapitel X (optional) überspringen“, per Taste übernehmen | Macht aus Plan und Timer einen Coach. Die Daten gibt es schon. | M | F4 |
+| D3 | **Fragen-Radar**: Frage tippen, Suche springt zum passenden Detailknoten und merkt den Ausflug; optional schickt das Publikum Fragen | Verwandelt „Fragen aus dem Publikum“ vom Risiko in eine Stärke. | M | F13 |
+| D4 | **Vortragsprotokoll**: gezeigter Pfad, Zeiten je Knoten, übersprungene und abgetauchte Knoten | Probe und Auswertung in einem. Verbessert jeden nächsten Vortrag. | M | |
+| D5 | **Probenmodus** mit Zeitmessung je Knoten und Kalibrierung der `duration` | Zeitangaben stimmen endlich. | M | D4 |
+| D6 | **Karte statt Liste**: Übersicht als zoombare Baumlandkarte (auch fürs Publikum) | Verkauft die Baumidee auf einen Blick. | L | L6 |
+| D7 | **Baum-Diff für Pull Requests**: Bot kommentiert „+2 Folien in Kapitel 3, Überlauf auf Folie 14“ mit Vorschau | Macht Git-Reviews von Präsentationen real. Nutzt `check` und die Druckansicht. | L | F15 |
 | D8 | **PR-Vorschau als Webseite** (Deck je Branch als statische Seite) | Reviewer sehen das Ergebnis ohne Build. `pages.yml` ist die Vorlage. | S | |
-| D9 | **KI-Assistent im Editor** (lokal oder mit eigenem Schlüssel): Deck aus Gliederung oder Dokument erzeugen, Kürzungsvorschlag für ein Zeitbudget, Alt-Texte, Sprechernotizen | Gamma/Canva setzen die Erwartung. Hier bleibt das Ergebnis Markdown und diffbar. Mit Datenschutz-Opt-in. | L | B4 |
-| D10 | **Deck als Werkzeug für Agenten** (CLI/MCP: Struktur lesen, Folie einfügen, `check` ausführen) | Passt zu Markdown als Quelle und zu `hashmark check`. Agenten können Präsentationen pflegen. | M | |
-| D11 | **Untertitel/Transkript live** (lokale Spracherkennung) und Aufnahme mit Kamera-Overlay | Macht Remote-Vorträge zugänglicher. Aufwand hoch, Offline-Regel beachten. | L | L13 |
-| D12 | **Ein-Datei-Programm ohne Node** (Kern im WebView oder in Go) | Ein Binary pro System, ~15 MB, kein Sidecar. Starker Verkaufspunkt. | L | B2 |
-| D13 | **Theme-Import aus PowerPoint** (Farben, Schriften, Logo aus `.potx`) | Corporate Design in Minuten statt Stunden. Ergänzt den Export. | L | L7, L8 |
-| D14 | **Zugängliche Mehrfachausgabe**: tagged PDF und barrierefreies HTML als Standard | Aus „B4 erfüllt“ wird „Hashmark ist die einfachste Art, barrierefreie Folien zu schreiben“. | M | B4 |
+| D9 | **KI-Assistent im Editor** (lokal oder eigener Schlüssel): Deck aus Gliederung erzeugen, Kürzung für ein Zeitbudget, Alt-Texte, Notizen | Gamma/Canva setzen die Erwartung. Hier bleibt das Ergebnis Markdown und diffbar. Mit Datenschutz-Opt-in. | L | B2 |
+| D10 | **Deck als Werkzeug für Agenten** (CLI/MCP: Struktur lesen, Folie einfügen, `check` ausführen) | Passt zu Markdown als Quelle und zu `hashmark check`. | M | |
+| D11 | **Untertitel/Transkript live** und Aufnahme mit Kamera-Overlay | Macht Remote-Vorträge zugänglicher. Offline-Regel beachten. | L | F13 |
+| D12 | **Ein-Datei-Programm ohne Node** (Kern im WebView oder in Go) | Ein Binary pro System, ~15 MB, kein Sidecar. Starker Verkaufspunkt. | L | F1 |
+| D13 | **Theme-Import aus PowerPoint** (Farben, Schriften, Logo aus `.potx`) | Corporate Design in Minuten. Ergänzt den Export. | L | L5, F9 |
+| D14 | **Barrierefreie Ausgabe als Standard**: tagged PDF und barrierefreies HTML | Aus „B2 erfüllt“ wird „einfachster Weg zu barrierefreien Folien“. | M | B2 |
 
 ### Vorschlag zur Reihenfolge
 
-1. **Vertrauen und Reichweite (Basis):** B1, B2, B3, B5, B6, B10, B12, B14, dann B4, B7, B8, B9.
-2. **Bedienung und Ausbau (Leistung):** L1, L11, L12, dann L3, L4, L7.
-3. **Das Alleinstellungsmerkmal schärfen (Begeisterung):** D1, D2, D4/D5, D8 sind kleine bis mittlere Schritte mit großer Wirkung, weil Plan, Timer und Baum schon vorhanden sind. D3 und D6 folgen mit den Live-Funktionen.
+1. **Finalize** zuerst, in der oben genannten Reihenfolge. Erst danach ist die Aussage „das ist fertig“ ehrlich.
+2. **Basis:** B1 (Entscheidung), B6, B9, dann B2 bis B5, B8.
+3. **Leistung:** L5, L1, L2, L6.
+4. **Begeisterung:** D1, D2, D4/D5, D8 sind kleine bis mittlere Schritte, weil Plan, Timer und Baum schon vorhanden sind. D3 und D6 folgen mit F13.
 
 ### Hinweise für die Ticket-Erstellung
 
-- Jede Karte hat einen Titel, der als PR-Titel (Changelog-Zeile) taugt. Für Tickets bietet sich `Kano: Basis|Leistung|Begeisterung` als Label an, dazu ein Bereichs-Label (Kern, Runtime, Editor, PPTX, Desktop, Webdienst, Doku).
-- Vor dem Ticket einen kurzen Spike für alle mit Aufwand **L** (Plugin-API, Outliner, Animationen, Live-Folgen, Node-freie App).
-- Jedes Ticket sollte Akzeptanzkriterien, einen Test im Kern (`tests/core.test.ts`) und die Doku-Änderung im Handbuch enthalten (siehe `.claude/rules/git-workflow.md`).
+- Ein Label `Kano: Finalize|Basis|Leistung|Begeisterung` plus ein Bereichs-Label (Kern, Runtime, Editor, PPTX, Desktop, Webdienst, Doku). Die Quelle der Zusage bei Finalize-Tickets in die Beschreibung übernehmen.
+- Vor dem Ticket einen kurzen Spike für alle mit Aufwand **L** (F9, F13, L1, L2, L6, D12).
+- Jedes Ticket mit Akzeptanzkriterien, einem Test im Kern (`tests/core.test.ts`) und der Doku-Änderung im Handbuch (siehe `.claude/rules/git-workflow.md`). Der Titel eines Tickets sollte als PR-Titel (Changelog-Zeile) taugen.
+- Gegenüber der ersten Fassung sind B2 (Linux/macOS), B3 (Reduced-Motion), B9 (Handout), B12 (Schriften), B14 (UI-Tests), L1 (Inspector), L8, L9, L11, L12 und L13 in Finalize aufgegangen (F1, F3, F7, F10, F15, F11, F9, F8, F4, F5, F12/F13).
