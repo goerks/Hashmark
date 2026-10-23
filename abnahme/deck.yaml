@@ -1,6 +1,2 @@
-title: Abnahme – Bild-Zoom (Ticket #6)
+title: Abnahme – keine offene Abnahme
 theme: minimal
-maxDepth: 2
-zoom: true            # alle Bilder lassen sich mit Z vergrößern, einzelne mit {zoom=off} ausnehmen
-footer: Abnahme · Ticket #6
-slideNumber: "{n} / {total}"
