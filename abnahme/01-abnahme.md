@@ -70,7 +70,7 @@ Keine Installation nötig: Die Präsentation läuft im Browser. Für die Present
 ::: notes
 **Prüfen:** Z drücken, dann mehrmals +. Unten rechts erscheint die Minikarte, die Pfeile verschieben den Ausschnitt (→ blättert hier nicht, Space schon). Mit − wieder heraus. Mausrad: sobald die Kamera fährt, zoomt es am Zeiger. Strg + Mausrad (Touchpad-Spreizen) startet den Zoom auch aus der Normalansicht.
 
-**Am Telefon:** Bild antippen, dann zwei Finger spreizen bzw. zusammenführen, ein Finger verschiebt. Unten links stehen − + ×, ein Tipp auf × beendet den Zoom.
+**Am Telefon:** Bild antippen, dann zwei Finger spreizen bzw. zusammenführen, ein Finger verschiebt. Unten links stehen − + ×, ein Tipp auf × beendet den Zoom. **Blättern am Telefon:** auf der Folie nach links wischen = weiter, nach rechts = zurück (nicht im Zoom); das Steuerkreuz unten rechts ist fingergroß.
 :::
 
 # Code und Diagramm {id=zoom-code}

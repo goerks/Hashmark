@@ -298,6 +298,18 @@ async function run(cdp: Cdp) {
   p = await until(cdp, (x) => x.zoomed, 2000)
   check('Antippen des Bildes fährt hinein', p.zoomed, short(p))
   await press(cdp, 'Escape')
+  // Wischen blättert: nach links weiter, nach rechts zurück; ein Wisch über dem Bild zoomt nicht
+  p = await until(cdp, (x) => !x.zoomed && x.noTransform)
+  await touch('touchStart', [{ x: p.cx + 60, y: p.cy, id: 1 }])
+  for (let i = 1; i <= 6; i++) await touch('touchMove', [{ x: p.cx + 60 - i * 25, y: p.cy, id: 1 }])
+  await touch('touchEnd', [])
+  p = await until(cdp, (x) => x.slide === 1, 2000)
+  check('Wisch nach links blättert zur nächsten Folie, ohne zu zoomen', p.slide === 1 && !p.zoomed, short(p))
+  await touch('touchStart', [{ x: 200, y: 300, id: 1 }])
+  for (let i = 1; i <= 6; i++) await touch('touchMove', [{ x: 200 + i * 25, y: 300, id: 1 }])
+  await touch('touchEnd', [])
+  p = await until(cdp, (x) => x.slide === 0, 2000)
+  check('Wisch nach rechts geht zurück', p.slide === 0, short(p))
   await cdp.send('Emulation.setTouchEmulationEnabled', { enabled: false })
 
   check('keine Fehler im Browser', cdp.errors.length === 0, cdp.errors.join(' | '))

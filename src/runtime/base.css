@@ -62,7 +62,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: color-mix(in srgb, var(--color-bg) 80%, transparent); border: 1px solid var(--color-muted); border-radius: 4px; box-shadow: 0 2px 10px rgb(0 0 0 / 0.25);
 }
 /* Touch: im normalen Bild nur Scrollen (kein Seiten-Zoom), damit zwei Finger die Kamera steuern; beim Zoom gehört jede Fingerbewegung der Kamera */
-.stage .slide { touch-action: pan-x pan-y; }
+/* die Seite scrollt in der Präsentation nie: jede Fingerbewegung gehört der Kamera bzw. dem Wischen zum Blättern */
+.stage .slide { touch-action: none; }
 .stage-slide[data-zoomed] { touch-action: none; user-select: none; -webkit-user-select: none; }
 .zoom-tools { position: absolute; left: 16px; bottom: 16px; z-index: 30; display: flex; gap: calc(8px / var(--scale, 1)); }
 .zoom-tools button {
@@ -407,6 +408,12 @@ button.nc-next:hover { color: var(--color-accent); }
 .nc-btn:hover:not(:disabled) { background: var(--color-accent); color: var(--color-bg); }
 .nc-btn:disabled { color: var(--color-border); cursor: default; }
 .nc-hover { color: var(--color-accent); }
+
+/* Touchscreen: Steuerkreuz fingergroß (die Bühne ist auf dem Telefon stark verkleinert), ohne Infozeile */
+@media (pointer: coarse) {
+  .nav-controls { transform-origin: right bottom; transform: scale(min(3, calc(0.9 / var(--scale, 1)))); bottom: 10px; }
+  .nc-info { display: none; }
+}
 
 /* ---------- Schwarzbild und Tastenhilfe ---------- */
 

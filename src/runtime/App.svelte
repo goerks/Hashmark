@@ -17,7 +17,7 @@
   import { openLink, type PresenterMessage } from './presenter-link.ts'
   import type { VideoInfo } from '../core/media.ts'
   import { onVideoChange, skipVideo, toggleVideo, videoInfo } from './video.ts'
-  import { escapeZoom, onZoomChange, panZoom, resetZoom, toggleZoom, zoomBy, zoomInfo, type ZoomInfo } from './zoom.ts'
+  import { escapeZoom, onSwipe, onZoomChange, panZoom, resetZoom, toggleZoom, zoomBy, zoomInfo, type ZoomInfo } from './zoom.ts'
   import { onDeckUpdate } from './deck-source.ts'
   import { desktopAction, isDesktop } from './desktop.ts'
 
@@ -192,7 +192,9 @@
   onMount(() => {
     onVideoChange(() => (video = videoInfo()))
     onZoomChange(() => (zoom = zoomInfo()))
-    return () => { onVideoChange(null); onZoomChange(null) }
+    // Wischen am Touchscreen: nach links = weiter (→), nach rechts = zurück (←)
+    onSwipe((dir) => navKey(dir === 'left' ? 'ArrowRight' : 'ArrowLeft', false))
+    return () => { onVideoChange(null); onZoomChange(null); onSwipe(null) }
   })
 
   // Stand an die Presenter-View melden

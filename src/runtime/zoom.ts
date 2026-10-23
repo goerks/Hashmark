@@ -269,6 +269,14 @@ const pointers = new Map<number, { x: number; y: number }>()
 /** Eine Geste hat sich bewegt: der Klick, der danach noch kommt, soll nichts auslösen */
 let gesture = false
 let travelled = 0
+/** Wischen im normalen Bild: links/rechts blättern, solange die Kamera nicht fährt (Telefon ohne Tastatur) */
+let swipe: ((dir: 'left' | 'right') => void) | null = null
+let swipeFrom: { x: number; y: number; t: number } | null = null
+let multi = false
+
+export function onSwipe(fn: ((dir: 'left' | 'right') => void) | null) {
+  swipe = fn
+}
 
 function stagePoint(x: number, y: number) {
   const r = stage()!.getBoundingClientRect()
@@ -302,7 +310,12 @@ function onPointerDown(e: PointerEvent) {
   if (pointers.size === 1) {
     gesture = false
     travelled = 0
-  } else gesture = true
+    multi = false
+    swipeFrom = e.pointerType === 'touch' ? { x: e.clientX, y: e.clientY, t: Date.now() } : null
+  } else {
+    gesture = true
+    multi = true
+  }
 }
 
 function onPointerMove(e: PointerEvent) {
@@ -329,7 +342,18 @@ function onPointerMove(e: PointerEvent) {
 }
 
 function onPointerEnd(e: PointerEvent) {
+  const from = swipeFrom
+  const alone = pointers.size === 1
   pointers.delete(e.pointerId)
+  if (!alone || multi || !from || active || e.type !== 'pointerup') return
+  const dx = e.clientX - from.x
+  const dy = e.clientY - from.y
+  // ein schneller, überwiegend waagerechter Wisch von mindestens 50 Bildschirm-Pixeln
+  if (Math.abs(dx) >= 50 && Math.abs(dx) > 2 * Math.abs(dy) && Date.now() - from.t < 800) {
+    gesture = true // der Klick danach ist kein Tippen
+    swipe?.(dx < 0 ? 'left' : 'right')
+  }
+  swipeFrom = null
 }
 
 /** Mausrad zoomt am Zeiger, sobald die Kamera fährt; Strg + Rad (Touchpad-Spreizen) startet sie auch. */
