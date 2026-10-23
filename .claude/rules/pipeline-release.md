@@ -11,6 +11,7 @@ paths:
 
 - **GitHub Actions (`.github/workflows/`):**
   - `ci.yml`: Vitest, Go-Hülle für 6 Ziele, Image-Probebau; bei Push auf `main` und bei jedem Pull Request.
+  - `ci.yml`, Job `probe` (nur Pull Requests): Windows-Paket (`probe-windows`) und HTML-Datei des Beispiel-Decks mit Videoordner (`probe-html-demo`) als Artifacts (7 Tage), damit der Auftraggeber ohne Git ausprobieren kann (Actions › Lauf › Artifacts). Das Paket trägt die Version `pr<Nummer>.<Hash>`.
   - `release.yml`: bei einem Tag `v*`; 6 Standalone-Pakete → GitHub-Release mit Notizen aus `scripts/release-notes.ts` → `pages`.
   - `pages.yml`: GitHub Pages (auch per `workflow_call`).
   - `docker.yml`: Image nach ghcr.io bei Push auf `main`, danach Render-Deploy-Hook.
