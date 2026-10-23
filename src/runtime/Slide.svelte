@@ -4,7 +4,7 @@
   import { renderMermaid } from './mermaid.ts'
   import { MIN_ZOOM, fitSlide } from './fit.ts'
   import { clearLiveRoot, prepareVideos, setLiveRoot, syncVideos, type MediaMode } from './video.ts'
-  import { clearZoomRoot, refreshZoom, setZoomRoot, zoomClick } from './zoom.ts'
+  import { clearZoomRoot, refreshZoom, setZoomRoot, syncZoom, zoomClick } from './zoom.ts'
 
   let { node, slide, layout, step = Infinity, titleTag = 'h1', media = 'off' }: {
     node: DeckNode
@@ -91,6 +91,7 @@
       setZoomRoot(el)
       refreshZoom()
       syncVideos(el, current, previousStep)
+      syncZoom(el, current, previousStep)
       previousStep = current
     })
     return () => { clearLiveRoot(el); clearZoomRoot(el) }

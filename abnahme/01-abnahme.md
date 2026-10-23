@@ -11,6 +11,7 @@ Das ist die Abnahme-Präsentation für Ticket #6 (Bild-Zoom). Alle Folien sind d
 - **→** geht weiter, **←** zurück, **F5** Vollbild
 - **Z** fährt die Kamera auf ein Bild, **Z**, **Esc** oder ein Klick fährt zurück
 - Ein **Klick auf das Bild** wirkt wie Z
+- Ein Bild kann auch **von selbst** hineinfahren, allein durch →
 - **S** öffnet die Presenter-View: Dort funktioniert Z ebenfalls
 - Am Ende: was **nicht** geprüft werden konnte
 
@@ -43,6 +44,20 @@ Keine Installation nötig: Die Präsentation läuft im Browser. Für die Present
 **Prüfen:** Im ersten Schritt gibt es nichts zu vergrößern, Z tut nichts. Nach dem zweiten Schritt (→) ist das Bild da, und Z fährt hinein.
 :::
 
+# Zoom beim Durchsteppen {id=zoom-schritt}
+
+::: steps
+- Erster Schritt: nur der Text, das Bild ist klein
+- Zweiter Schritt: die Kamera fährt von selbst aufs Bild
+- Dritter Schritt: die Kamera fährt wieder heraus
+:::
+
+![Statusseite, die Kamera fährt im zweiten Schritt hinein](bilder/status.svg){zoomstep=2 zoomuntil=3 width=40%}
+
+::: notes
+**Prüfen:** Nur → drücken, nie Z. Schritt 1 zeigt den Text. Schritt 2 (→): die Kamera fährt von selbst aufs Bild. Schritt 3 (→): sie fährt wieder heraus. ← kehrt jeden Schritt um. Im Presenter zählt der Zoom als Schritt in der Schrittanzeige, und → im Presenter löst ihn ebenfalls aus. Ohne `zoomuntil` bliebe die Kamera, bis die Folie wechselt.
+:::
+
 # Dieses Bild nicht {id=zoom-aus}
 
 ![Ausgenommen: kein Zoom](bilder/status.svg){zoom=off width=55%}
@@ -66,6 +81,7 @@ Keine Installation nötig: Die Präsentation läuft im Browser. Für die Present
 ```md
 ![Status](bilder/status.svg){zoom}
 ![Ohne](bilder/logo.svg){zoom=off}
+![Von selbst](bilder/status.svg){zoomstep=2 zoomuntil=3}
 ```
 
 ```yaml
@@ -74,7 +90,7 @@ zoom: true
 ```
 
 ::: notes
-`{zoom}` macht ein Bild vergrößerbar, `zoom: true` in der `deck.yaml` alle Bilder, `{zoom=off}` nimmt eines aus. Das Handbuch beschreibt alles unter „Gestaltung › Bild vergrößern“.
+`{zoom}` macht ein Bild vergrößerbar, `zoom: true` in der `deck.yaml` alle Bilder, `{zoom=off}` nimmt eines aus. `zoomstep=N` fährt bei Schritt N von selbst hinein, `zoomuntil=M` bei Schritt M wieder heraus. Das Handbuch beschreibt alles unter „Gestaltung › Bild vergrößern“.
 :::
 
 # Nicht geprüft {id=offen}

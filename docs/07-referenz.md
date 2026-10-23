@@ -49,6 +49,7 @@ Alle Befehle laufen über `make`, Node.js liegt im Projekt. `make check` prüft 
 | `$a^2$` / `$$ … $$` | Formeln |
 | `![Demo](demo.mp4){play=1}` | Video (Schritt, K pausiert) |
 | `![Bild](bild.png){zoom}` | Bild mit Z vergrößerbar |
+| `![Bild](bild.png){zoomstep=2 zoomuntil=3}` | Kamera fährt bei Schritt 2 von selbst aufs Bild, bei Schritt 3 heraus (`zoomuntil` optional) |
 | ` ```mermaid ` | Diagramm |
 
 ::: notes

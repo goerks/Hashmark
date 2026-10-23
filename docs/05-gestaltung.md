@@ -76,6 +76,8 @@ Im Browser startet ein Video mit Ton erst, nachdem im Präsentationsfenster einm
 Mit `{zoom}` hinter dem Bild lässt es sich in der Präsentation vergrößern: **Z** oder ein Klick auf das Bild fährt die Kamera in die Folie hinein, bis das Bild die Bühne füllt. Titel und Text wandern dabei mit aus dem Bild, so bleibt der Zusammenhang sichtbar. **Z**, **Esc** oder ein Klick fährt zurück, Weiterblättern setzt die Kamera ebenfalls zurück. Die Presenter-View zeigt, ob die Folie ein Bild zum Vergrößern hat, und gibt Z weiter.
 
 In der `deck.yaml` macht `zoom: true` alle Bilder des Decks vergrößerbar, `{zoom=off}` nimmt ein einzelnes Bild aus. Hat die Folie mehrere vergrößerbare Bilder, fährt Z auf das erste sichtbare, ein Klick auf ein bestimmtes Bild auf dieses. Wer die Bewegung nicht mag, stellt im Betriebssystem „Animationen reduzieren“ ein: Dann springt die Kamera ohne Fahrt. PDF, PowerPoint und Handout zeigen das Bild unverändert.
+
+Wer nur mit → durchsteppt (auch aus dem Presenter), muss nicht an Z denken: `{zoomstep=2}` lässt die Kamera bei Schritt 2 von selbst aufs Bild fahren, `{zoomstep=2 zoomuntil=3}` fährt bei Schritt 3 wieder heraus (ohne `zoomuntil` bleibt sie, bis die Folie wechselt). ← kehrt jeden Schritt um. Der Zoom zählt als Schritt der Folie und steht in der Schrittanzeige; Z, Klick und Esc gehen zusätzlich weiter.
 :::
 
 # Formeln und Diagramme {id=formeln}

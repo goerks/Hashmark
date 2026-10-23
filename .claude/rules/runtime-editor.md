@@ -76,7 +76,7 @@ src/runtime/deck-source.ts  onDeckUpdate(): Vite-HMR ('hashmark:deck') bzw. Even
 - **Nur die laufende Präsentation** (`media="live"` in Slide.svelte, nicht die Editor-Vorschau): `setZoomRoot`/`clearZoomRoot` aus dem Effekt der Folie. Weiterblättern (`go()` in App.svelte) setzt sofort zurück, Esc fährt zuerst zurück (`escapeZoom` in `navKey`), dann steigt es im Baum auf. Z während des Übergangs zur Folie (`getAnimations()`) tut nichts, die Maße stimmten sonst nicht.
 - **Animationen reduzieren** (`prefers-reduced-motion`): kein `transition`, die Kamera springt.
 - **Presenter:** `FORWARDED_KEYS` enthält Z, `presenter-state` trägt `zoom: { available, active }` (PresenterView zeigt „Bild: normal · Z vergrößern“). `available` wird neu gemeldet, wenn ein Bild geladen ist oder ein Schritt es sichtbar macht (`refreshZoom`).
-- **Schreibweise:** `{zoom}` am Bild bzw. `zoom: true` in der `deck.yaml`, `{zoom=off}` nimmt aus (render.ts `imageAttrs`, `RenderContext.zoomImages`). Stufe 2 (Ticket #6): `+`/`−`, Verschieben, Mausrad, Minikarte, geplanter Schritt, Zoom für Code und Diagramme.
+- **Schreibweise:** `{zoom}` am Bild bzw. `zoom: true` in der `deck.yaml`, `{zoom=off}` nimmt aus (render.ts `imageAttrs`, `RenderContext.zoomImages`). `zoomstep=N`/`zoomuntil=M` (data-zoomstep/-until, zählen in `blocksToHtml` als Schritte) steuert `syncZoom(el, step, previous)` aus Slide.svelte: Zoom ab Schritt N, heraus bei M, erste Anzeige der Folie bleibt normal; `go()` setzt nur bei Folienwechsel zurück, ohne zoomstep beendet ein Schritt einen von Hand gestarteten Zoom. Stufe 2 (Ticket #6): `+`/`−`, Verschieben, Mausrad, Minikarte, Zoom für Code und Diagramme.
 
 ## Editor (CodeMirror 6)
 

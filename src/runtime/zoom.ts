@@ -110,6 +110,24 @@ export function resetZoom(instant = false) {
   setTimeout(done, 1100)
 }
 
+/**
+ * Schritt der Folie: `zoomstep=N` am Bild fährt beim Erreichen von Schritt N von selbst hinein, `zoomuntil=M` bei Schritt M wieder heraus
+ * (sonst bleibt die Kamera, bis die Folie wechselt). `previous === null`: die Folie wird erst angezeigt, dann bleibt die Kamera normal.
+ * Ohne so ein Bild beendet jeder Schritt einen von Hand (Z, Klick) gestarteten Zoom.
+ */
+export function syncZoom(el: HTMLElement, step: number, previous: number | null) {
+  if (previous === null || previous === step) return
+  const img = el.querySelector<HTMLImageElement>('img[data-zoomstep]')
+  if (!img) return resetZoom()
+  const from = Number(img.dataset.zoomstep)
+  const until = img.dataset.zoomuntil ? Number(img.dataset.zoomuntil) : Infinity
+  const want = step >= from && step < until
+  if (!want) return resetZoom()
+  if (active) return
+  // erst nach dem Aufdecken des Schritts messen
+  requestAnimationFrame(() => { if (root === el && !active) zoomTo(img) })
+}
+
 /** Z: aufs Bild fahren bzw. zurück. false = die Folie hat kein Bild zum Vergrößern. */
 export function toggleZoom(): boolean {
   if (active) {

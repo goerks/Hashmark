@@ -106,7 +106,8 @@
 
   function go(move: Move | null) {
     if (!move) return
-    resetZoom(true) // Weiterblättern fährt die Kamera zurück
+    // Weiterblättern fährt die Kamera zurück; Schritte derselben Folie steuert syncZoom (zoomstep)
+    if (!pos || pos.id !== move.pos.id || pos.slide !== move.pos.slide) resetZoom(true)
     dir = move.dir
     pos = move.pos
     // Ausflüge beenden, in denen die neue Position nicht mehr liegt

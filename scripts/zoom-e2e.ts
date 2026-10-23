@@ -20,7 +20,7 @@ async function makeDeck() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'hashmark-zoom-e2e-'))
   await fs.writeFile(path.join(dir, 'deck.yaml'), 'title: Zoom-Prüfung\n')
   await fs.writeFile(path.join(dir, 'status.svg'), SVG)
-  await fs.writeFile(path.join(dir, 'a.md'), '# Zoom\n\nText über dem Bild.\n\n![Status](status.svg){zoom width=30%}\n\nText unter dem Bild.\n\n---\n\nZweite Folie ohne Bild.\n')
+  await fs.writeFile(path.join(dir, 'a.md'), '# Zoom\n\nText über dem Bild.\n\n![Status](status.svg){zoom width=30%}\n\nText unter dem Bild.\n\n---\n\nZweite Folie ohne Bild.\n\n---\n\nDritte Folie.\n\n![Status](status.svg){zoomstep=1 zoomuntil=2 width=30%}\n')
   return dir
 }
 
@@ -154,6 +154,41 @@ async function run(cdp: Cdp) {
   })`)
   const flags = states.map((s) => (s ? `${s.available ? 'v' : '-'}${s.active ? 'a' : '-'}` : 'null'))
   check('Presenter bekommt „vergrößerbar“, „vergrößert“ und „wieder normal“', flags.includes('v-') && flags.includes('va') && flags[flags.length - 1] === 'v-', JSON.stringify([...new Set(flags)]))
+
+  // 7b · Zoom als Schritt: → allein fährt aufs Bild (zoomstep=1), Schritt 2 wieder heraus (zoomuntil=2), ← kehrt um
+  await evalJs(cdp, `location.hash = '#zoom:3'`)
+  p = await until(cdp, (x) => x.slide === 2 && x.width > 0.1 && x.noTransform)
+  await sleep(500)
+  p = await probe(cdp)
+  check('Folie mit zoomstep: zu Beginn normal', p.slide === 2 && !p.zoomed && p.noTransform && p.width < 0.5, short(p))
+  await press(cdp, 'ArrowRight')
+  p = await until(cdp, (x) => x.zoomed && x.scale > 1.5)
+  check('→ (Schritt 1) fährt von selbst aufs Bild, die Folie bleibt', p.zoomed && p.scale > 1.5 && p.slide === 2, short(p))
+  await sleep(1100)
+  p = await probe(cdp)
+  check('Schritt 1: das Bild füllt die Bühne in der Mitte', p.width > 0.6 && p.width <= 0.96 && Math.abs(p.dx) < 0.02 && Math.abs(p.dy) < 0.02, short(p))
+  await press(cdp, 'ArrowRight')
+  p = await until(cdp, (x) => !x.zoomed && x.noTransform)
+  check('→ (Schritt 2, zoomuntil) fährt wieder heraus', !p.zoomed && p.noTransform && p.slide === 2, short(p))
+  await press(cdp, 'ArrowLeft')
+  p = await until(cdp, (x) => x.zoomed && x.scale > 1.5)
+  check('← (zurück auf Schritt 1) fährt wieder hinein', p.zoomed && p.slide === 2, short(p))
+  await press(cdp, 'ArrowLeft')
+  p = await until(cdp, (x) => !x.zoomed && x.noTransform)
+  check('← (Schritt 0) fährt heraus', !p.zoomed && p.noTransform && p.slide === 2, short(p))
+  await evalJs(cdp, `new Promise((resolve) => {
+    const ch = new BroadcastChannel('hashmark-presenter:' + location.pathname)
+    ch.postMessage({ type: 'hashmark:presenter-hello' })
+    setTimeout(() => ch.postMessage({ type: 'hashmark:presenter-key', key: 'ArrowRight', shiftKey: false }), 400)
+    setTimeout(() => { ch.close(); resolve(true) }, 900)
+  })`)
+  p = await until(cdp, (x) => x.zoomed && x.scale > 1.5)
+  check('→ aus dem Presenter-Fenster löst den Zoom ebenfalls aus', p.zoomed && p.slide === 2, short(p))
+  await press(cdp, 'ArrowLeft')
+  await until(cdp, (x) => !x.zoomed && x.noTransform)
+  await evalJs(cdp, `location.hash = '#zoom:1'`)
+  await until(cdp, (x) => x.slide === 0 && x.noTransform)
+  await sleep(500)
 
   // 8 · „Animationen reduzieren“: ohne Fahrt
   await cdp.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] })

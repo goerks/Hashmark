@@ -299,7 +299,7 @@ function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn, v
   }
   if (m) next!.value = next!.value.slice(m[0].length)
   const attrs = m ? parseAttrs(m[1]) : {}
-  const known = ['width', 'height', 'fit', 'pos', 'ratio', 'step', 'until', 'style', 'class', 'id', ...(video ? VIDEO_ATTRS : ['zoom'])]
+  const known = ['width', 'height', 'fit', 'pos', 'ratio', 'step', 'until', 'style', 'class', 'id', ...(video ? VIDEO_ATTRS : ['zoom', 'zoomstep', 'zoomuntil'])]
   const what = video ? 'Video' : 'Bild'
   for (const key of Object.keys(attrs)) {
     if (!known.includes(key)) warn(`${what}-Attribut „${key}“ ist unbekannt (bekannt: ${known.join(', ')})`)
@@ -325,7 +325,19 @@ function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn, v
   if (!video) {
     // `{zoom}`: in der Präsentation mit Z (oder Klick) vergrößern; `{zoom=off}` nimmt ein Bild von `zoom: true` im Deck aus
     if (attrs.zoom !== undefined && attrs.zoom !== 'true' && !ZOOM_OFF.includes(attrs.zoom.toLowerCase())) warn(`Bild: zoom="${attrs.zoom}" ist ungültig (zoom oder zoom=off)`)
-    if (attrs.zoom === undefined ? zoomDefault : !ZOOM_OFF.includes(attrs.zoom.toLowerCase())) props.dataZoom = 'true'
+    const off = attrs.zoom !== undefined && ZOOM_OFF.includes(attrs.zoom.toLowerCase())
+    // `zoomstep=2`: ab Schritt 2 fährt die Kamera von selbst aufs Bild, `zoomuntil=3`: ab Schritt 3 wieder heraus (sonst bis die Folie wechselt)
+    for (const key of ['zoomstep', 'zoomuntil']) if (attrs[key] !== undefined && !/^[1-9]\d*$/.test(attrs[key])) warn(`Bild: ${key}="${attrs[key]}" ist ungültig (Schrittnummer ab 1)`)
+    const zoomStep = /^[1-9]\d*$/.test(attrs.zoomstep ?? '') ? Number(attrs.zoomstep) : undefined
+    const zoomUntil = /^[1-9]\d*$/.test(attrs.zoomuntil ?? '') ? Number(attrs.zoomuntil) : undefined
+    if (attrs.zoomuntil !== undefined && zoomStep === undefined) warn('Bild: zoomuntil gilt nur zusammen mit zoomstep')
+    if (zoomStep !== undefined && off) warn('Bild: zoomstep gilt nicht, das Bild ist mit zoom=off ausgenommen')
+    if (zoomStep !== undefined && zoomUntil !== undefined && zoomUntil <= zoomStep) warn(`Bild: zoomuntil=${zoomUntil} muss nach zoomstep=${zoomStep} liegen`)
+    if (zoomStep !== undefined && !off) {
+      props.dataZoom = 'true'
+      props.dataZoomstep = String(zoomStep)
+      if (zoomUntil !== undefined && zoomUntil > zoomStep) props.dataZoomuntil = String(zoomUntil)
+    } else if (attrs.zoom === undefined ? zoomDefault : !off) props.dataZoom = 'true'
   }
   if (video) {
     // `<video>` statt `<img>`: die Startzeit hängt als Medienfragment an der Adresse, das Standbild zeigt dann diese Stelle
@@ -747,6 +759,7 @@ async function blocksToHtml(blocks: AnyNode[], ctx: RenderContext): Promise<{ ht
   const count = Math.max(0,
     ...[...html.matchAll(/data-step="(\d+)"/g)].map((m) => Number(m[1])),
     ...[...html.matchAll(/data-play="(\d+)"/g)].map((m) => Number(m[1])),
+    ...[...html.matchAll(/data-zoom(?:step|until)="(\d+)"/g)].map((m) => Number(m[1])),
     ...[...html.matchAll(/data-hl-count="(\d+)"/g)].map((m) => Number(m[1]) - 1))
   for (let k = 1; k <= count; k++) steps.push({ selector: `[data-step="${k}"]`, state: { visible: 'true' } })
   return { html, steps }

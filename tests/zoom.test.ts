@@ -49,4 +49,25 @@ describe('Bild-Zoom', () => {
     expect(html).not.toContain('data-zoom')
     expect(html).toContain('src="deck-assets/bild.png"')
   })
+
+  it('zoomstep macht das Bild vergrößerbar und zählt als Schritt, zoomuntil ebenso', async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'hashmark-zoom-'))
+    await fs.writeFile(path.join(dir, 'deck.yaml'), '')
+    await fs.writeFile(path.join(dir, 'a.md'), '# Z\n\n![a](bild.png){zoomstep=2 zoomuntil=4}')
+    await fs.writeFile(path.join(dir, 'bild.png'), 'x')
+    const { deck, warnings } = await loadDeck(dir)
+    const slide = deck.nodes[0].slides[0]
+    expect(slide.html).toContain('data-zoom="true"')
+    expect(slide.html).toContain('data-zoomstep="2"')
+    expect(slide.html).toContain('data-zoomuntil="4"')
+    expect(slide.steps).toBe(4)
+    expect(warnings).toEqual([])
+  })
+
+  it('meldet ungültige Angaben zu zoomstep und zoomuntil', async () => {
+    const { warnings } = await render('# Z\n\n![a](bild.png){zoomstep=x}\n\n![b](bild.png){zoomstep=3 zoomuntil=2}\n\n![c](bild.png){zoomuntil=2}')
+    expect(warnings.some((w) => w.includes('zoomstep="x" ist ungültig'))).toBe(true)
+    expect(warnings.some((w) => w.includes('zoomuntil=2 muss nach zoomstep=3 liegen'))).toBe(true)
+    expect(warnings.some((w) => w.includes('zoomuntil gilt nur zusammen mit zoomstep'))).toBe(true)
+  })
 })
