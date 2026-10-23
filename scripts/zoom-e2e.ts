@@ -223,13 +223,13 @@ async function run(cdp: Cdp) {
   check('Strg + Mausrad (Touchpad-Spreizen) startet den Zoom am Zeiger', p.zoomed && p.scale > 1.05, short(p))
   // Chrome rechnet Strg + Rad wie Spreizen um: die Schrittweite kennen wir nicht, also in Stufen messen
   const scales: number[] = [p.scale]
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 12 && p.zoomed; i++) {
     await wheel(p.cx, p.cy, 120, false)
     await sleep(250)
     p = await probe(cdp)
     scales.push(p.scale)
   }
-  check('Mausrad (ohne Strg) zoomt bei laufender Kamera am Zeiger, bis zur Normalansicht', !p.zoomed && p.noTransform, `Skalierungen ${scales.map((x) => x.toFixed(2)).join(' → ')}`)
+  check('Mausrad (ohne Strg) zoomt bei laufender Kamera am Zeiger heraus, bis zur Normalansicht', !p.zoomed && p.noTransform && scales[1] < scales[0], `Skalierungen ${scales.map((x) => x.toFixed(2)).join(' → ')}`)
   if (p.zoomed) {
     await press(cdp, 'Escape')
     await until(cdp, (x) => !x.zoomed && x.noTransform)
