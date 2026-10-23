@@ -15,6 +15,7 @@ paths:
   - `release.yml`: bei einem Tag `v*`; 6 Standalone-Pakete → GitHub-Release mit Notizen aus `scripts/release-notes.ts` → `pages`.
   - `pages.yml`: GitHub Pages (auch per `workflow_call`).
   - `docker.yml`: Image nach ghcr.io bei Push auf `main`, danach Render-Deploy-Hook.
+  - `docker.yml`, Job `preview` (nur PRs aus diesem Repository): Image `ghcr.io/<repo>:pr-<Nummer>-<commit>`, danach der Deploy-Hook des Vorschau-Dienstes bei Render (Secret `RENDER_PREVIEW_HOOK_URL`, ohne Secret nur Bau). Der Vorschau-Dienst ist ein zweiter Render-Dienst „Existing image“ mit derselben Image-Adresse wie die Live-Instanz; `latest` und die Live-Instanz bleiben unberührt.
   - CI installiert online per `npm ci` (nicht aus `vendor/`).
 - **Commit-Betreffzeilen sind der Changelog:** Fehlerbehebungen mit `Fix: …` beginnen oder „behoben“/„Fehler“ nennen, dann landen sie unter „Behobene Fehler“, alles andere unter „Neue Funktionen“. Reines `docs:`/`chore:`/`ci:`/`test:` oder `[skip changelog]` taucht nicht auf. Dafür kurze, für Anwender verständliche Betreffzeilen schreiben. Bei Squash-Merge zählt der **PR-Titel**.
 - **Release-Notizen** (`release-notes/v<version>.md`) werden vor jedem Tag-Push gemeinsam mit dem Nutzer durchgesehen (Claude schlägt vor, der Nutzer gibt frei).

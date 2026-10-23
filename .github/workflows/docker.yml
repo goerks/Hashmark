@@ -1,10 +1,13 @@
 # Docker-Image des Webdienstes (Präsentation öffentlich, Editor mit Passwort) in die GitHub Container Registry:
-# ghcr.io/<benutzer>/<projekt>:latest und :<commit>. Läuft bei jedem Push auf main und stößt danach Render an.
+# ghcr.io/<benutzer>/<projekt>:latest und :<commit>. Läuft bei jedem Push auf den Hauptzweig und stößt danach Render an.
+# Bei Pull Requests (Job `preview`) entsteht das Image mit dem Tag pr-<Nummer>-<commit> und geht an einen eigenen Render-Dienst
+# (Secret RENDER_PREVIEW_HOOK_URL): so lässt sich der PR im Browser ansehen, ohne dass `latest` oder die Live-Instanz sich ändern.
 name: Docker
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -13,6 +16,7 @@ permissions:
 
 jobs:
   publish:
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -45,3 +49,34 @@ jobs:
           REPO=$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
           IMG=$(printf '%s' "ghcr.io/$REPO:${GITHUB_SHA::7}" | sed 's|/|%2F|g; s|:|%3A|g')
           curl --fail --silent --show-error -X POST "$RENDER_DEPLOY_HOOK_URL&imgURL=$IMG"
+
+  # Vorschau eines Pull Requests: Image mit eigenem Tag, danach den Vorschau-Dienst bei Render ausrollen.
+  # Nur für PRs aus diesem Repository (Forks bekommen weder Secrets noch Schreibrechte). Ohne das Secret wird nur das Image gebaut.
+  preview:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - id: tag
+        run: |
+          REPO=$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
+          TAG="pr-${{ github.event.pull_request.number }}-$(printf '%s' '${{ github.event.pull_request.head.sha }}' | cut -c1-7)"
+          echo "image=ghcr.io/$REPO:$TAG" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.tag.outputs.image }}
+      - name: Vorschau bei Render ausrollen
+        env:
+          RENDER_PREVIEW_HOOK_URL: ${{ secrets.RENDER_PREVIEW_HOOK_URL }}
+        run: |
+          if [ -z "$RENDER_PREVIEW_HOOK_URL" ]; then echo "RENDER_PREVIEW_HOOK_URL nicht gesetzt, übersprungen"; exit 0; fi
+          IMG=$(printf '%s' '${{ steps.tag.outputs.image }}' | sed 's|/|%2F|g; s|:|%3A|g')
+          curl --fail --silent --show-error -X POST "$RENDER_PREVIEW_HOOK_URL&imgURL=$IMG"
