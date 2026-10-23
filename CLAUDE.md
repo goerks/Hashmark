@@ -38,7 +38,7 @@ Regeln je Bereich:
 | `make build` / `make export` / `make pdf` / `make pptx` | statisches HTML / Single-File-HTML / PDF (`PLAN=path` oder `PLAN=grouped`) / PowerPoint (`DEPTH=1 STEPS=1 PLAN=… PPTX=…`) |
 | `make app` / `make app-cross` / `make app-package` | Desktop-App (Go): bauen + starten (`DECK=…` optional) / Hülle für Windows, Linux, macOS (amd64, arm64) nach `dist-go/` / portables `dist-app/Hashmark/` (windows-amd64). Andere Ziele samt Archiv: `node scripts/package-app.ts <ziel> --version=… --archive` (online) |
 | `make app-test` / `make sidecar-smoke` | E2E der Desktop-App **headless** über WebView2-CDP (`VISIBLE=1` zeigt sie; schreibt `export/app-e2e/result.json`) / Node-Sidecar wie aus der App angesprochen (`SIDECAR_BUNDLE=1`: das Bündel) |
-| `make docs` / `make docs-serve` | Dokumentation als statische Seiten nach `public/` (`DOCS_OUT`, `DOCS_PORT`, Standard 4000): Handbuch `handbuch/`, Beispiele `beispiele/`, Startseite (`scripts/docs-landing.ts`). `HASHMARK_PROJECT_URL` setzt die Projektadresse der Download-Karten |
+| `make docs` / `make docs-serve` | Dokumentation als statische Seiten nach `public/` (`DOCS_OUT`, `DOCS_PORT`, Standard 4000): Handbuch `handbuch/`, Beispiele `beispiele/`, Startseite (`scripts/docs-landing.ts`), Funktionsseiten `funktionen/` (`scripts/docs-features.ts`). `HASHMARK_PROJECT_URL` setzt die Projektadresse der Download-Karten, `HASHMARK_SHOTS` den Ordner der Bilder aus `node scripts/make-screenshots.ts --out …` |
 | `make build-examples` / `make docker-examples` | alle `examples/*` als statische Seiten mit Auswahlseite / Docker-Image `hashmark/beispiele` |
 | `make serve` / `make image` / `make image-run` | Webdienst lokal (`EDITOR_PASSWORD`, Standard „geheim“) / Docker-Image des Webdienstes (`Dockerfile` im Root) bauen / starten |
 | `make deps-update` | neue Pakete online holen, landen im lokalen Cache `vendor/npm-cache` |
@@ -70,7 +70,7 @@ src/runtime/   Svelte-App: Präsentation, Presenter-View, Lesemodus, Druckansich
 src/pptx/      PowerPoint-Export
 src/desktop/   Node-Sidecar der Desktop-App
 desktop-go/    Desktop-Hülle in Go (ohne CGO)
-docs/          Handbuch (ein Hashmark-Deck);  scripts/docs-landing.ts = Startseite
+docs/          Handbuch (ein Hashmark-Deck: Lernen, Themen, Nachschlagen);  scripts/docs-landing.ts = Startseite, docs-features.ts = Funktionsseiten
 examples/      Beispiel-Decks; local/ = ignorierte, firmeninterne Decks
 ```
 

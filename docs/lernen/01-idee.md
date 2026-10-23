@@ -1,13 +1,3 @@
-# Hashmark {layout=title id=start}
-
-Mächtige Präsentationen aus reinem Markdown.
-
-::: notes
-Hashmark macht aus einer oder mehreren Markdown-Dateien eine Präsentation. Es gibt keine Folienliste, sondern einen **Baum**: Jede Überschrift ist ein Knoten. Auf dem Hauptpfad erzählst du weiter, bei Fragen tauchst du ins Detail und kommst von dort zurück.
-
-Diese Seite ist selbst ein Hashmark-Deck. Du liest sie gerade im **Lesemodus**: links der Baum als Inhaltsverzeichnis, daneben Text und Folien. Mit „Präsentieren“ oben oder einem Klick auf eine Folie läuft dasselbe als Vortrag.
-:::
-
 # Die Idee {id=idee}
 
 ::: steps
@@ -34,7 +24,7 @@ Hashmark ist für alle, die ihre Präsentation lieber **schreiben** als zeichnen
 Alles läuft **offline**: keine CDNs, keine Web-Fonts, kein Konto. Die Desktop-App ist ein einzelnes Programm ohne Installer.
 :::
 
-# Der Baum {id=baum}
+## Der Baum {id=baum}
 
 ````mermaid
 flowchart LR
@@ -52,33 +42,5 @@ Jede Überschrift ist ein Knoten. Die oberste Ebene (`#`) ist der **Hauptpfad**,
 
 Das Diagramm oben ist ein Mermaid-Diagramm, das mit dem Deck gerendert wird. Durchgezogene Pfeile sind der Hauptpfad, gestrichelte sind Details.
 
-Zusätzlich gibt es Space: Es läuft **dem Vortragsplan nach**, also über alle Pfad-Knoten, und überspringt Optionales. Damit bedienst du einen Vortrag mit einer einzigen Taste und nimmst die Abstecher nur, wenn du sie willst.
-:::
-
-## Hauptpfad und Details {id=hauptpfad}
-
-```md
-# Architektur
-## Parser
-## Runtime
-```
-
-::: notes
-Details sind normale Überschriften einer tieferen Ebene. Der Parser legt die oberste Ebene jeder Datei auf Tiefe 1; mit `maxDepth` in der `deck.yaml` bestimmst du, wie tief Überschriften noch Knoten sind (Standard 3). Tiefere Überschriften werden Abschnitte innerhalb der Folie.
-
-Mehrere Dateien lassen sich mit `mount` in der `deck.yaml` zusammenstellen, auch unter einen bestehenden Knoten (`under: "Architektur > Parser"`).
-:::
-
-## Ausflug und Rückkehr {id=ausflug optional}
-
-::: steps
-- ↓ startet einen **Ausflug** in Optionales
-- Space geht die Details der Reihe nach durch
-- Am Ende führt Space zur Abzweigung **zurück**
-:::
-
-::: notes
-Knoten mit dem Flag `{optional}` sind für „bei Zeit oder Fragen“ gedacht. Space überspringt sie. Wer ↓ drückt, beginnt einen **Ausflug**: Space läuft die optionalen Details ab und führt am Ende von selbst zur Abzweigung zurück, damit du den Faden nicht verlierst. Esc bricht den Ausflug ab.
-
-Dieser Abschnitt ist selbst optional: Im Vortrag mit Space wird er übersprungen, im Lesemodus siehst du ihn mit dem Kennzeichen „Optional“.
+Zusätzlich gibt es Space: Es läuft **dem Vortragsplan nach**, also über alle Pfad-Knoten, und überspringt Optionales. Damit bedienst du einen Vortrag mit einer einzigen Taste und nimmst die Abstecher nur, wenn du sie willst. Wie du den Baum schreibst und bedienst, steht im Thema „Baum und Navigation“.
 :::

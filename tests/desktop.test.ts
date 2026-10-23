@@ -161,6 +161,29 @@ describe('Webdienst (hashmark serve)', () => {
     }
   })
 
+  it('liefert eine gebaute Webseite unter /webseite/ aus, öffentlich und ohne Ausbrechen aus dem Ordner', async () => {
+    const { startLiveServer } = await import('../src/desktop/live-server.ts')
+    const deckDir = tmp()
+    fs.writeFileSync(path.join(deckDir, 'a.md'), '# A')
+    const runtimeDir = tmp()
+    fs.writeFileSync(path.join(runtimeDir, 'index.html'), '<title>x</title>')
+    const siteDir = tmp()
+    fs.writeFileSync(path.join(siteDir, 'index.html'), 'start')
+    fs.mkdirSync(path.join(siteDir, 'funktionen', 'schritte'), { recursive: true })
+    fs.writeFileSync(path.join(siteDir, 'funktionen', 'schritte', 'index.html'), 'schritte')
+    const server = await startLiveServer({ deckDir, runtimeDir, onAppAction: () => {}, log: () => {}, web: { host: '127.0.0.1', port: 0, editorPassword: 'geheim', siteDir } })
+    try {
+      const get = (p: string) => fetch(server.url + p, { redirect: 'manual' })
+      expect(await (await get('webseite/')).text()).toBe('start')
+      expect(await (await get('webseite/funktionen/schritte/')).text()).toBe('schritte')
+      expect((await get('webseite')).status).toBe(301)
+      expect((await get('webseite/fehlt.html')).status).toBe(404)
+      expect((await get('webseite/%2e%2e/a.md')).status).toBe(404)
+    } finally {
+      await server.close()
+    }
+  })
+
   it('verlangt auch mit Passwort den Editor-Header und einen passenden Ursprung', async () => {
     const server = await start('geheim')
     try {

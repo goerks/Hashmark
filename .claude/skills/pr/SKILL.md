@@ -10,7 +10,7 @@ Bringt die Arbeit am aktuellen Ticket in einen abnahmefähigen Zustand. Regeln: 
 1. **Ausgangslage:** `git status -sb`, `git log --oneline main..HEAD`, `git diff --stat main...HEAD`. Auf `main`? Abbrechen und `/feature` ausführen. Uncommittete Änderungen committen (deutsche Betreffzeile).
 2. **Prüfen:**
    - `make test` immer (Node: `export PATH="$PWD/vendor/node:$PATH"`, Befehle über `make`).
-   - Berührt die Änderung `docs/`, `scripts/docs-landing.ts` oder `scripts/build-docs.ts`: `make docs`.
+   - Berührt die Änderung `docs/`, `scripts/docs-landing.ts`, `scripts/docs-features.ts` oder `scripts/build-docs.ts`: `make docs`.
    - Berührt sie Decks oder die Syntax: `make check`.
    - UI-Änderungen im Browser ansehen (Edge headless/CDP).
    - Fehlschläge selbst beheben. Nicht pushen, solange Tests rot sind, außer es wird fachlich entschieden.

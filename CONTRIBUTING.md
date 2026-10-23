@@ -61,7 +61,7 @@ Der Auftraggeber muss keinen Git-Befehl kennen. Ein Hook verhindert Commits und 
 
 ## Dokumentation
 
-Die Dokumentation ist selbst mit Hashmark gebaut: Startseite (`scripts/docs-landing.ts`), Handbuch (`docs/`, ein Hashmark-Deck mit Lesemodus) und alle Beispiele. `make docs-serve` zeigt sie lokal. Auf GitHub baut `pages.yml` sie bei jedem Push auf `main` und nach jedem Release (einmalig: Settings → Pages → Source „GitHub Actions“). Die Erklärtexte stehen im Handbuch in `::: notes`; der Lesemodus zeigt sie als Fließtext.
+Die Dokumentation ist selbst mit Hashmark gebaut: Startseite (`scripts/docs-landing.ts`), acht Funktionsseiten (`scripts/docs-features.ts`), Handbuch (`docs/`, ein Hashmark-Deck mit Lesemodus in drei Teilen: Lernen, Themen, Nachschlagen) und alle Beispiele. Die Bilder der Webseite nimmt `node scripts/make-screenshots.ts --out <ordner>` aus der echten App auf; die Pipeline macht das bei jedem Bau, `HASHMARK_SHOTS=<ordner>` gibt sie an `make docs` weiter. `make docs-serve` zeigt sie lokal. Auf GitHub baut `pages.yml` sie bei jedem Push auf `main` und nach jedem Release (einmalig: Settings → Pages → Source „GitHub Actions“). Die Erklärtexte stehen im Handbuch in `::: notes`; der Lesemodus zeigt sie als Fließtext.
 
 Faustregel: Was Anwender wissen müssen, gehört ins Handbuch. Das README bleibt das Schaufenster.
 

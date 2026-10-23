@@ -59,6 +59,7 @@ cli
       port: Number(opts.port ?? process.env.PORT ?? 3030),
       editorUser: process.env.EDITOR_USER || undefined,
       editorPassword: process.env.EDITOR_PASSWORD || undefined,
+      siteDir: process.env.SITE_DIR || undefined,
     })
   })
 

@@ -6,12 +6,35 @@ footer: Hashmark · Handbuch
 slideNumber: "{n} / {total}"
 # Das Handbuch ist selbst ein Hashmark-Deck: als Präsentation (index.html) und als Lesemodus (?reader).
 # Die Erklärtexte stehen in den Sprechernotizen (::: notes), der Lesemodus zeigt sie als Fließtext neben den Folien.
+# Drei Teile in 00-start.md, die Kapitel hängen per `under` darunter. Die Themen heißen wie die Funktionsseiten der
+# Webseite (scripts/docs-features.ts), die Tabellen in nachschlagen/ prüft tests/docs.test.ts auf Vollständigkeit.
 mount:
-  - file: 01-idee.md
-  - file: 02-erste-schritte.md
-  - file: 03-schreiben.md
-  - file: 04-ablauf.md
-  - file: 05-gestaltung.md
-  - file: 06-ausgabe.md
-  - file: 07-referenz.md
-  - file: 08-faq.md
+  - file: 00-start.md
+  - file: lernen/01-idee.md
+    under: Lernen
+  - file: lernen/02-erste-schritte.md
+    under: Lernen
+  - file: themen/01-navigation.md
+    under: Themen
+  - file: themen/02-schritte.md
+    under: Themen
+  - file: themen/03-gestaltung.md
+    under: Themen
+  - file: themen/04-themes.md
+    under: Themen
+  - file: themen/05-medien.md
+    under: Themen
+  - file: themen/06-vortrag.md
+    under: Themen
+  - file: themen/07-editor-app.md
+    under: Themen
+  - file: themen/08-export.md
+    under: Themen
+  - file: nachschlagen/01-syntax.md
+    under: Nachschlagen
+  - file: nachschlagen/02-deck-yaml.md
+    under: Nachschlagen
+  - file: nachschlagen/03-bedienung.md
+    under: Nachschlagen
+  - file: nachschlagen/04-faq.md
+    under: Nachschlagen

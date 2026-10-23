@@ -71,7 +71,7 @@ Bilder fügst du per Drag & Drop oder mit Strg+V (Screenshot) ein; sie landen im
 ::: notes
 Mit F5 startet die Präsentation im Vollbild; hast du einen zweiten Bildschirm, erscheint die Presenter-View mit Notizen, Timer und dem Baum dort automatisch. Die Optionen dafür stehen am Pfeil neben „Präsentieren“.
 
-Die Ausgaben findest du im Menü Datei: **PDF** (alle Folien, nur der Hauptpfad, Handout mit Notizen), **PowerPoint** mit bearbeitbarem Text und Animationen und eine **einzelne HTML-Datei**, die offline per Doppelklick läuft. Mehr dazu im Kapitel „Export“.
+Die Ausgaben findest du im Menü Datei: **PDF** (alle Folien, nur der Hauptpfad, Handout mit Notizen), **PowerPoint** mit bearbeitbarem Text und Animationen und eine **einzelne HTML-Datei**, die offline per Doppelklick läuft. Mehr dazu im Thema „Export und Weitergabe“.
 :::
 
 ## Im Browser ausprobieren {id=online}
@@ -80,7 +80,7 @@ Die Ausgaben findest du im Menü Datei: **PDF** (alle Folien, nur der Hauptpfad,
 - Präsentation öffentlich, Editor nur mit Passwort
 
 ::: notes
-Unter `https://hashmark.onrender.com` läuft der Webdienst von Hashmark mit einem Beispiel-Deck. Die Präsentation ist öffentlich; der Editor unter `/editor.html` ist durch ein Passwort geschützt. Wie du den Dienst selbst betreibst, steht im Kapitel „App und Webdienst“.
+Unter `https://hashmark.onrender.com` läuft der Webdienst von Hashmark mit einem Beispiel-Deck. Die Präsentation ist öffentlich; der Editor unter `/editor.html` ist durch ein Passwort geschützt. Wie du den Dienst selbst betreibst, steht im Thema „Editor und App“.
 :::
 
 ## Aus dem Quelltext arbeiten {id=quelltext optional}
