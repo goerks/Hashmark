@@ -77,7 +77,7 @@ Die Ausgaben findest du im Menü Datei: **PDF** (alle Folien, nur der Hauptpfad,
 ## Im Browser ausprobieren {id=online}
 
 - Live-Instanz: **hashmark.onrender.com**
-- Präsentation öffentlich, Editor nur mit Passwort
+- Präsentation und Editor ohne Anmeldung
 
 ::: notes
 Unter `https://hashmark.onrender.com` läuft der Webdienst von Hashmark mit einem Beispiel-Deck. Die Präsentation ist öffentlich; der Editor unter `/editor.html` ist durch ein Passwort geschützt. Wie du den Dienst selbst betreibst, steht im Thema „Editor und App“.

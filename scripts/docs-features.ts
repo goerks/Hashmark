@@ -176,7 +176,7 @@ export const FEATURES: Feature[] = [
       { title: 'Live-Vorschau', text: 'Links Markdown, rechts die Folie an der Stelle des Cursors. Gespeichert wird von selbst, Bilder ziehst du einfach hinein.', shot: 'editor.jpg', alt: 'Editor: links Markdown, rechts die Vorschau der Folie', card: hb('themen/editor-app/editor-details'), doc: 'themen/editor-app/editor-details' },
       { title: 'Vorschläge und Prüfen', text: '/ öffnet die Bausteine, { die Attribute. Tippfehler sind unterstrichen, „Prüfen“ findet auch Folien, die überlaufen.', md: 'make check DECK=decks/vortrag', card: hb('themen/editor-app/pruefen'), doc: 'themen/editor-app/pruefen' },
       { title: 'Desktop-App ohne Installer', text: 'Ein Ordner je Plattform, entpacken und starten. Editor, Präsentation, Presenter-View und alle Exporte im Menü.', card: hb('themen/editor-app/app'), doc: 'themen/editor-app/app' },
-      { title: 'Webdienst fürs Team', text: 'Ein Docker-Image: Präsentation öffentlich, Editor mit Passwort, beide auf demselben Deck.', md: 'EDITOR_PASSWORD=… make serve', card: hb('themen/editor-app/webdienst'), doc: 'themen/editor-app/webdienst' },
+      { title: 'Webdienst fürs Team', text: 'Ein Docker-Image: Präsentation und Editor ohne Anmeldung, beide auf demselben Deck.', md: 'make serve', card: hb('themen/editor-app/webdienst'), doc: 'themen/editor-app/webdienst' },
     ],
   },
   {

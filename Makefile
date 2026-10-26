@@ -50,9 +50,9 @@ help:
 	@echo   make app-test      E2E-Test der Desktop-App, headless (ohne sichtbare Fenster)
 	@echo   make sidecar-smoke Selbsttest des Node-Sidecars (Deck, PDF, PPTX, HTML) nach export/sidecar-smoke
 	@echo   make edit          Editor: links Markdown, rechts Live-Vorschau (DECK=...)
-	@echo   make serve         Webdienst lokal (Praesentation oeffentlich, Editor mit Passwort EDITOR_PASSWORD)
+	@echo   make serve         Webdienst lokal (Praesentation oeffentlich, Editor ohne Anmeldung)
 	@echo   make image         Docker-Image des Webdienstes bauen (Dockerfile im Root, Name: $(SERVER_IMAGE))
-	@echo   make image-run     Webdienst-Image starten (http://localhost:$(DOCKER_PORT), Editor-Passwort: EDITOR_PASSWORD)
+	@echo   make image-run     Webdienst-Image starten (http://localhost:$(DOCKER_PORT), Editor ohne Anmeldung)
 	@echo   make dev           Dev-Server starten           (DECK=$(DECK) PORT=$(PORT))
 	@echo   make dev-open      Dev-Server starten und Browser oeffnen
 	@echo   make dev-lan       Dev-Server im Netzwerk erreichbar (LAN/VPN)
@@ -164,15 +164,15 @@ pptx: node_modules
 check: node_modules
 	$(HASHMARK) check "$(DECK)" $(if $(NOOVERFLOW),--no-overflow) $(if $(STRICT),--strict) $(if $(BROWSER),--browser "$(BROWSER)")
 
-# Webdienst wie auf Render: Praesentation oeffentlich, Editor unter /editor.html mit Passwort
+# Webdienst wie auf Render: Praesentation oeffentlich, Editor unter /editor.html ohne Anmeldung
 serve: node_modules
-	set "DECK_DIR=$(DECK)" && set "PORT=$(PORT)" && set "EDITOR_PASSWORD=$(if $(EDITOR_PASSWORD),$(EDITOR_PASSWORD),geheim)" && $(HASHMARK) serve
+	set "DECK_DIR=$(DECK)" && set "PORT=$(PORT)" && $(HASHMARK) serve
 
 image:
 	docker build -t $(SERVER_IMAGE) .
 
 image-run:
-	docker run --rm -p $(DOCKER_PORT):10000 -e EDITOR_PASSWORD="$(if $(EDITOR_PASSWORD),$(EDITOR_PASSWORD),geheim)" -v hashmark-data:/data $(SERVER_IMAGE)
+	docker run --rm -p $(DOCKER_PORT):10000 -v hashmark-data:/data $(SERVER_IMAGE)
 
 docker: build
 	docker build -f docker/Dockerfile -t $(IMAGE) .

@@ -1,12 +1,10 @@
-# Hashmark als Webdienst: Präsentation öffentlich, Editor unter /editor.html mit Passwort.
+# Hashmark als Webdienst: Präsentation öffentlich, Editor unter /editor.html, beide ohne Anmeldung.
 # Ein Container, ein Prozess (hashmark serve). Das Deck liegt im Ordner DECK_DIR; wird dafür eine dauerhafte
 # Festplatte eingehängt (Render: Disk auf /data), bleiben Änderungen aus dem Editor über Neustarts erhalten.
 #
 # Bauen:     docker build -t hashmark .
-# Starten:   docker run --rm -p 10000:10000 -e EDITOR_PASSWORD=geheim -v hashmark-data:/data hashmark
-# Umgebung:  EDITOR_PASSWORD  schaltet den Editor frei (ohne gibt es nur die Präsentation)
-#            EDITOR_USER      Benutzername, Standard „editor“
-#            PORT             Standard 10000 (Render setzt ihn selbst)
+# Starten:   docker run --rm -p 10000:10000 -v hashmark-data:/data hashmark
+# Umgebung:  PORT             Standard 10000 (Render setzt ihn selbst)
 #            DECK_DIR         Deck-Ordner, Standard /data/deck
 #            DECK_SEED        wird beim ersten Start in einen leeren DECK_DIR kopiert (Standard: Beispiel-Deck)
 #            SITE_DIR         gebaute Webseite unter /webseite/ (nur in der Vorschau eines Pull Requests gefüllt)

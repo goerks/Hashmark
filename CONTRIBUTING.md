@@ -52,7 +52,7 @@ Der Auftraggeber muss keinen Git-Befehl kennen. Ein Hook verhindert Commits und 
 | `make test` | Tests (Vitest) |
 | `make docs` / `make docs-serve` | Dokumentation als statische Seiten nach `public/` / bauen und ansehen (http://localhost:4000) |
 | `make build-examples` / `make docker-examples` | alle Beispiele mit Auswahlseite bzw. als nginx-Image |
-| `make serve` / `make image` / `make image-run` | Webdienst lokal (Passwort „geheim“) / Docker-Image bauen / starten |
+| `make serve` / `make image` / `make image-run` | Webdienst lokal (Editor ohne Anmeldung) / Docker-Image bauen / starten |
 | `make docker` / `make docker-run` | Deck als nginx-Image (`IMAGE=…`, `DOCKER_PORT`) |
 | `make app` / `make app-package` / `make app-cross` | Desktop-App bauen und starten / portables Paket / Hülle für alle Plattformen |
 | `make app-test` / `make sidecar-smoke` | E2E der Desktop-App (headless) / Node-Sidecar wie aus der App |
