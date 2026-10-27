@@ -178,7 +178,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
   display: flex; justify-content: space-between; align-items: center;
   padding: 12px 14px 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ed-muted);
 }
-.ed-side-head button { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--ed-accent); font-size: 12px; padding: 2px 6px; }
+.ed-side-head button { white-space: nowrap; flex: none; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--ed-accent); font-size: 12px; padding: 2px 6px; }
 .ed-side ul { list-style: none; margin: 0; padding: 0; }
 .ed-files { max-height: 30vh; overflow: auto; padding-bottom: 8px !important; }
 .ed-files button, .ol-item {

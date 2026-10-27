@@ -140,8 +140,14 @@ async function main() {
       const before = (await text(cdp)).length
       await run(cdp, `${EDITOR}.view.dispatch({ changes: { from: ${EDITOR}.view.state.doc.length, insert: '\\n{{#each items}}' } })`)
       await waitFor(cdp, 'document.querySelector(".ed-count.has")', 8000)
-      await run(cdp, 'document.querySelector(".ed-count.has").click()')
-      await sleep(600)
+      // das Hinweisfeld öffnen; bleibt es zu, ein zweites Mal klicken und den Zustand ins Protokoll schreiben
+      for (let i = 0; i < 3; i++) {
+        await run(cdp, 'document.querySelector(".ed-count.has")?.click()')
+        await sleep(800)
+        const open = await run(cdp, 'document.querySelector(".ed-problems") !== null')
+        console.log(`  Hinweisfeld nach Klick ${i + 1}: ${open ? 'offen' : 'zu'}`)
+        if (open) break
+      }
       await shot(cdp, '04-fehler.jpg', 'Ein nicht geschlossener Block: unten steht der Hinweis mit Zeilennummer, im Text ist die Stelle rot markiert.')
       await run(cdp, `${EDITOR}.view.dispatch({ changes: { from: ${before}, to: ${EDITOR}.view.state.doc.length, insert: '' } })`)
       await sleep(900)
