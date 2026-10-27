@@ -178,6 +178,39 @@ describe('Webdienst (hashmark serve)', () => {
     }
   })
 
+  it('Komponenten: anlegen, auflisten, lesen, schreiben; HTML des Decks kommt nur als Text', async () => {
+    const server = await start()
+    try {
+      const h = { 'X-Hashmark-Editor': '1' }
+      const post = (body: unknown) => fetch(server.url + '__hashmark/new-component', { method: 'POST', headers: h, body: JSON.stringify(body) })
+      const made = await post({ name: 'merksatz', description: 'Satz', attrs: ['title'] })
+      expect(made.status).toBe(200)
+      expect(await made.json()).toEqual({ template: 'components/merksatz.html', style: 'components/merksatz.css' })
+      expect((await post({ name: 'merksatz' })).status).toBe(409)
+      expect((await post({ name: 'cards' })).status).toBe(400)
+      expect((await post({ name: 'Gross' })).status).toBe(400)
+
+      const files = (await (await fetch(server.url + '__hashmark/files', { headers: h })).json()).files as { path: string; kind: string }[]
+      expect(files).toContainEqual({ path: 'components/merksatz.html', kind: 'template' })
+      expect(files).toContainEqual({ path: 'components/merksatz.css', kind: 'style' })
+
+      const url = (p: string) => server.url + '__hashmark/file?path=' + encodeURIComponent(p)
+      expect(await (await fetch(url('components/merksatz.html'), { headers: h })).text()).toContain('{{!meta')
+      expect((await fetch(url('components/merksatz.css'), { method: 'PUT', headers: h, body: '.d-merksatz { color: red }' })).status).toBe(200)
+      expect(await (await fetch(url('components/merksatz.css'), { headers: h })).text()).toBe('.d-merksatz { color: red }')
+      // andere HTML- und CSS-Dateien bleiben tabu
+      expect((await fetch(url('notiz.html'), { method: 'PUT', headers: h, body: '<script>x</script>' })).status).toBe(415)
+      expect((await fetch(url('components/unter/x.css'), { method: 'PUT', headers: h, body: 'a{}' })).status).toBe(415)
+
+      const asset = await fetch(server.url + 'deck-assets/components/merksatz.html')
+      expect(asset.status).toBe(200)
+      expect(asset.headers.get('content-type')).toMatch(/^text\/plain/)
+      expect(asset.headers.get('x-content-type-options')).toBe('nosniff')
+    } finally {
+      await server.close()
+    }
+  })
+
   it('verlangt den Editor-Header und einen passenden Ursprung', async () => {
     const server = await start()
     try {

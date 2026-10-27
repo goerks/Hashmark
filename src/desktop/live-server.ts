@@ -133,7 +133,13 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     }
     if (pathname.startsWith('/' + ASSET_PREFIX)) {
       const file = inside(deckDir, pathname.slice(ASSET_PREFIX.length + 1))
-      return file ? sendFile(req, res, file, 'no-cache') : notFound()
+      if (!file) return notFound()
+      // Dateien des Decks sind nie eine Seite: der Editor schreibt auch Komponenten (.html), die hier als Text kommen müssen
+      if (/\.html?$/i.test(file)) {
+        res.setHeader('X-Content-Type-Options', 'nosniff')
+        return serveFile(req, res, file, { type: 'text/plain; charset=utf-8', cache: 'no-cache' })
+      }
+      return sendFile(req, res, file, 'no-cache')
     }
     // vorgebaute Runtime: / und ?print/?presenter → index.html
     const rel = pathname === '/' ? 'index.html' : pathname.slice(1)

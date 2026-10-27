@@ -72,6 +72,13 @@ function metaFrom(raw: unknown): ComponentMeta {
   return meta
 }
 
+/** Nur den Kopf `{{!meta … }}` lesen, ohne Fehler zu werfen (für Vorschläge im Editor, auch bei halbfertiger Vorlage). */
+export function readMetaHead(full: string): ComponentMeta | undefined {
+  const head = full.match(META)
+  if (!head) return undefined
+  try { return metaFrom(YAML.parse(head[1])) } catch { return undefined }
+}
+
 /** Vorlage lesen; wirft `TemplateError` mit Zeilennummer bei ungültiger Syntax. */
 export function parseTemplate(full: string): Template {
   let meta: ComponentMeta | undefined
