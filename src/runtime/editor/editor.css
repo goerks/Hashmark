@@ -189,6 +189,8 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .ed-files button[data-kind="yaml"] { color: var(--ed-muted); }
 .ed-files button[data-kind="style"] { color: var(--ed-muted); }
 .ed-side-head.sub { margin-top: 6px; }
+.ed-example { padding: 2px 8px; border: 1px solid var(--ed-border); border-radius: 6px; color: var(--ed-accent); font-weight: 600; font-size: 12px; }
+.ed-example:hover { background: var(--ed-surface-2); }
 .ed-none { padding: 4px 14px; font-size: 12px; color: var(--ed-muted); }
 .ed-files button:hover, .ol-item:hover { background: var(--ed-surface-2); }
 .ed-files button.active { background: color-mix(in srgb, var(--ed-accent) 14%, transparent); color: var(--ed-fg); font-weight: 600; }

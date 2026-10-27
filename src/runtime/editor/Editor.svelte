@@ -9,6 +9,7 @@
   import { api, relativeTo, type FileEntry, type NewComponent } from './api.ts'
   import { createEditor, type Editor, type Lang } from './codemirror.ts'
   import { componentKind } from '../../core/component-edit.ts'
+  import { readMetaHead } from '../../core/components.ts'
   import type { Problem } from './assist.ts'
   import type { ComponentMeta } from '../../core/components.ts'
   import Palette, { type PaletteItem } from './Palette.svelte'
@@ -63,6 +64,8 @@
   let imageInput: HTMLInputElement
   let ed: Editor
   let savedText = ''
+  /** zuletzt geöffnete Folien-Datei: dorthin kommt das Beispiel einer Komponente */
+  let lastSlideFile: string | null = null
   let cursorLine = 1
   let saveTimer: ReturnType<typeof setTimeout> | undefined
   let syncTimer: ReturnType<typeof setTimeout> | undefined
@@ -118,6 +121,7 @@
       ed.load(text, kindOf(path))
       savedText = text
       current = path
+      if (kindOf(path) === 'markdown') lastSlideFile = path
       status = 'saved'
       if (kindOf(path) === 'yaml' || kindOf(path) === 'css') problems = []
     }
@@ -169,6 +173,25 @@
       return null
     } catch (e) {
       return (e as Error).message
+    }
+  }
+
+  /** Beispiel aus dem Kopf der Vorlage als eigene Folie ans Ende der Folien-Datei setzen: die Vorschau zeigt es sofort */
+  async function insertExample() {
+    const from = current
+    const example = readMetaHead(ed.text())?.example
+    const name = from?.match(/([^/]+)\.html$/)?.[1]
+    if (!from || !name) return
+    if (!example) { flash('Im Kopf {{!meta}} fehlt ein Beispiel (example:).'); return }
+    const target = lastSlideFile ?? slideFiles.find((f) => f.kind === 'markdown')?.path
+    if (!target) { flash('Es gibt keine Folien-Datei für das Beispiel.'); return }
+    try {
+      await openFile(target)
+      ed.append(`\n\n## Beispiel ${name}\n\n${example}`)
+      ed.gotoLine(ed.view.state.doc.lines)
+      flash(`Beispiel am Ende von ${target} eingefügt, die Vorschau zeigt es.`)
+    } catch (e) {
+      flash(`Einfügen fehlgeschlagen: ${(e as Error).message}`)
     }
   }
 
@@ -585,6 +608,7 @@
           {#if current && kindOf(current) === 'html'}
             <span><kbd>{'{{'}</kbd> Platzhalter</span>
             <span><kbd>Strg Leertaste</kbd> Vorschläge</span>
+            <button class="ed-example" onclick={insertExample} title="Beispiel aus dem Kopf als Folie einfügen und in der Vorschau ansehen">Beispiel in Folie ansehen</button>
           {:else if current && kindOf(current) === 'css'}
             <span><kbd>.d-name</kbd> gilt für die Komponente</span>
           {:else}
