@@ -16,6 +16,7 @@ paths:
 - **GitHub Actions (`.github/workflows/`):**
   - `ci.yml`: Vitest, Go-Hülle für 6 Ziele, Image-Probebau; bei Push auf `main` und bei jedem Pull Request.
   - `ci.yml`, Job `probe` (nur Pull Requests): Windows-Paket (`probe-windows`) und HTML-Datei des Beispiel-Decks mit Videoordner (`probe-html-demo`) als Artifacts (7 Tage), damit der Auftraggeber ohne Git ausprobieren kann (Actions › Lauf › Artifacts). Das Paket trägt die Version `pr<Nummer>.<Hash>`.
+  - `ci.yml`, Job `editor-tour` (nur Pull Requests aus diesem Repository, `continue-on-error`): `scripts/editor-tour.ts` spielt den echten Editor mit einer Kopie von `abnahme/` durch (Edge/Chrome über CDP) und fotografiert jeden Schritt. Die Bilder liegen als Artifact `editor-tour` und auf dem Zweig `ci-galerie` (jeder Lauf löscht ihn und legt ihn neu an, er wird nie gemergt; so holt Claude die Bilder ab, weil Artifacts aus der Cloud-Umgebung nicht erreichbar sind). Der Rundgang gehört zum jeweils offenen Ticket: bei einem neuen Ticket mit sichtbarer Bedienung das Skript anpassen.
   - `release.yml`: bei einem Tag `v*`; 6 Standalone-Pakete → GitHub-Release mit Notizen aus `scripts/release-notes.ts` → `pages`.
   - `pages.yml`: GitHub Pages (auch per `workflow_call`).
   - `docker.yml`: Image nach ghcr.io bei Push auf `main`, danach Render-Deploy-Hook.

@@ -41,6 +41,45 @@ jobs:
       - run: node scripts/video-e2e.ts
       - run: node scripts/zoom-e2e.ts
 
+  # Rundgang durch den Editor als Bilderfolge (scripts/editor-tour.ts): echte Bilder aus der echten Oberfläche, nur für
+  # Pull Requests aus diesem Repository. Die Bilder liegen als Download am Lauf (editor-tour) und auf dem Zweig
+  # ci-galerie, den jeder Lauf ersetzt und der nie gemergt wird. Ein Fehler hier färbt den Pull Request nicht rot.
+  editor-tour:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: write
+    env:
+      HASHMARK_BROWSER: /usr/bin/google-chrome
+      HASHMARK_NO_SANDBOX: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
+      - name: Rundgang aufnehmen
+        run: node scripts/editor-tour.ts --out "$RUNNER_TEMP/tour"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: editor-tour
+          path: ${{ runner.temp }}/tour/
+          retention-days: 7
+          if-no-files-found: error
+      - name: Bilder auf den Zweig ci-galerie legen
+        run: |
+          cd "$RUNNER_TEMP/tour"
+          git init -q -b ci-galerie
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Editor-Rundgang zu PR ${{ github.event.pull_request.number }} (${{ github.sha }})"
+          remote="https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          # den Zweig vorher löschen, damit kein erzwungenes Überschreiben nötig ist
+          git push "$remote" --delete ci-galerie || true
+          git push "$remote" HEAD:refs/heads/ci-galerie
+
   # Go-Hülle ohne CGO: der Go-Compiler genügt, auch für die anderen Plattformen
   build-app:
     runs-on: ubuntu-latest
