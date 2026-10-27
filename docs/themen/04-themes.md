@@ -88,6 +88,8 @@ Ein kurzer Merksatz.
 5. **Verwenden:** `::: fact title="…"` in jeder Folie. Es braucht keinen Eintrag in der `deck.yaml`. Beim Speichern lädt die Vorschau neu.
 
 Das Beispiel-Deck „Komponenten“ enthält genau diese Komponente zum Abschauen.
+
+**Im Editor:** Die Schritte 1 bis 4 gehen auch ohne Dateimanager. Links in der Dateiliste steht der Bereich „Komponenten“ mit `+ Komponente`: Name, Beschreibung und Attribute eintragen, und der Editor legt `components/<name>.html` und `.css` als Gerüst an und öffnet die Vorlage. In der Vorlage färbt der Editor die Platzhalter, schlägt sie nach `{{` vor (Strg+Leertaste) und zeigt Fehler wie ein nicht geschlossenes `{{#each}}` mit Zeilennummer. „Beispiel in Folie ansehen“ unten setzt das Beispiel aus dem Kopf als Folie ans Ende der zuletzt geöffneten Datei, die Vorschau zeigt es sofort.
 :::
 
 ### Platzhalter in der Vorlage {id=komponenten-platzhalter}

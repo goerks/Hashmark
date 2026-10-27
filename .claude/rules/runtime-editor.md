@@ -29,7 +29,7 @@ src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print
   ReaderView.svelte + Lazy.svelte + reader.css   ?reader = Lesemodus (Handbuch): Baum als Inhaltsverzeichnis, Notizen als Fließtext, Folien als Karten (ScaledSlide, erst im Sichtbereich gerendert); CardView.svelte: ?card#id:folie&step=n = eine Folie, per postMessage `{type:'hashmark:card', id, slide, step}` umschaltbar (Einbettung in die Startseite). Beide in main.ts
   base.css, print.css, themes/*.css (nur Design-Tokens: --color-*, --font-*, --shiki-*, …)
   editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*): codemirror.ts (Setup, API), hashmark-lang.ts (Decorations für ::: und {…}, Highlight-Klassen .tok-*/.st-*),
-                    assist.ts (Autocomplete, Linter, Formatleiste), Palette.svelte (Strg+K), KeyBar.svelte (Tablet), Editor.svelte; Layout A „Fokus“, unter 900 px Schublade + gestapelt
+                    assist.ts (Autocomplete, Linter, Formatleiste; `templateCompletion`/`templateLint` für Komponenten-Vorlagen), NewComponent.svelte (Dialog „+ Komponente“), Palette.svelte (Strg+K), KeyBar.svelte (Tablet), Editor.svelte; Layout A „Fokus“, unter 900 px Schublade + gestapelt
 src/runtime/deck-source.ts  onDeckUpdate(): Vite-HMR ('hashmark:deck') bzw. EventSource in der App (window.__HASHMARK_LIVE__)
 ```
 
@@ -59,7 +59,7 @@ src/runtime/deck-source.ts  onDeckUpdate(): Vite-HMR ('hashmark:deck') bzw. Even
   - Vorlage „Zeitbudget“ schreibt nur die rausgeworfenen Knoten (`optional`). Ein ausdrückliches `path` an einem Elternknoten würde den Autor-Standard (`appendix`) der Kinder überstimmen.
 - **Präsentieren (Browser):** Im Browser blendet `App.svelte` die Bedienhilfen aus, solange `presenter-hello` kommt (`withPresenter`). Nicht `?withpresenter` nennen: der E2E-Test erkennt URLs mit „presenter“ als Presenter-Fenster.
 - **Desktop-Modus der Seiten:** Das Vite-Plugin mit `onAppAction` setzt `window.__HASHMARK_DESKTOP__` (transformIndexHtml). Dann gehen P/S/PDF/Präsentieren/Ctrl+W per `POST /__hashmark/app` (Header `X-Hashmark-Editor`) an den Sidecar statt per `window.open`.
-- **Editor-API:** nur localhost, Header `X-Hashmark-Editor: 1`, nur Pfade im Deck, nur `.md`/`.yaml`/Bilder. `hashmark edit` hat bewusst kein `--host`.
+- **Editor-API:** nur localhost, Header `X-Hashmark-Editor: 1`, nur Pfade im Deck, nur `.md`/`.yaml`/Bilder und Komponenten (`components/<name>.html|css`, Muster `COMPONENT_FILE` in `component-edit.ts`; andere `.html`/`.css` bleiben tabu, Deck-HTML liefert `/deck-assets/` nur als `text/plain`). `POST /__hashmark/new-component` (JSON `name`, `description`, `attrs`, `children`) legt Vorlage und CSS als Gerüst an (`scaffoldComponent`). `hashmark edit` hat bewusst kein `--host`.
 - Die Datei-API-Pfade und `deck-assets/` sind **relativ**, damit Builds auch in Unterverzeichnissen laufen (`base: './'`).
 
 ## Video (video.ts)
