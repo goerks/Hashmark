@@ -5,6 +5,7 @@ import { forceLinting, linter, type Diagnostic } from '@codemirror/lint'
 import { EditorSelection, type Extension } from '@codemirror/state'
 import { EditorView, keymap, showTooltip, type Tooltip } from '@codemirror/view'
 import { completionAt } from '../../core/complete.ts'
+import { completeTemplate, lintTemplate } from '../../core/component-edit.ts'
 import type { ComponentMeta } from '../../core/components.ts'
 import { lintText, type Problem } from '../../core/lint.ts'
 import { expand } from '../../core/snippets.ts'
@@ -52,6 +53,25 @@ export function completion(getLayouts: () => string[], getComponents: () => Reco
   ]
 }
 
+/** Vorschläge in der Vorlage einer Komponente: nach `{{` Attribute aus dem Kopf, eingebaute Namen und Blöcke */
+export function templateCompletion(): Extension {
+  const source = (ctx: CompletionContext): CompletionResult | null => {
+    const r = completeTemplate(ctx.state.doc.toString(), ctx.pos)
+    if (!r) return null
+    return { from: r.from, to: r.to, filter: false, options: r.options.map((o) => ({ label: o.label, detail: o.detail, type: 'variable' })) }
+  }
+  return [
+    autocompletion({ override: [source], icons: false, maxRenderedOptions: 16, tooltipClass: () => 'st-complete' }),
+    keymap.of([{ key: 'Tab', run: acceptCompletion }]),
+    // gleich nach `{{` Vorschläge anbieten, ohne Strg+Leertaste
+    EditorView.updateListener.of((u) => {
+      if (!u.docChanged) return
+      const head = u.state.selection.main.head
+      if (u.state.sliceDoc(Math.max(0, head - 2), head) === '{{') setTimeout(() => startCompletion(u.view), 0)
+    }),
+  ]
+}
+
 // ---------- Linter ----------
 
 export type { Problem }
@@ -69,6 +89,16 @@ export function lint(getLayouts: () => string[], getComponents: () => Record<str
         ? [{ name: 'Korrigieren', apply: (v: EditorView, from: number, to: number) => v.dispatch({ changes: { from, to, insert: p.fix! } }) }]
         : [],
     }))
+  }, { delay: 350 })
+}
+
+/** Linter für die Vorlage einer Komponente: Syntaxfehler und Fehler im Kopf, mit Zeile */
+export function templateLint(onProblems: (list: Problem[]) => void): Extension {
+  return linter((view): Diagnostic[] => {
+    const problems = lintTemplate(view.state.doc.toString())
+    onProblems(problems)
+    const end = view.state.doc.length
+    return problems.map((p) => ({ from: Math.min(p.from, end), to: Math.min(Math.max(p.to, p.from + 1), end), severity: p.severity, message: p.message }))
   }, { delay: 350 })
 }
 

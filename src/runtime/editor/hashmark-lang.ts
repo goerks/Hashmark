@@ -1,7 +1,7 @@
 // Farbe für die Hashmark-Syntax im Markdown-Editor: Container `:::`, Attribute `{layout=…}`, Hinweiskästen.
 // Dazu die Klassen für das Markdown-Highlighting (Farben stehen in editor.css als --ed-t-*).
 
-import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate } from '@codemirror/view'
+import { Decoration, EditorView, MatchDecorator, ViewPlugin, type DecorationSet, type ViewUpdate } from '@codemirror/view'
 import { RangeSetBuilder, type Text } from '@codemirror/state'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { tags as t } from '@lezer/highlight'
@@ -97,3 +97,17 @@ const highlight = syntaxHighlighting(HighlightStyle.define([
 ]))
 
 export const hashmarkSyntax = [plugin, highlight]
+
+/** HTML und CSS einer Komponente: dieselben Farben wie im Markdown-Editor */
+export const codeSyntax = highlight
+
+/** Platzhalter `{{ … }}` und `{{{ … }}}` einer Komponenten-Vorlage hervorheben */
+const tagMatcher = new MatchDecorator({ regexp: /\{\{\{?[^{}]*\}\}\}?/g, decoration: mark('st-tpl') })
+export const templateSyntax = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet
+    constructor(view: EditorView) { this.decorations = tagMatcher.createDeco(view) }
+    update(u: ViewUpdate) { this.decorations = tagMatcher.updateDeco(u, this.decorations) }
+  },
+  { decorations: (v) => v.decorations },
+)

@@ -6,12 +6,14 @@
   import { lineOfSlide, nodeAtLine, pathToNode } from '../../core/sourcemap.ts'
   import { printQuery } from '../../core/print.ts'
   import { SNIPPETS } from '../../core/snippets.ts'
-  import { api, relativeTo, type FileEntry } from './api.ts'
-  import { createEditor, type Editor } from './codemirror.ts'
+  import { api, relativeTo, type FileEntry, type NewComponent } from './api.ts'
+  import { createEditor, type Editor, type Lang } from './codemirror.ts'
+  import { componentKind } from '../../core/component-edit.ts'
   import type { Problem } from './assist.ts'
   import type { ComponentMeta } from '../../core/components.ts'
   import Palette, { type PaletteItem } from './Palette.svelte'
   import KeyBar from './KeyBar.svelte'
+  import NewComponentDialog from './NewComponent.svelte'
   import { desktopAction, hasPresentOptions, isDesktop } from '../desktop.ts'
   import PresentOptions from './PresentOptions.svelte'
   import { onDeckUpdate } from '../deck-source.ts'
@@ -49,6 +51,7 @@
   let problems = $state.raw<Found[]>([])
   let problemsOpen = $state(false)
   let palette = $state<{ only: string } | null>(null)
+  let newComponentOpen = $state(false)
   /** Optionen fürs Präsentieren (Presenter-View, Bildschirme) – nur im Hauptfenster der Desktop-App */
   let presentOptions = $state(false)
   const canPresentOptions = hasPresentOptions()
@@ -70,9 +73,11 @@
   /** zuletzt an die Vorschau geschickte Position – deren Echo nicht zurück in den Editor spiegeln */
   let requested = ''
 
-  const kindOf = (path: string) => (/\.ya?ml$/i.test(path) ? 'yaml' : 'markdown')
+  const kindOf = (path: string): Lang => (/\.ya?ml$/i.test(path) ? 'yaml' : /\.html$/i.test(path) ? 'html' : /\.css$/i.test(path) ? 'css' : 'markdown')
   const keyOf = (id: string, slide: number) => `${id}:${slide}`
   const textFiles = $derived(files.filter((f) => f.kind !== 'image'))
+  const slideFiles = $derived(textFiles.filter((f) => f.kind === 'markdown' || f.kind === 'yaml'))
+  const componentFiles = $derived(textFiles.filter((f) => f.kind === 'template' || f.kind === 'style'))
   const crumbs = $derived(deck && previewPos ? pathToNode(deck.nodes, previewPos.id) : [])
   const columns = $derived(
     `${side ? '240px' : '0px'} ${mode === 'write' ? 'minmax(0, 1fr) 0 0' : mode === 'preview' ? '0 0 minmax(0, 1fr)' : `minmax(0, ${split}fr) 6px minmax(0, ${100 - split}fr)`}`,
@@ -114,7 +119,7 @@
       savedText = text
       current = path
       status = 'saved'
-      if (kindOf(path) === 'yaml') problems = []
+      if (kindOf(path) === 'yaml' || kindOf(path) === 'css') problems = []
     }
     if (opts.line) opts.select === false ? ed.scrollToLine(opts.line) : ed.gotoLine(opts.line)
     remember({ file: path, line: opts.line ?? cursorLine, split })
@@ -153,6 +158,20 @@
     }
   }
 
+  /** Gerüst anlegen, Dateiliste auffrischen und die Vorlage öffnen. Gibt eine Fehlermeldung für den Dialog zurück, sonst null. */
+  async function createComponent(input: NewComponent): Promise<string | null> {
+    try {
+      const r = await api.createComponent(input)
+      await refreshFiles()
+      newComponentOpen = false
+      await openFile(r.template, { line: 1 })
+      flash(`Komponente „${input.name}“ angelegt. In Folien: ::: ${input.name}`)
+      return null
+    } catch (e) {
+      return (e as Error).message
+    }
+  }
+
   // ---------- Vorschau-Sync ----------
 
   function goto(id: string, slide: number) {
@@ -170,6 +189,8 @@
   async function followPreview(pos: Position) {
     previewPos = pos
     if (!follow || !deck || keyOf(pos.id, pos.slide) === requested) return
+    // wer an einer Komponente arbeitet, soll nicht zur Folie springen, wenn die Vorschau nach dem Speichern neu lädt
+    if (current && componentKind(current)) return
     const target = lineOfSlide(deck.nodes, pos.id, pos.slide)
     if (!target) return
     try {
@@ -334,6 +355,7 @@
       { group: 'Aktionen', title: side ? 'Seitenleiste ausblenden' : 'Seitenleiste einblenden', run: toggleSide },
       { group: 'Aktionen', title: follow ? 'Synchron ausschalten' : 'Synchron einschalten', detail: 'Vorschau folgt dem Cursor', run: () => { follow = !follow } },
       { group: 'Aktionen', title: 'Neue Datei …', run: newFile },
+      { group: 'Aktionen', title: 'Neue Komponente …', detail: 'Vorlage und Gestaltung anlegen', run: () => { newComponentOpen = true } },
     )
     for (const s of SNIPPETS) items.push({ group: 'Bausteine', title: s.label, detail: s.title, run: () => ed.insertSnippet(s.text) })
     items.push(
@@ -515,10 +537,23 @@
           <button onclick={newFile} title="Neue Markdown-Datei anlegen">+ Datei</button>
         </div>
         <ul class="ed-files">
-          {#each textFiles as f (f.path)}
+          {#each slideFiles as f (f.path)}
             <li>
               <button class:active={f.path === current} data-kind={f.kind} onclick={() => { openFile(f.path, { line: 1 }); closeDrawer() }}>{f.path}</button>
             </li>
+          {/each}
+        </ul>
+        <div class="ed-side-head sub">
+          <span>Komponenten</span>
+          <button onclick={() => (newComponentOpen = true)} title="Neue Komponente anlegen: Vorlage und Gestaltung">+ Komponente</button>
+        </div>
+        <ul class="ed-files">
+          {#each componentFiles as f (f.path)}
+            <li>
+              <button class:active={f.path === current} data-kind={f.kind} onclick={() => { openFile(f.path, { line: 1 }); closeDrawer() }}>{f.path}</button>
+            </li>
+          {:else}
+            <li class="ed-none">Noch keine eigenen Komponenten</li>
           {/each}
         </ul>
       </section>
@@ -547,10 +582,17 @@
       {/if}
       <footer class="ed-foot">
         <span class="ed-hints">
+          {#if current && kindOf(current) === 'html'}
+            <span><kbd>{'{{'}</kbd> Platzhalter</span>
+            <span><kbd>Strg Leertaste</kbd> Vorschläge</span>
+          {:else if current && kindOf(current) === 'css'}
+            <span><kbd>.d-name</kbd> gilt für die Komponente</span>
+          {:else}
           <span><kbd>/</kbd> Bausteine</span>
           <span><kbd>:::</kbd> Container</span>
           <span><kbd>{'{'}</kbd> Attribute</span>
           <span><kbd>Strg Leertaste</kbd> Vorschläge</span>
+          {/if}
         </span>
         <button
           class="ed-count"
@@ -572,6 +614,7 @@
 
   {#if coarse && focused && palette === null}<KeyBar {ed} onblocks={() => openPalette('Bausteine')} />{/if}
   {#if presentOptions}<PresentOptions onclose={() => (presentOptions = false)} />{/if}
+  {#if newComponentOpen}<NewComponentDialog oncreate={createComponent} onclose={() => (newComponentOpen = false)} />{/if}
   {#if palette}<Palette items={paletteItems()} only={palette.only} onclose={closePalette} />{/if}
   {#if message}<div class="ed-toast" role="status">{message}</div>{/if}
   <input
