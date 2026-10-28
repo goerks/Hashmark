@@ -16,8 +16,8 @@ import { html } from '@codemirror/lang-html'
 import { yaml } from '@codemirror/lang-yaml'
 import type { ComponentMeta } from '../../core/components.ts'
 import { expand } from '../../core/snippets.ts'
-import { completion, formatBubble, formatKeymap, lint, link, relint, toggleHeading, wrap, type Problem } from './assist.ts'
-import { hashmarkSyntax } from './hashmark-lang.ts'
+import { completion, formatBubble, formatKeymap, lint, link, relint, templateCompletion, templateLint, toggleHeading, wrap, type Problem } from './assist.ts'
+import { codeSyntax, hashmarkSyntax, templateSyntax } from './hashmark-lang.ts'
 
 export interface EditorHooks {
   onChange: (text: string) => void
@@ -63,8 +63,17 @@ const codeLanguages = [
   LanguageDescription.of({ name: 'YAML', alias: ['yaml', 'yml'], load: async () => yaml() }),
 ]
 
+/** Art der Datei im Editor: Folien (markdown), deck.yaml, Vorlage (html) und Gestaltung (css) einer Komponente */
+export type Lang = 'markdown' | 'yaml' | 'html' | 'css'
+
 export function createEditor(parent: HTMLElement, hooks: EditorHooks) {
-  const extensions = (lang: 'markdown' | 'yaml'): Extension[] => [
+  const languageExtensions = (lang: Lang): Extension[] =>
+    lang === 'yaml' ? [yaml()]
+    : lang === 'css' ? [css(), codeSyntax]
+    : lang === 'html' ? [html(), codeSyntax, templateSyntax, templateCompletion(), templateLint(hooks.onProblems)]
+    : [markdown({ base: markdownLanguage, codeLanguages }), hashmarkSyntax, completion(hooks.layouts, hooks.components), lint(hooks.layouts, hooks.components, hooks.onProblems), formatBubble, formatKeymap]
+
+  const extensions = (lang: Lang): Extension[] => [
     history(),
     drawSelection(),
     dropCursor(),
@@ -76,7 +85,7 @@ export function createEditor(parent: HTMLElement, hooks: EditorHooks) {
     EditorView.lineWrapping,
     EditorView.contentAttributes.of({ autocorrect: 'off', 'aria-label': 'Quelltext' }),
     EditorState.languageData.of(() => [{ closeBrackets: { brackets: ['(', '[', '{', '`', '"'] } }]),
-    lang === 'yaml' ? yaml() : [markdown({ base: markdownLanguage, codeLanguages }), hashmarkSyntax, completion(hooks.layouts, hooks.components), lint(hooks.layouts, hooks.components, hooks.onProblems), formatBubble, formatKeymap],
+    languageExtensions(lang),
     keymap.of([
       indentWithTab,
       { key: 'Mod-s', preventDefault: true, run: () => { hooks.onSave(); return true } },
@@ -120,7 +129,7 @@ export function createEditor(parent: HTMLElement, hooks: EditorHooks) {
     view,
     text: () => view.state.doc.toString(),
     /** Neue Datei laden (eigener Undo-Verlauf, keine Change-Events) */
-    load(text: string, lang: 'markdown' | 'yaml') {
+    load(text: string, lang: Lang) {
       view.setState(EditorState.create({ doc: text, extensions: extensions(lang) }))
     },
     /** Inhalt extern geändert: ersetzen, Cursor möglichst behalten */

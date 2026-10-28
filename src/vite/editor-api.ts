@@ -10,9 +10,12 @@ import type { Connect } from 'vite'
 import YAML from 'yaml'
 import { PLAN_PATH, parsePlanFile } from '../core/plan.ts'
 import { IMAGE_MIME } from '../core/render.ts'
+import { componentKind, scaffoldComponent } from '../core/component-edit.ts'
 
 export const API_PREFIX = '/__hashmark'
 const TEXT_EXT = /\.(md|ya?ml)$/i
+/** Textdateien, die der Editor lesen und schreiben darf: Markdown, YAML und Komponenten (components/*.html, *.css) */
+const editable = (rel: string) => TEXT_EXT.test(rel) || componentKind(rel) !== null
 const MAX_BODY = 25 * 1024 * 1024
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i
 
@@ -46,7 +49,7 @@ async function body(req: IncomingMessage): Promise<Buffer> {
 }
 
 async function listFiles(deckDir: string) {
-  const out: { path: string; kind: 'markdown' | 'yaml' | 'image' }[] = []
+  const out: { path: string; kind: 'markdown' | 'yaml' | 'image' | 'template' | 'style' }[] = []
   const walk = async (dir: string) => {
     for (const e of await fs.readdir(dir, { withFileTypes: true })) {
       if (e.name.startsWith('.') || e.name === 'node_modules') continue
@@ -54,6 +57,7 @@ async function listFiles(deckDir: string) {
       if (e.isDirectory()) await walk(abs)
       else if (/\.md$/i.test(e.name)) out.push({ path: toPosix(path.relative(deckDir, abs)), kind: 'markdown' })
       else if (/\.ya?ml$/i.test(e.name)) out.push({ path: toPosix(path.relative(deckDir, abs)), kind: 'yaml' })
+      else if (componentKind(toPosix(path.relative(deckDir, abs)))) out.push({ path: toPosix(path.relative(deckDir, abs)), kind: componentKind(toPosix(path.relative(deckDir, abs)))! })
       else if (IMAGE_MIME[path.extname(e.name).toLowerCase()]) out.push({ path: toPosix(path.relative(deckDir, abs)), kind: 'image' })
     }
   }
@@ -147,12 +151,12 @@ export function editorApi(deckDir: string, options: EditorApiOptions = {}): Conn
       }
       if (route === '/file' && req.method === 'GET') {
         const abs = inside(deckDir, rel)
-        if (!TEXT_EXT.test(abs)) throw new HttpError(415, 'Nur .md/.yaml')
+        if (!editable(toPosix(path.relative(deckDir, abs)))) throw new HttpError(415, 'Nur .md, .yaml und components/*.html|css')
         return send(200, await fs.readFile(abs, 'utf8'), 'text/plain; charset=utf-8')
       }
       if (route === '/file' && req.method === 'PUT') {
         const abs = inside(deckDir, rel)
-        if (!TEXT_EXT.test(abs)) throw new HttpError(415, 'Nur .md/.yaml')
+        if (!editable(toPosix(path.relative(deckDir, abs)))) throw new HttpError(415, 'Nur .md, .yaml und components/*.html|css')
         const text = (await body(req)).toString('utf8')
         // nur schreiben, wenn sich etwas ändert (sonst unnötiger Reload)
         const old = await fs.readFile(abs, 'utf8').catch(() => null)
@@ -187,6 +191,27 @@ export function editorApi(deckDir: string, options: EditorApiOptions = {}): Conn
         await fs.writeFile(abs, `# ${title.charAt(0).toUpperCase() + title.slice(1) || 'Neues Kapitel'}\n\n`)
         const mounted = await addToManifest(deckDir, toPosix(path.relative(deckDir, abs)))
         return send(200, { path: toPosix(path.relative(deckDir, abs)), mounted })
+      }
+      if (route === '/new-component' && req.method === 'POST') {
+        // Gerüst aus Name, Beschreibung, Attributen und Aufbau; legt components/<name>.html und .css im Deck an
+        let input: { name?: unknown; description?: unknown; attrs?: unknown; children?: unknown }
+        try { input = JSON.parse((await body(req)).toString('utf8')) } catch { throw new HttpError(400, 'Kein gültiges JSON') }
+        const name = String(input.name ?? '')
+        const attrs = Array.isArray(input.attrs) ? input.attrs.map(String) : []
+        let made: { html: string; css: string }
+        try {
+          made = scaffoldComponent({ name, description: String(input.description ?? ''), attrs, children: input.children === true })
+        } catch (e) { throw new HttpError(400, (e as Error).message) }
+        const htmlRel = `components/${name}.html`
+        const cssRel = `components/${name}.css`
+        const htmlAbs = inside(deckDir, htmlRel)
+        const cssAbs = inside(deckDir, cssRel)
+        const exists = (f: string) => fs.stat(f).then(() => true, () => false)
+        if ((await exists(htmlAbs)) || (await exists(cssAbs))) throw new HttpError(409, `Die Komponente „${name}“ gibt es schon`)
+        await fs.mkdir(path.dirname(htmlAbs), { recursive: true })
+        await fs.writeFile(cssAbs, made.css)
+        await fs.writeFile(htmlAbs, made.html)
+        return send(200, { template: htmlRel, style: cssRel })
       }
       if (route === '/upload' && req.method === 'POST') {
         const name = (url.searchParams.get('name') ?? 'bild.png').replace(/[^\w.-]+/g, '-').replace(/^-+/, '') || 'bild.png'

@@ -7,6 +7,7 @@ import { buildNodes, parseMarkdown } from '../src/core/parse.ts'
 import { loadDeck } from '../src/core/deck.ts'
 import { parseTemplate } from '../src/core/components.ts'
 import { completionAt } from '../src/core/complete.ts'
+import { COMPONENT_FILE, completeTemplate, componentKind, componentNameProblem, lintTemplate, scaffoldComponent } from '../src/core/component-edit.ts'
 import { lintText } from '../src/core/lint.ts'
 import { Navigator, formatHash, parseHash, type Position } from '../src/core/navigator.ts'
 import type { DeckNode } from '../src/core/types.ts'
@@ -689,5 +690,75 @@ describe('Komponenten: Kopf, Kinder, Bibliothek', () => {
     expect(w).toMatch(/kpis › kpi: Attribut „value“ fehlt/)
     expect(w).toMatch(/kpis: „foo“ ist hier unbekannt \(erlaubt: kpi\)/)
     expect(w).toMatch(/person: Attribut „name“ fehlt/)
+  })
+})
+
+describe('Komponenten im Editor: Gerüst, Prüfung, Vorschläge', () => {
+  it('erkennt Komponentendateien nur unter components/', () => {
+    expect(componentKind('components/fact.html')).toBe('template')
+    expect(componentKind('theme/components/fact.CSS')).toBe('style')
+    expect(componentKind('fact.html')).toBeNull()
+    expect(componentKind('components/unter/fact.html')).toBeNull()
+    expect(COMPONENT_FILE.test('mycomponents/fact.html')).toBe(false)
+  })
+
+  it('prüft Namen: Schreibweise und eingebaute Container', () => {
+    expect(componentNameProblem('merksatz')).toBeNull()
+    expect(componentNameProblem('Merksatz')).toMatch(/Kleinbuchstaben/)
+    expect(componentNameProblem('1abc')).toMatch(/Kleinbuchstaben/)
+    expect(componentNameProblem('cards')).toMatch(/eingebauter Container/)
+  })
+
+  it('Gerüst: einfacher Kasten ist gültig, hat Kopf mit Beispiel und lädt ohne Hinweise', async () => {
+    const { html, css } = scaffoldComponent({ name: 'merksatz', description: 'Hervorgehobener Satz', attrs: ['title'] })
+    const t = parseTemplate(html)
+    expect(t.meta).toMatchObject({ description: 'Hervorgehobener Satz', required: ['title'] })
+    expect(t.meta?.example).toContain('::: merksatz title="Titel"')
+    expect(lintTemplate(html)).toEqual([])
+    expect(css).toContain('.d-merksatz')
+    const dir = await tempDeck({ 'a.md': '# A\n\n' + t.meta!.example, 'components/merksatz.html': html, 'components/merksatz.css': css })
+    const r = await loadDeck(dir)
+    expect(r.warnings).toEqual([])
+    expect(r.deck.nodes[0].slides[0].html).toContain('class="merksatz-title">Titel</div>')
+  })
+
+  it('Gerüst: mit Kind-Containern lädt das Beispiel ohne Hinweise', async () => {
+    const { html } = scaffoldComponent({ name: 'ablauf', attrs: ['title', 'untertitel'], children: true })
+    const t = parseTemplate(html)
+    expect(Object.keys(t.meta?.children ?? {})).toEqual(['ablauf-eintrag'])
+    expect(t.meta?.attrs).toHaveProperty('untertitel')
+    const dir = await tempDeck({ 'a.md': '# A\n\n' + t.meta!.example, 'components/ablauf.html': html })
+    const r = await loadDeck(dir)
+    expect(r.warnings).toEqual([])
+    expect(r.deck.nodes[0].slides[0].html).toContain('<strong>Erster</strong>')
+  })
+
+  it('Gerüst lehnt schlechte Namen und Attribute ab', () => {
+    expect(() => scaffoldComponent({ name: 'cards' })).toThrow(/eingebauter Container/)
+    expect(() => scaffoldComponent({ name: 'ok', attrs: ['Titel!'] })).toThrow(/Attribute/)
+  })
+
+  it('lintTemplate nennt Zeile und Ursache', () => {
+    expect(lintTemplate('<p>{{ a }}</p>')).toEqual([])
+    const open = lintTemplate('<div>\n{{#each items}}\n</div>')
+    expect(open).toHaveLength(1)
+    expect(open[0]).toMatchObject({ line: 2, severity: 'error' })
+    expect(open[0].message).toMatch(/nicht geschlossen/)
+    expect(open[0].from).toBe(6)
+    const head = lintTemplate('{{!meta\nattrs: [a\n}}\n')
+    expect(head[0]).toMatchObject({ line: 1, from: 0 })
+    expect(head[0].message).toMatch(/YAML/)
+  })
+
+  it('completeTemplate schlägt Attribute aus dem Kopf, eingebaute Namen und Blöcke vor', () => {
+    const text = '{{!meta\nattrs:\n  title: Überschrift\nflags:\n  wide: breit\n}}\n<p>{{ ti'
+    const r = completeTemplate(text, text.length)!
+    expect(r.options.map((o) => o.label)).toEqual(['title'])
+    expect(r.from).toBe(text.length - 2)
+    const all = completeTemplate(text.replace(/ti$/, ''), text.length - 2)!
+    expect(all.options.map((o) => o.label)).toEqual(expect.arrayContaining(['title', 'wide', 'body', 'children', '#each', '/each', 'else']))
+    expect(completeTemplate('<p>{{{ bo', 9)!.options.map((o) => o.label)).toEqual(['body'])
+    expect(completeTemplate('<p>Text', 7)).toBeNull()
+    expect(completeTemplate('{{ zzz', 6)).toBeNull()
   })
 })

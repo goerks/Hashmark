@@ -5,6 +5,7 @@ import path from 'node:path'
 import type { Plugin, ViteDevServer } from 'vite'
 import { listExamples } from '../cli/examples.ts'
 import { realPath } from '../cli/paths.ts'
+import { componentKind } from '../core/component-edit.ts'
 import { loadDeck, type LoadResult } from '../core/deck.ts'
 import { PLAN_PATH } from '../core/plan.ts'
 import { MAX_EMBED_BYTES, isVideoUrl, mediaName } from '../core/media.ts'
@@ -134,7 +135,9 @@ export function hashmark(options: HashmarkOptions): Plugin {
       const onFile = (file: string) => {
         const rel = path.relative(deckDir, file)
         const isTheme = /\.(css|html)$/i.test(file) && themeFiles.some((t) => file === t || !path.relative(t, file).startsWith('..'))
-        if (!isTheme && (rel.startsWith('..') || !/\.(md|ya?ml)$/i.test(file))) return
+        // Komponenten des Decks (components/*.html|css): auch neue Dateien in einem neuen Ordner lösen ein Neuladen aus
+        const isComponent = !rel.startsWith('..') && componentKind(rel.split(path.sep).join('/')) !== null
+        if (!isTheme && !isComponent && (rel.startsWith('..') || !/\.(md|ya?ml)$/i.test(file))) return
         clearTimeout(timer)
         timer = setTimeout(() => reload(server), 50)
       }

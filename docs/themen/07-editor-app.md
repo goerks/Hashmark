@@ -14,6 +14,7 @@ Du schreibst in Hashmark wie in einem Texteditor, siehst aber jede Folie sofort.
 | --- | --- |
 | `/` am Zeilenanfang | Bausteine: Kapitel, Spalten, Code, Diagramm, Notizen |
 | `::: ` | Container und eigene Komponenten |
+| `+ Komponente` (Dateiliste) | neue Komponente: Vorlage und Gestaltung als Gerüst |
 | `{` an der Überschrift | Attribute und Layouts |
 | Strg+K | Palette mit allen Befehlen |
 | Bild ziehen oder Strg+V | Bild landet in `bilder/` |
