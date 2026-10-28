@@ -1,5 +1,0 @@
-/* Eigene Komponente dieses Decks, liegt in components/ neben den Folien */
-.d-fact .fact { border-left: 6px solid var(--color-accent); background: color-mix(in srgb, var(--color-accent) 10%, transparent); padding: 0.9rem 1.4rem; border-radius: 0 var(--radius) var(--radius) 0; }
-.d-fact .fact-title { font-family: var(--font-heading); font-weight: 700; color: var(--color-accent); margin-bottom: 0.3rem; }
-.d-fact .fact-text { font-size: 0.8em; }
-.d-fact .fact-text p { margin: 0; }
