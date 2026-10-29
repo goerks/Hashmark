@@ -49,6 +49,10 @@ Nur bei Fragen: ↓ taucht ab, Space führt zurück.
 
 Alle Schreibweisen, Tasten und Befehle stehen im Teil „Nachschlagen“ des [Handbuchs](https://goerks.github.io/Hashmark/handbuch/?reader).
 
+## Mit KI Präsentationen schreiben
+
+Eine KI kann ein Deck ohne Vorwissen bauen: [`hashmark-fuer-ki.md`](hashmark-fuer-ki.md) beschreibt Deck-Ordner, `deck.yaml`, Baum, Attribute, Layouts, Container, Schritte und Medien samt Checkliste und Beispiel. Die Datei der KI mitgeben (oder ihre [Rohfassung](https://raw.githubusercontent.com/goerks/Hashmark/main/hashmark-fuer-ki.md) verlinken), dann das Thema nennen. Mit `hashmark check` prüfst du das Ergebnis.
+
 ## Loslegen
 
 1. **App laden:** Paket für deine Plattform aus den [Releases](https://github.com/goerks/Hashmark/releases/latest) entpacken, `Hashmark.exe` starten. Kein Installer nötig.
@@ -64,6 +68,7 @@ Die ausführliche Anleitung steht im Teil „Lernen“ des [Handbuchs](https://g
 | [Handbuch](https://goerks.github.io/Hashmark/handbuch/?reader) | Lernen, Themen, Nachschlagen (alle Schreibweisen, Tasten, Befehle), häufige Fragen |
 | [Funktionen](https://goerks.github.io/Hashmark/funktionen/) | die acht Bereiche mit Bildern und Beispielen |
 | [Beispiel-Decks](https://goerks.github.io/Hashmark/beispiele/) | Funktionen, eigenes Theme, Komponenten, Formeln |
+| [Hashmark für KI](hashmark-fuer-ki.md) | vollständige Beschreibung des Deck-Aufbaus, damit eine KI ohne weitere Hinweise gültige Präsentationen schreibt |
 | [Live-Instanz](https://hashmark.onrender.com) | Webdienst auf Render |
 | [Roadmap](roadmap.md) · [Konzept](konzept-markdown-praesentations-app.md) | wohin es geht und warum |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | selbst bauen, Befehle, Workflow für Pull Requests |

@@ -9,6 +9,7 @@ Sprache: Code-Kommentare, UI-Texte, Commit-Messages und Doku sind **deutsch**. B
 | Für wen | Wo |
 | --- | --- |
 | Anwender | Handbuch `docs/` (ein Hashmark-Deck, veröffentlicht auf GitHub Pages), Schaufenster `README.md` |
+| KI, die Decks schreibt | `hashmark-fuer-ki.md`: vollständige Syntax- und Aufbaubeschreibung. **Bei jeder Änderung an Syntax, Layouts, Containern, Attributen oder `deck.yaml` mitpflegen** (Test in `tests/docs.test.ts` prüft den Wortschatz) |
 | Entwickler | `CONTRIBUTING.md` (Einrichten, Befehle, Workflow) |
 | Claude / Details je Bereich | `.claude/rules/*.md`, werden bei passenden Pfaden automatisch geladen |
 | Konzept und Ausbau | `konzept-markdown-praesentations-app.md`, `roadmap.md` |

@@ -12,6 +12,14 @@ Nein. Hashmark läuft **vollständig offline**.
 Es gibt keine CDNs und keine Web-Fonts; Mermaid, KaTeX und die Code-Hervorhebung sind eingebaut, Schriften kommen aus dem System. Internet braucht nur, wer Hashmark aus dem Quelltext baut (`make setup` lädt Node.js einmalig). Deine Dateien bleiben bei dir.
 :::
 
+## Kann eine KI mir eine Präsentation schreiben? {id=faq-ki}
+
+Ja: Gib ihr die Datei **`hashmark-fuer-ki.md`** mit.
+
+::: notes
+Die Datei beschreibt knapp und vollständig, wie ein Deck aufgebaut ist: Ordner, `deck.yaml`, Überschriften als Baum, Attribute, Layouts, Container, Schritte, Medien und Notizen, dazu eine Checkliste und ein Beispiel. Du findest sie im Projekt unter https://github.com/goerks/Hashmark/blob/main/hashmark-fuer-ki.md (Rohfassung: https://raw.githubusercontent.com/goerks/Hashmark/main/hashmark-fuer-ki.md). Gib sie der KI zusammen mit deinem Thema, und prüfe das Ergebnis mit „Prüfen“ (`make check`).
+:::
+
 ## Kann ich PowerPoint-Dateien importieren? {id=faq-import}
 
 Nein, nur **exportieren**.
