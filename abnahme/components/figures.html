@@ -1,0 +1,23 @@
+{{!meta
+description: "Zeigt, was die Funktionen aus Zahl, Datum und Text machen"
+attrs:
+  number: Eine Zahl, z. B. 1234,56
+  date: Ein Datum, JJJJ-MM-TT
+  text: Ein Text
+  empty: Bleibt absichtlich leer
+required: number
+example: |
+  ::: figures number="1234,56" date="2026-10-29" text="Hashmark"
+  :::
+}}
+<table class="figures">
+  <tr><th>In der Vorlage</th><th>Ergebnis</th></tr>
+  <tr><td><code>number:1</code></td><td>{{ number | number:1 }}</td></tr>
+  <tr><td><code>number:1:"en"</code></td><td>{{ number | number:1:"en" }}</td></tr>
+  <tr><td><code>percent:5000</code></td><td>{{ number | percent:5000:1 }}</td></tr>
+  <tr><td><code>date:long</code></td><td>{{ date | date:long }}</td></tr>
+  <tr><td><code>date:short:"en"</code></td><td>{{ date | date:short:"en" }}</td></tr>
+  <tr><td><code>upper</code></td><td>{{ text | upper }}</td></tr>
+  <tr><td><code>truncate:4</code></td><td>{{ text | truncate:4 }}</td></tr>
+  <tr><td><code>default:"–"</code> (Attribut fehlt)</td><td>{{ empty | default:"–" }}</td></tr>
+</table>

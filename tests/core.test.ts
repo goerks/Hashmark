@@ -5,7 +5,8 @@ import path from 'node:path'
 import { normalizeContainers, parseAttrs, splitHeadingAttrs } from '../src/core/syntax.ts'
 import { buildNodes, parseMarkdown } from '../src/core/parse.ts'
 import { loadDeck } from '../src/core/deck.ts'
-import { parseTemplate } from '../src/core/components.ts'
+import { expandComponent, parseTemplate, TemplateError } from '../src/core/components.ts'
+import { FUNCTION_NAMES, parseNumber } from '../src/core/functions.ts'
 import { completionAt } from '../src/core/complete.ts'
 import { COMPONENT_FILE, completeTemplate, componentKind, componentNameProblem, lintTemplate, scaffoldComponent } from '../src/core/component-edit.ts'
 import { lintText } from '../src/core/lint.ts'
@@ -760,5 +761,114 @@ describe('Komponenten im Editor: Gerüst, Prüfung, Vorschläge', () => {
     expect(completeTemplate('<p>{{{ bo', 9)!.options.map((o) => o.label)).toEqual(['body'])
     expect(completeTemplate('<p>Text', 7)).toBeNull()
     expect(completeTemplate('{{ zzz', 6)).toBeNull()
+  })
+})
+
+describe('Komponenten: Funktionsbausteine', () => {
+  const warns: string[] = []
+  const env = { image: (u: string) => `IMG:${u}`, warn: (m: string) => { warns.push(m) } }
+  const kid = (name: string, attributes: Record<string, string>) => ({ type: 'containerDirective', name, attributes, children: [] }) as never
+  const render = (template: string, attrs: Record<string, string>, children: unknown[] = []) =>
+    (expandComponent(parseTemplate(template), { name: 't', attrs, children: children as never[] }, env) as { value?: string }[]).map((n) => n.value ?? '').join('')
+  const problem = (template: string) => {
+    try { parseTemplate(template) } catch (e) { return e instanceof TemplateError ? e.message : String(e) }
+    return null
+  }
+
+  it('liest Zahlen mit Komma, Punkt und Prozentzeichen', () => {
+    expect(parseNumber('1.234,5')).toBe(1234.5)
+    expect(parseNumber('1,234.5')).toBe(1234.5)
+    expect(parseNumber('1,5')).toBe(1.5)
+    expect(parseNumber('72 %')).toBe(72)
+    expect(parseNumber('1.234.567')).toBe(1234567)
+    expect(parseNumber('abc')).toBeNull()
+  })
+
+  it('rechnet und formatiert: percent, number, default, upper, truncate', () => {
+    expect(render('{{ v | percent:max }}', { v: '72', max: '96' })).toBe('75%')
+    expect(render('{{ v | percent:100:1 }}', { v: '72,55' })).toBe('72.6%')
+    expect(render('{{ v | number:1 }}', { v: '1234.56' })).toBe('1.234,6')
+    expect(render('{{ v | number:1:"en" }}', { v: '1234.56' })).toBe('1,234.6')
+    expect(render('{{ v | default:"–" }}', {})).toBe('–')
+    expect(render('{{ v | default:alt }}', { alt: 'Ersatz' })).toBe('Ersatz')
+    expect(render('{{ v | default:"–" }}', { v: 'da' })).toBe('da')
+    expect(render('{{ v | upper | truncate:2 }}', { v: 'abc' })).toBe('A…')
+    expect(render('{{ v | image }}', { v: 'a.png' })).toBe('IMG:a.png')
+  })
+
+  it('formatiert Datum in der Sprache des Decks und kennt Stichwörter', () => {
+    expect(render('{{ d | date:long }}', { d: '2026-10-29' })).toBe('29. Oktober 2026')
+    expect(render('{{ d | date:short:"en" }}', { d: '2026-10-29' })).toBe('10/29/2026')
+    expect(render('{{ d | date:iso }}', { d: '2026-10-29' })).toBe('2026-10-29')
+    expect(problem('{{ d | date:fancy }}')).toMatch(/„fancy“ ist unbekannt/)
+  })
+
+  it('fasst Kind-Container zusammen: sum, max, min', () => {
+    const kids = [kid('bar', { value: '72' }), kid('bar', { value: '48,5' }), kid('bar', { value: '95' })]
+    expect(render('{{ children | sum:value }}|{{ children | max:value }}|{{ children | min:value | number:1 }}', {}, kids)).toBe('215.5|95|48,5')
+    expect(render('{{ children | sum:value | number:1 }}', {}, kids)).toBe('215,5')
+    expect(render('{{#each children}}{{ value | percent:100 }};{{/each}}', {}, kids)).toBe('72%;49%;95%;')
+  })
+
+  it('vergleicht in {{#if}}: is, is not und Zahlen', () => {
+    expect(render('{{#if t is up}}U{{else}}N{{/if}}', { t: 'UP' })).toBe('U')
+    expect(render('{{#if t is not up}}X{{else}}Y{{/if}}', { t: 'up' })).toBe('Y')
+    expect(render('{{#if v > 50}}hoch{{else}}tief{{/if}}', { v: '72' })).toBe('hoch')
+    expect(render('{{#if v <= 50}}hoch{{else}}tief{{/if}}', { v: '72' })).toBe('tief')
+    expect(render('{{#if v is 5}}ja{{/if}}', { v: '5,0' })).toBe('ja')
+    expect(render('{{#if t is "a b"}}ja{{/if}}', { t: 'a b' })).toBe('ja')
+  })
+
+  it('meldet Fehler beim Lesen der Vorlage mit Zeile', () => {
+    expect(problem('{{ v | foo }}')).toMatch(/^Zeile 1: unbekannte Funktion „foo“ \(erlaubt: /)
+    expect(problem('\n{{ v | percent:a:b:c }}')).toMatch(/^Zeile 2: „percent“ braucht 0 bis 2 Argumente/)
+    expect(problem('{{ v | sum:"x" }}')).toMatch(/Name eines Feldes/)
+    expect(problem('{{ v | default }}')).toMatch(/braucht 1 Argument/)
+    expect(problem('{{{ body | upper }}}')).toMatch(/keine Funktionen/)
+    expect(problem('{{#if v > abc}}x{{/if}}')).toMatch(/vergleicht Zahlen/)
+    expect(problem('{{#each c is 1}}{{/each}}')).toMatch(/kennt keinen Vergleich/)
+    expect(problem('{{ v | default:a b }}')).toMatch(/ungültiges Argument/)
+    expect(FUNCTION_NAMES).toEqual(expect.arrayContaining(['default', 'percent', 'number', 'date', 'sum', 'max', 'min', 'upper', 'lower', 'truncate', 'image']))
+  })
+
+  it('meldet Fehler beim Ausführen als Hinweis und zeigt den Wert unverändert', () => {
+    warns.length = 0
+    expect(render('{{ v | percent:max }}', { v: 'abc', max: '10' })).toBe('abc')
+    expect(warns[0]).toMatch(/keine Zahl/)
+    warns.length = 0
+    render('{{ v | sum:x }}', { v: '1' })
+    expect(warns[0]).toMatch(/Liste/)
+    warns.length = 0
+    render('{{ children | upper }}', {}, [kid('a', {})])
+    expect(warns[0]).toMatch(/einzelnen Wert/)
+    warns.length = 0
+    render('{{ d | date }}', { d: '2026-13-40' })
+    expect(warns[0]).toMatch(/gültiges Datum/)
+  })
+
+  it('maskiert das Ergebnis von Funktionen', () => {
+    expect(render('{{ v | default:"<b>" }}', {})).toBe('&lt;b&gt;')
+  })
+
+  it('Standardwerte im Kopf gelten, wenn das Attribut fehlt, und erfüllen „required“', async () => {
+    const dir = await tempDeck({
+      'a.md': '# A\n\n::: gauge\n:::\n\n::: gauge unit=" kg"\n:::\n',
+      'components/gauge.html': '{{!meta\nattrs:\n  unit: Einheit\nrequired: unit\ndefaults:\n  unit: " Mio."\n}}\n<i>{{ unit }}</i>',
+    })
+    const r = await loadDeck(dir)
+    expect(r.warnings).toEqual([])
+    const html = r.deck.nodes[0].slides[0].html
+    expect(html).toContain('<i> Mio.</i>')
+    expect(html).toContain('<i> kg</i>')
+  })
+
+  it('Editor schlägt nach | die Funktionen vor', () => {
+    const text = '<p>{{ value | pe'
+    const r = completeTemplate(text, text.length)!
+    expect(r.options.map((o) => o.label)).toEqual(['percent'])
+    expect(r.from).toBe(text.length - 2)
+    expect(completeTemplate('{{ v | upper | ', 15)!.options.map((o) => o.label)).toContain('truncate')
+    expect(completeTemplate('{{ v | default:"a|b" | tr', 25)!.options.map((o) => o.label)).toEqual(['truncate'])
+    expect(completeTemplate('{{ v | default:"a|', 17)).toBeNull() // noch im Text in Anführungszeichen
   })
 })

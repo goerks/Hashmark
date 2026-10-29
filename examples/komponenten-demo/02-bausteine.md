@@ -60,6 +60,21 @@ Der erste Listenpunkt ist die unterste Stufe. Mit `steps` wächst die Pyramide v
 Die Felder stehen von links oben nach rechts unten. `focus=2` hebt das zweite Feld hervor.
 :::
 
+## Balken mit Rechnung
+
+::: bars title="Umsatz nach Region" scale=100 unit=" Mio." updated="2026-10-29" steps total
+::: bar value=72 label="Nord"
+:::
+::: bar value="48,5" label="Süd" state=warn
+:::
+::: bar value=95 label="West"
+:::
+:::
+
+::: notes
+Die Komponente `bars` kommt aus `components/bars.html`. Die Vorlage rechnet: `{{ value | percent:scale }}` macht aus 72 die Balkenlänge, `{{ children | sum:value | number:1 }}` die Summe, `{{ updated | date:long }}` das Datum. Mit `state=warn` färbt `{{#if state is warn}}` den Balken um.
+:::
+
 # Layout: image-full {layout=image-full bg=banner.svg bgdim=0.35}
 
 Ein Bild füllt die Folie, der Titel liegt darüber.

@@ -2,6 +2,7 @@
 // Reine Funktionen ohne DOM, damit Editor und Datei-API sie gemeinsam nutzen und tests/core.test.ts sie prüft.
 
 import { parseTemplate, readMetaHead, TemplateError } from './components.ts'
+import { FUNCTIONS } from './functions.ts'
 import type { Problem } from './lint.ts'
 import { CONTAINERS } from './vocab.ts'
 
@@ -59,9 +60,18 @@ const BLOCKS: TemplateOption[] = [
   { label: 'else', detail: 'sonst (in #if)' },
 ]
 
-/** Vorschläge nach `{{` bzw. `{{{`: Attribute aus dem Kopf, eingebaute Namen und Blöcke. Sonst null. */
+const FUNCTION_OPTIONS: TemplateOption[] = Object.entries(FUNCTIONS).map(([label, f]) => ({ label, detail: f.detail }))
+
+/** Vorschläge nach `{{` bzw. `{{{`: Attribute aus dem Kopf, eingebaute Namen und Blöcke; nach `|` die Funktionen. Sonst null. */
 export function completeTemplate(text: string, pos: number): TemplateCompletion | null {
   const before = text.slice(0, pos)
+  // nach `|` im selben Platzhalter (Anführungszeichen dürfen ein `|` enthalten): Funktionsname
+  const fn = before.match(/\{\{[ \t]*[\w.-]+(?:[ \t]*\|(?:[^|{}"']|"[^"]*"|'[^']*')*)*[ \t]*\|[ \t]*(\w*)$/)
+  if (fn) {
+    const word = fn[1]
+    const options = FUNCTION_OPTIONS.filter((o) => o.label.startsWith(word.toLowerCase()))
+    return options.length ? { from: pos - word.length, to: pos, options } : null
+  }
   const m = before.match(/\{\{\{?[ \t]*([#/]?[\w.-]*)$/)
   if (!m) return null
   const word = m[1]
