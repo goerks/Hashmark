@@ -612,7 +612,7 @@ describe('Komponenten', () => {
     expect(() => parseTemplate('a\n{{#if x}}\nb')).toThrow(/Zeile 2/)
     expect(() => parseTemplate('{{/each}}')).toThrow(/ohne öffnendes/)
     expect(() => parseTemplate('{{#if a}}{{/each}}')).toThrow(/passt nicht/)
-    expect(() => parseTemplate('{{ x|upper }}')).toThrow(/Filter/)
+    expect(() => parseTemplate('{{ x|foo }}')).toThrow(/unbekannte Funktion/)
     expect(() => parseTemplate('{{ a b }}')).toThrow(/ungültig/)
     expect(() => parseTemplate('{{else}}')).toThrow(/#if/)
     expect(parseTemplate('{{! Kommentar }}{{#if a}}1{{else}}2{{/if}}').uses.has('a')).toBe(true)
