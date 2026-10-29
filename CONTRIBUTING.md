@@ -108,6 +108,7 @@ src/pptx/      PowerPoint-Export
 src/desktop/   Node-Sidecar der Desktop-App (stdin/stdout-Protokoll), Startseite (ui/)
 desktop-go/    Desktop-App in Go (ohne CGO): Fenster, Menü, Dialoge, Bildschirmwahl
 docs/          Handbuch (ein Hashmark-Deck)
+hashmark-fuer-ki.md  Beschreibung des Deck-Aufbaus für KI (Root); mit vocab.ts synchron halten (Test)
 examples/      Beispiel-Decks: hashmark-demo, theme-demo, komponenten-demo, formeln-demo
 ```
 

@@ -46,6 +46,17 @@ describe('Handbuch (docs/)', () => {
     expect(missing).toEqual([])
   })
 
+  it('die KI-Beschreibung (hashmark-fuer-ki.md) nennt alles, was die App kennt', () => {
+    const text = fs.readFileSync(path.join(docsDir, '..', 'hashmark-fuer-ki.md'), 'utf8')
+    const missing = [
+      ...BUILTIN_LAYOUTS.filter((l) => !text.includes(`\`${l}\``)).map((l) => `Layout ${l}`),
+      ...TRANSITIONS.filter((t) => !text.includes(t)).map((t) => `Übergang ${t}`),
+      ...CONTAINERS.filter((c) => !text.includes(`\`${c}\``)).map((c) => `Container ${c}`),
+      ...KNOWN_ATTRS.filter((a) => !(a === 'class' ? text.includes('`.klasse`') : text.includes(`\`${a}`))).map((a) => `Attribut ${a}`),
+    ]
+    expect(missing, 'hashmark-fuer-ki.md ergänzen').toEqual([])
+  })
+
   it('liest die Quelltexte der Beispiele aus den Markdown-Dateien', async () => {
     const demos = await demosFromHandbook()
     const steps = demos.find((d) => d.id === 'themen/schritte')!
