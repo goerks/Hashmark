@@ -24,7 +24,7 @@ Die oberste Überschriftenebene jeder Datei wird auf Tiefe 1 gelegt, `maxDepth` 
 | `id=…` | eigene Sprungmarke (sonst aus dem Titel) |
 | `.klasse` | CSS-Klasse an der Folie |
 | `transition=…` | Übergang zu dieser Folie, siehe „Übergänge“ |
-| `effect=…` | Auftritt der Schritte dieser Folie: `fade`, `up`, `left`, `scale`, `highlight`, `dim` (siehe „Effekte für Schritte“) |
+| `effect=…` | Auftritt der Schritte dieser Folie: `fade`, `up`, `left`, `scale`, `wipe`, `highlight`, `dim` (siehe „Effekte für Schritte“) |
 | `speed=…` | Tempo des Übergangs zu dieser Folie: `fast`, `normal`, `slow` |
 | `duration=5m` | geplante Redezeit (`90s`, `5m`, `1h`) |
 | `bg=…` | Hintergrund: Farbe, Verlauf oder Bild |

@@ -96,6 +96,7 @@ Zeichnungen bauen sich auf, ohne dass du sie zerlegst. In einem beliebigen SVG e
 | `up` | schwebt von unten ein |
 | `left` | gleitet von links an den Platz |
 | `scale` | wächst auf |
+| `wipe` | wird von links nach rechts aufgedeckt |
 | `highlight` | der neue Punkt leuchtet, solange er dran ist |
 | `dim` | Früheres wird leiser, der aktuelle Punkt bleibt voll |
 
@@ -103,6 +104,8 @@ Zeichnungen bauen sich auf, ohne dass du sie zerlegst. In einem beliebigen SVG e
 `effect=` legt fest, *wie* ein Schritt erscheint. Du schreibst es an die Folie (`## Agenda {steps effect=up}`), an einen Container (`::: steps effect=scale`) oder fürs ganze Deck in die `deck.yaml` (`motion: { effect: up }`). Das Nächstliegende gilt: Container vor Folie vor Deck.
 
 Mit `stagger` an einem Container (z. B. `::: cards stagger` mit `step=1` an jeder Karte) erscheinen Elemente derselben Schrittnummer im Abstand von 80 ms als kleine Welle. `delay=300ms` verzögert einen Auftritt. Das Tempo stellst du mit `speed=` ein, bei „Bewegung reduzieren“ im System entfällt der Weg und es wird nur überblendet. Im PDF, im Lesemodus und im PowerPoint-Export ändert sich nichts: Dort zählt der Endzustand bzw. das Einblenden.
+
+**Bausteine, Zeichnungen und Diagramme** haben ohne `effect=` einen eigenen, zur Form passenden Auftritt: `process`, `pipeline`, `gantt` und `roadmap` werden von links nach rechts aufgedeckt, `timeline` gleitet von links, `kpis` wachsen als kleine Welle auf, `checklist` schwebt von unten, `pyramid` baut sich von unten auf. In Zeichnungen (draw.io, Excalidraw, SVG mit `steps=`) zeichnen sich die Linien jeder neuen Ebene bzw. Gruppe. In Mermaid-Diagrammen mit `%% step` wachsen neue Knoten auf und neue Kanten zeichnen sich. Mit `effect=fade` an der Folie, am Container oder im Deck (`motion: { effect: fade }`) schaltest du das ab, dann wird wie bisher eingeblendet. Bei Kennzahlen lässt das Flag `countup` die Zahlen beim Auftritt von 0 hochlaufen (`::: kpis countup steps`). Bei „Bewegung reduzieren“ im System gibt es auch hier nur Überblenden, und die Zahlen stehen sofort richtig da.
 :::
 
 ## Übergänge {id=uebergaenge}

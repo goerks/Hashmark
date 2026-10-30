@@ -80,7 +80,7 @@ export interface Manifest {
   embedImages?: boolean
   /** Videos im Einzel-HTML-Export einbetten (bis 25 MB je Datei); sonst liegen sie in einem Ordner neben der Datei */
   embedMedia?: boolean
-  /** Bewegung: `speed: fast | normal | slow`, `effect: fade | up | left | scale | highlight | dim` */
+  /** Bewegung: `speed: fast | normal | slow`, `effect: fade | up | left | scale | wipe | highlight | dim` */
   motion?: { speed?: string; effect?: string }
   /** alle Bilder lassen sich in der Präsentation mit Z vergrößern (einzeln abwählen mit `{zoom=off}`) */
   zoom?: boolean

@@ -65,7 +65,7 @@ export const ATTR_INFO: { label: string; detail: string; insert: string; chain?:
   { label: 'duration=', detail: 'Zeitplan, z. B. 5m', insert: 'duration=5m' },
   { label: 'transition=', detail: 'Übergang zu dieser Folie', insert: 'transition=', chain: true },
   { label: 'speed=', detail: 'Tempo des Übergangs: fast, normal oder slow', insert: 'speed=', chain: true },
-  { label: 'effect=', detail: 'Auftritt der Schritte: fade, up, left, scale, highlight oder dim', insert: 'effect=', chain: true },
+  { label: 'effect=', detail: 'Auftritt der Schritte: fade, up, left, scale, wipe, highlight oder dim', insert: 'effect=', chain: true },
   { label: '.klasse', detail: 'CSS-Klasse anhängen', insert: '.klasse' },
 ]
 

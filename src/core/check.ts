@@ -22,7 +22,7 @@ export const TRANSITIONS = ['slide', 'zoom', 'fade', 'none']
 /** Tempo der Übergänge und Schritt-Einblendungen (`{speed=…}`, deck.yaml `motion: speed:`) */
 export const SPEEDS = ['fast', 'normal', 'slow']
 /** Auftritt der Schritte (`effect=…` an Folie, Container oder im Deck): fade ist der Standard */
-export const EFFECTS = ['fade', 'up', 'left', 'scale', 'highlight', 'dim']
+export const EFFECTS = ['fade', 'up', 'left', 'scale', 'wipe', 'highlight', 'dim']
 
 function* walk(nodes: DeckNode[]): Generator<DeckNode> {
   for (const n of nodes) {

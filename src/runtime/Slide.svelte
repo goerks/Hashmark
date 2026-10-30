@@ -5,6 +5,8 @@
   import { MIN_ZOOM, fitSlide } from './fit.ts'
   import { clearLiveRoot, prepareVideos, setLiveRoot, syncVideos, type MediaMode } from './video.ts'
   import { clearZoomRoot, refreshZoom, setZoomRoot, syncZoom, zoomClick } from './zoom.ts'
+  import { COMPONENT_EFFECTS, COMPONENT_STAGGER, componentOf, formatCount, parseCount } from './fx.ts'
+  import { motionDuration, prefersReducedMotion } from './transitions.ts'
 
   let { node, slide, layout, step = Infinity, titleTag = 'h1', media = 'off', effects = false, defaultEffect = '' }: {
     node: DeckNode
@@ -38,6 +40,38 @@
         c.children.length ? `<span class="tile-count">${c.children.length} Details</span>` : ''}</a>`)
       .join('')
 
+  /** Zeichenbare Formen in Zeichnungen (draw.io, Excalidraw, SVG): bekommen `pathLength`, damit sich ihre Linien zeichnen lassen */
+  const SHAPES = 'path, line, polyline, polygon, rect, ellipse, circle'
+  const counting = new WeakMap<HTMLElement, number>()
+
+  /** Zahl einer Kennzahl in ~0,8 s von 0 hochlaufen lassen; mit `prefers-reduced-motion` bleibt sie stehen */
+  function countUp(el: HTMLElement) {
+    const target = el.dataset.final ?? el.textContent ?? ''
+    el.dataset.final = target
+    const c = parseCount(target)
+    if (!c || prefersReducedMotion()) return
+    const cssSpeed = parseFloat(getComputedStyle(el.closest('.stage') ?? document.documentElement).getPropertyValue('--motion-duration'))
+    const ms = (Number.isFinite(cssSpeed) ? cssSpeed : motionDuration()) * 2.1
+    cancelAnimationFrame(counting.get(el) ?? 0)
+    const t0 = performance.now()
+    const tick = (now: number) => {
+      const p = (now - t0) / ms
+      el.textContent = p >= 1 ? target : formatCount(c, p)
+      if (p < 1) counting.set(el, requestAnimationFrame(tick))
+    }
+    el.textContent = formatCount(c, 0)
+    counting.set(el, requestAnimationFrame(tick))
+  }
+
+  /** Auftritt eines Schritt-Elements: Container (`effect=…`) vor Folie vor Deck; leer = Standard der Komponente bzw. Zeichnung */
+  function effectOf(item: HTMLElement): string {
+    const explicit = item.closest<HTMLElement>('[data-effect]')?.dataset.effect ?? defaultEffect
+    if (explicit) return explicit === 'fade' ? '' : explicit
+    if (item.closest('svg')) return 'draw'
+    const comp = componentOf(item)
+    return comp ? COMPONENT_EFFECTS[comp] : ''
+  }
+
   /** Element mit `data-step="k"` ist ab Schritt k sichtbar, mit `data-until="m"` nur bis vor Schritt m. */
   function applySteps(root: HTMLElement, current: number) {
     // Abstand zwischen Elementen mit gleicher Schrittnummer bei `stagger` (ms)
@@ -49,15 +83,26 @@
       const visible = current >= from && (until === Infinity || current < until)
       item.classList.toggle('step-hidden', !visible)
       item.classList.toggle('step-current', visible && from === current && from > 0)
-      // Auftritt: Container (`::: steps effect=up`) vor Folie vor Deck-Standard; fade ist der Standard und braucht nichts
-      const fx = effects ? (item.closest<HTMLElement>('[data-effect]')?.dataset.effect ?? defaultEffect) : ''
-      if (fx && fx !== 'fade') item.dataset.fx = fx
+      const fx = effects ? effectOf(item) : ''
+      if (fx) item.dataset.fx = fx
       else delete item.dataset.fx
+      if (fx === 'draw') for (const s of item.querySelectorAll(SHAPES)) if (!s.hasAttribute('pathLength')) s.setAttribute('pathLength', '1')
       const n = group.get(item.dataset.step!) ?? 0
       group.set(item.dataset.step!, n + 1)
-      const wait = effects ? Number(item.closest<HTMLElement>('[data-delay]')?.dataset.delay ?? 0) + (item.closest('[data-stagger]') ? n * STAGGER : 0) : 0
+      const staggered = !!item.closest('[data-stagger]') || COMPONENT_STAGGER.includes(componentOf(item) ?? '')
+      const wait = effects ? Number(item.closest<HTMLElement>('[data-delay]')?.dataset.delay ?? 0) + (staggered ? n * STAGGER : 0) : 0
       if (wait) item.style.setProperty('--step-delay', `${wait}ms`)
       else item.style.removeProperty('--step-delay')
+    }
+    // Kennzahlen mit `countup`: die Zahl läuft hoch, sobald die Kachel sichtbar wird (erneut nach dem Verbergen)
+    if (effects) {
+      for (const kpi of root.querySelectorAll<HTMLElement>('[data-countup] .kpi')) {
+        const value = kpi.querySelector<HTMLElement>('.kpi-value')
+        if (!value) continue
+        const shown = !kpi.classList.contains('step-hidden')
+        if (shown && kpi.dataset.counted === undefined) { kpi.dataset.counted = ''; countUp(value) }
+        else if (!shown && kpi.dataset.counted !== undefined) { delete kpi.dataset.counted; cancelAnimationFrame(counting.get(value) ?? 0); if (value.dataset.final) value.textContent = value.dataset.final }
+      }
     }
     // Code `lines="2-3|5|all"`: Abschnitt k ab Schritt k; danach bleibt der letzte stehen
     for (const pre of root.querySelectorAll<HTMLElement>('pre[data-hl-count]')) {
@@ -66,6 +111,29 @@
       pre.classList.toggle('hl-active', !all)
       for (const line of pre.querySelectorAll<HTMLElement>('.line')) {
         line.classList.toggle('hl', !all && (line.dataset.hl ?? '').includes(` ${active} `))
+      }
+    }
+  }
+
+  const defaultExplicitFade = () => defaultEffect === 'fade'
+
+  /** Mermaid-Versionen (`%% step`): Knoten und Kanten, die gegenüber der vorigen Version neu sind, bekommen `data-new` (Aufwachsen bzw. Zeichnen, siehe base.css) */
+  function markFresh(root: HTMLElement) {
+    for (const block of root.querySelectorAll<HTMLElement>('.mermaid-block')) {
+      const states = [...block.querySelectorAll<HTMLElement>('.mermaid-state')]
+      if (states.length < 2) continue
+      let before = new Set<string>()
+      for (const state of states) {
+        const ids = new Set<string>()
+        for (const el of state.querySelectorAll<SVGElement>('g.node[id], g.cluster[id], .edgePaths path[id], path.flowchart-link[id]')) {
+          ids.add(el.id)
+          const edge = el.tagName.toLowerCase() === 'path'
+          if (before.size && !before.has(el.id)) {
+            el.dataset.new = edge ? 'edge' : 'node'
+            if (edge) el.setAttribute('pathLength', '1')
+          } else delete el.dataset.new
+        }
+        if (ids.size) before = ids
       }
     }
   }
@@ -84,7 +152,7 @@
     for (const slot of el.querySelectorAll<HTMLElement>('[data-children]')) slot.innerHTML = tiles(node.children)
     untrack(() => { applySteps(el, step); measure() })
     // Diagramme und Schriften ändern die Größe erst nach dem Laden: danach neu messen
-    renderMermaid(el).then(() => untrack(() => { applySteps(el, step); measure() }))
+    renderMermaid(el).then(() => untrack(() => { if (effects && !defaultExplicitFade()) markFresh(el); applySteps(el, step); measure() }))
     void document.fonts?.ready.then(() => untrack(measure))
   })
 

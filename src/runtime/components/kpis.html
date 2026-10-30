@@ -5,6 +5,7 @@ attrs:
   start: Erste Schrittnummer bei steps (Standard 1)
 flags:
   steps: Kacheln nacheinander einblenden
+  countup: Zahlen laufen beim Auftritt von 0 hoch (nur in der Präsentation)
 children:
   kpi:
     description: Eine Kennzahl; der Rumpf ist eine kurze Anmerkung
@@ -27,7 +28,7 @@ example: |
   :::
   :::
 }}
-<div class="kpis">
+<div class="kpis"{{#if countup}} data-countup{{/if}}>
   {{#if title}}<div class="kpis-title">{{ title }}</div>{{/if}}
   <div class="kpis-grid">
     {{#each children}}

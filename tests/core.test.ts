@@ -1071,3 +1071,43 @@ describe('Komponenten: Werte, Slash-Menü und Vorlagen-Hilfen', () => {
     expect(completeTemplate('{{#if state is done}}x', 22)).toBeNull()
   })
 })
+
+describe('Bewegung: Auftritt der Bausteine', () => {
+  it('effect=wipe ist bekannt, jeder Standard-Auftritt gehört zu einer eingebauten Komponente', async () => {
+    const { EFFECTS } = await import('../src/core/check.ts')
+    const { COMPONENT_EFFECTS, COMPONENT_STAGGER } = await import('../src/runtime/fx.ts')
+    expect(EFFECTS).toContain('wipe')
+    expect(lintText('## A {steps effect=wipe}')).toEqual([])
+    for (const name of [...Object.keys(COMPONENT_EFFECTS), ...COMPONENT_STAGGER]) {
+      await expect(fs.access(path.resolve('src/runtime/components', `${name}.html`))).resolves.toBeUndefined()
+    }
+    // intern bleiben rise und draw: nicht als Angabe des Autors vorgesehen
+    expect(EFFECTS).not.toContain('rise')
+    expect(EFFECTS).not.toContain('draw')
+  })
+
+  it('::: kpis countup setzt data-countup, ohne das Flag fehlt es', async () => {
+    const dir = await tempDeck({
+      'a.md': '# A\n\n::: kpis countup steps\n::: kpi value="94 %" label=Quote\n:::\n:::\n\n::: kpis\n::: kpi value=12 label=Kunden\n:::\n:::\n',
+    })
+    const { deck, warnings } = await loadDeck(dir)
+    expect(warnings).toEqual([])
+    const html = deck.nodes[0].slides[0].html
+    expect(html.match(/data-countup/g)).toHaveLength(1)
+    expect(html).toContain('d-kpis')
+  })
+
+  it('parseCount und formatCount: Zahl, Dezimalzeichen, Tausenderpunkt, Zielwert am Ende', async () => {
+    const { parseCount, formatCount } = await import('../src/runtime/fx.ts')
+    const end = (t: string) => formatCount(parseCount(t)!, 1)
+    for (const t of ['94 %', '+12 %', '3,2 s', '1.200', '3.5', '42', '€ 1.250.000']) expect(end(t)).toBe(t)
+    expect(formatCount(parseCount('94 %')!, 0)).toBe('0 %')
+    expect(formatCount(parseCount('3,2 s')!, 0)).toBe('0,0 s')
+    expect(formatCount(parseCount('1.200')!, 0)).toBe('0')
+    expect(formatCount(parseCount('1.200')!, 1)).toBe('1.200')
+    const mid = formatCount(parseCount('100')!, 0.5)
+    expect(Number(mid)).toBeGreaterThan(50)
+    expect(Number(mid)).toBeLessThan(100)
+    expect(parseCount('kein Wert')).toBeNull()
+  })
+})
