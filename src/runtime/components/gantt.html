@@ -1,0 +1,51 @@
+{{!meta
+description: "Zeitplan: Balken mit Start und Dauer auf einer Zeitleiste, optional mit „heute“-Linie"
+attrs:
+  title: Überschrift über dem Plan
+  scale: "Länge der Zeitleiste in Einheiten, z. B. 12 Monate (Standard 12)"
+  now: "Position der „heute“-Linie in denselben Einheiten"
+  from: Beschriftung am linken Rand, z. B. Jan 2027
+  to: Beschriftung am rechten Rand, z. B. Dez 2027
+  start: Erste Schrittnummer bei steps (Standard 1)
+flags:
+  steps: Aufgaben nacheinander einblenden
+defaults:
+  scale: "12"
+children:
+  task:
+    description: Eine Aufgabe als Balken
+    attrs:
+      label: Name der Aufgabe
+      start: Beginn in Einheiten der Zeitleiste (Standard 0)
+      length: Dauer in denselben Einheiten
+      state: "done (erledigt, dunkler) oder open (Standard)"
+      step: Eigene Schrittnummer
+    required: [label, length]
+    values:
+      state: [done, open]
+example: |
+  ::: gantt title="Projektplan 2027" scale=12 now=6 from="Jan" to="Dez" steps
+  ::: task label="Konzept" start=0 length=2 state=done
+  :::
+  ::: task label="Bau" start=2 length=5
+  :::
+  ::: task label="Test" start=6 length=3
+  :::
+  ::: task label="Rollout" start=9 length=3
+  :::
+  :::
+}}
+<div class="gantt" style="--cols: {{ scale }}">
+  {{#if title}}<div class="gantt-title">{{ title }}</div>{{/if}}
+  {{#if from}}<div class="gantt-axis"><span>{{ from }}</span><span>{{ to }}</span></div>{{/if}}
+  {{#each children}}
+  <div class="gantt-row"{{#if step}} data-step="{{ step }}"{{/if}}>
+    <div class="gantt-label">{{ label }}</div>
+    <div class="gantt-lane">
+      <i class="gantt-bar gantt-{{ state | default:"open" }}" style="left: {{ start | default:"0" | percent:scale:1 }}; width: {{ length | percent:scale:1 }}"></i>
+      {{#if now}}<b class="gantt-now" style="left: {{ now | percent:scale:1 }}"></b>{{/if}}
+    </div>
+  </div>
+  {{/each}}
+  {{{ body }}}
+</div>

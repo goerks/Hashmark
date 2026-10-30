@@ -29,7 +29,7 @@ src/runtime/  Svelte-App (Vite-Root!): main.ts wählt App oder PrintView (?print
   ReaderView.svelte + Lazy.svelte + reader.css   ?reader = Lesemodus (Handbuch): Baum als Inhaltsverzeichnis, Notizen als Fließtext, Folien als Karten (ScaledSlide, erst im Sichtbereich gerendert); CardView.svelte: ?card#id:folie&step=n = eine Folie, per postMessage `{type:'hashmark:card', id, slide, step}` umschaltbar (Einbettung in die Startseite). Beide in main.ts
   base.css, print.css, themes/*.css (nur Design-Tokens: --color-*, --font-*, --shiki-*, …)
   editor.html + editor/   Editor (CodeMirror 6), eigene neutrale Tokens (--ed-*): codemirror.ts (Setup, API), hashmark-lang.ts (Decorations für ::: und {…}, Highlight-Klassen .tok-*/.st-*),
-                    assist.ts (Autocomplete, Linter, Formatleiste; `templateCompletion`/`templateLint` für Komponenten-Vorlagen), NewComponent.svelte (Dialog „+ Komponente“), Palette.svelte (Strg+K), KeyBar.svelte (Tablet), Editor.svelte; Layout A „Fokus“, unter 900 px Schublade + gestapelt
+                    assist.ts (Autocomplete, Linter, Formatleiste; `templateCompletion`/`templateLint` für Komponenten-Vorlagen: Vorschläge nach `{{`, nach `|` (Funktionen), nach `date:` und `{{#if name `; das Slash-Menü bietet jede Komponente mit ihrem Beispiel, `complete.ts` die Attributwerte aus `values:`), NewComponent.svelte (Dialog „+ Komponente“), Palette.svelte (Strg+K), KeyBar.svelte (Tablet), Editor.svelte; Layout A „Fokus“, unter 900 px Schublade + gestapelt
 src/runtime/deck-source.ts  onDeckUpdate(): Vite-HMR ('hashmark:deck') bzw. EventSource in der App (window.__HASHMARK_LIVE__)
 ```
 

@@ -1,0 +1,40 @@
+{{!meta
+description: "Statusautomat: Zustände in einer Reihe, je Schritt leuchtet ein anderer"
+attrs:
+  title: Überschrift über dem Automaten
+  back: "Beschriftung eines Rückwegs, z. B. Änderungen nötig"
+children:
+  state:
+    description: Ein Zustand
+    attrs:
+      label: Name des Zustands
+      at: Schritt, in dem dieser Zustand leuchtet
+      then: Zweiter Schritt, in dem er wieder leuchtet (z. B. nach einem Rücksprung)
+    required: label
+example: |
+  ::: states title="Freigabe" back="Änderungen nötig"
+  ::: state label="Entwurf" at=1 then=3
+  :::
+  ::: state label="Prüfung" at=2 then=4
+  :::
+  ::: state label="Freigabe" at=5
+  :::
+  ::: state label="Veröffentlicht" at=6
+  :::
+  :::
+}}
+<div class="states">
+  {{#if title}}<div class="states-title">{{ title }}</div>{{/if}}
+  <div class="states-row">
+    {{#each children}}
+    {{#if first}}{{else}}<span class="states-arrow"></span>{{/if}}
+    <div class="state-node">
+      <span class="state-label">{{ label }}</span>
+      {{#if at}}<span class="state-on" data-step="{{ at }}" data-until="{{ at | add:1 }}">{{ label }}</span>{{/if}}
+      {{#if then}}<span class="state-on" data-step="{{ then }}" data-until="{{ then | add:1 }}">{{ label }}</span>{{/if}}
+    </div>
+    {{/each}}
+  </div>
+  {{#if back}}<div class="states-back">↩ {{ back }}</div>{{/if}}
+  {{{ body }}}
+</div>

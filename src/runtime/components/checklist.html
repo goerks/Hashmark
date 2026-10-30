@@ -1,0 +1,48 @@
+{{!meta
+description: "Checkliste mit Status je Aufgabe und Fortschrittsbalken über die erledigten"
+attrs:
+  title: Überschrift über der Liste
+  start: Erste Schrittnummer bei steps (Standard 1)
+flags:
+  steps: Aufgaben nacheinander einblenden
+  progress: Fortschrittsbalken mit „n von m erledigt“ zeigen
+children:
+  item:
+    description: Eine Aufgabe
+    attrs:
+      label: Name der Aufgabe
+      state: "done (erledigt), wip (in Arbeit) oder open (Standard)"
+      owner: Wer sich kümmert, optional
+      step: Eigene Schrittnummer
+    required: label
+    values:
+      state: [done, wip, open]
+example: |
+  ::: checklist title="Go-Live-Vorbereitung" progress
+  ::: item label="Daten migrieren" state=done owner=Anna
+  :::
+  ::: item label="Schulung planen" state=wip owner=Ben
+  :::
+  ::: item label="Freigabe holen"
+  :::
+  :::
+}}
+<div class="checklist">
+  {{#if title}}<div class="checklist-title">{{ title }}</div>{{/if}}
+  <ul class="checklist-items">
+    {{#each children}}
+    <li class="check check-{{ state | default:"open" }}"{{#if step}} data-step="{{ step }}"{{/if}}>
+      <span class="check-box"></span>
+      <span class="check-label">{{ label }}</span>
+      {{#if owner}}<span class="check-owner">{{ owner }}</span>{{/if}}
+    </li>
+    {{/each}}
+  </ul>
+  {{#if progress}}
+  <div class="checklist-progress">
+    <div class="checklist-track"><i style="width: {{ children | share:state:done }}"></i></div>
+    <span>{{ children | count:state:done }} von {{ count }} erledigt</span>
+  </div>
+  {{/if}}
+  {{{ body }}}
+</div>

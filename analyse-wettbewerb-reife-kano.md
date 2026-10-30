@@ -30,7 +30,7 @@ Stand: 23.10.2026 · Version 0.2.0 · Grundlage: Quellcode, Regeln in `.claude/r
 | **Offline, ohne Installer, ohne Konto** (kleine Go-Hülle, keine CDNs) | Passt zu Firmen- und Hochsicherheitsumgebungen. Ein Ordner, doppelklicken. | Slidev und Quarto brauchen Node bzw. Python/Quarto-Installation. Online-Tools brauchen Konto. |
 | **Eigener Editor, der nur Markdown schreibt** (Autocomplete, Linter, Palette, Live-Vorschau mit Sync) | Der Einstieg ist niedriger als bei „VS Code + Plugin“. Hashmark-Syntax wird erklärt und geprüft. | Marp und Slidev leben von VS Code. reveal.js hat keinen. |
 | **`hashmark check`** (Layouts, Attribute, Überlauf aller Folien per Browser) | Qualitätssicherung in CI. Erkennt Überlauf, bevor man auf der Bühne steht. | Kein Mitbewerber prüft den Überlauf automatisch. |
-| **Gestaltungsbausteine ohne HTML** (Karten, Figuren mit Sprechblasen, Tabellen mit Schritten, Komponenten wie timeline, kpis, pyramid) | „Hübsch“ ohne CSS-Wissen. Komponenten sind logikfreie HTML-Vorlagen und damit sicher. | Marp braucht CSS. Slidev braucht Vue. |
+| **Gestaltungsbausteine ohne HTML** (Karten, Figuren mit Sprechblasen, Tabellen mit Schritten, Komponenten wie timeline, kpis, pyramid) | „Hübsch“ ohne CSS-Wissen. Komponenten sind HTML-Vorlagen ohne JavaScript mit fertigen Funktionen (rechnen, formatieren) und damit sicher. | Marp braucht CSS. Slidev braucht Vue. |
 | **Technische Inhalte** (Shiki mit Zeilen-Schritten, Mermaid mit Schritten, KaTeX mit Teilformeln, Excalidraw/draw.io-Ebenen als Schritte) | Schritt-für-Schritt-Aufbau von Diagrammen und Code ist ein Kernbedarf technischer Vorträge. | Slidev hat Ähnliches, reveal.js braucht Handarbeit. |
 | **Lese- und Handout-Modus** (Baum als Inhaltsverzeichnis, Notizen als Fließtext) | Das Handbuch ist selbst ein Deck. Ein Dokument aus derselben Quelle. | Quarto kann das, aber nicht mit Baumnavigation. |
 
@@ -39,7 +39,7 @@ Stand: 23.10.2026 · Version 0.2.0 · Grundlage: Quellcode, Regeln in `.claude/r
 | Schwäche | Wirkung | Wer es besser macht |
 | --- | --- | --- |
 | **Lizenz: PolyForm Noncommercial** | Firmen dürfen es nicht einsetzen, Beiträge und Plugins sind unattraktiv. Das ist die größte Hürde für ein Ökosystem. | reveal.js, Marp, Slidev: MIT |
-| **Kein Plugin-/Erweiterungs-API** | Neue Diagrammsprachen und Komponenten nur im Kern. Komponenten sind bewusst logikfrei. | Slidev (Vue, Addons), reveal.js (Plugins) |
+| **Kein Plugin-/Erweiterungs-API** | Neue Diagrammsprachen nur im Kern. Komponenten rechnen mit fertigen Funktionen, eigene Funktionen per JavaScript gibt es bewusst nicht. | Slidev (Vue, Addons), reveal.js (Plugins) |
 | **Kein Ökosystem** (Version 0.2.0, ein Autor, deutsche Doku und UI, 2 Themes, 4 Beispiele) | Keine Theme-Galerie, keine Community, kaum Suchtreffer, keine Vorlagen. | Alle direkten Konkurrenten |
 | **Nur 2 Themes** (`minimal`, `dark-tech`), kein Hell/Dunkel-Umschalter, kein Corporate-Import | Für Firmenvorträge fehlt Logo, Fußzeile aus Vorlage, Markenfarben. Der PPTX-Export erzeugt nur ein Layout statt Folienmaster. | Marp und Slidev haben viele Themes. PowerPoint sowieso. |
 | **Animationen** (nur Schritte und räumliche Übergänge; kein Auto-Animate, Magic Move, Zoom aus Kachel) | Wirkt gegen Keynote, Slidev („Magic Move“) und Prezi weniger beeindruckend. | Slidev, Keynote, Prezi |
@@ -74,8 +74,8 @@ Der Belegtext nennt Tests und Fundstellen. „Test“ meint Vitest-Fälle im Rep
 | Schritte (Listen, Code-Zeilen, Mermaid-Versionen, SVG-Ids, `reveal`) | **A** | Mehrere Wege, einheitliche Nummerierung |
 | Suche (Strg+K, unscharf, Umlaute gefaltet), Übersicht | **A** | `search.ts` |
 | Layouts (17 eingebaute, je Ebene vorgebbar) | **B** | Vielfalt gut; Layouts bei Überlauf nur per Auto-Fit abgefangen |
-| Gestaltungsbausteine (cards, figure, table, aside, 9 Komponenten) | **B** | 18 Tests in `gestaltung.test.ts`; Komponenten logikfrei (Grenze bewusst) |
-| Komponenten-System (eigene HTML-Vorlagen) | **B** | Sicher und getestet, aber ohne Logik und ohne Paketierung |
+| Gestaltungsbausteine (cards, figure, table, aside, 13 Komponenten) | **B** | 18 Tests in `gestaltung.test.ts`; Komponenten mit fertigen Funktionen, ohne eigenes JavaScript (Grenze bewusst) |
+| Komponenten-System (eigene HTML-Vorlagen) | **B** | Sicher und getestet, mit Funktionen zum Rechnen, aber ohne eigene Skripte und ohne Paketierung |
 | Formeln (KaTeX) mit Schritten | **A** | 14 Tests; offline gebündelt |
 | Diagramme (Mermaid, Themenfarben, Schritte, `look=hand`) | **B** | Rendert erst im Client; nur Mermaid (andere Sprachen fehlen) |
 | Excalidraw/draw.io-Import als Schritte | **B** | 12 Tests; Format-abhängig (Szene in `<metadata>`) |

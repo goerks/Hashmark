@@ -1,0 +1,9 @@
+/* Komponente gantt: Position und Breite der Balken rechnet die Vorlage aus Start, Dauer und scale (percent) */
+.d-gantt .gantt-title { font-family: var(--font-heading); font-size: 0.8em; color: var(--color-muted); margin-bottom: 0.8rem; }
+.d-gantt .gantt-axis { display: flex; justify-content: space-between; margin-left: 9rem; font-size: 0.55em; color: var(--color-muted); margin-bottom: 0.3rem; }
+.d-gantt .gantt-row { display: grid; grid-template-columns: 8rem 1fr; gap: 1rem; align-items: center; margin-bottom: 0.5rem; transition: opacity 0.25s; }
+.d-gantt .gantt-label { font-size: 0.75em; }
+.d-gantt .gantt-lane { position: relative; height: 1.4rem; background: linear-gradient(90deg, var(--color-border) 1px, transparent 1px) 0 0 / calc(100% / var(--cols)) 100%; border-right: 1px solid var(--color-border); }
+.d-gantt .gantt-bar { position: absolute; top: 0.15rem; bottom: 0.15rem; border-radius: 0.3rem; background: var(--color-accent); opacity: 0.55; max-width: 100%; }
+.d-gantt .gantt-done { opacity: 1; }
+.d-gantt .gantt-now { position: absolute; top: -0.2rem; bottom: -0.2rem; width: 2px; background: var(--color-important, #dc2626); }
