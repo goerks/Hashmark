@@ -6,7 +6,7 @@
   import { clearLiveRoot, prepareVideos, setLiveRoot, syncVideos, type MediaMode } from './video.ts'
   import { clearZoomRoot, refreshZoom, setZoomRoot, syncZoom, zoomClick } from './zoom.ts'
 
-  let { node, slide, layout, step = Infinity, titleTag = 'h1', media = 'off', effects = false, effect = '' }: {
+  let { node, slide, layout, step = Infinity, titleTag = 'h1', media = 'off', effects = false, defaultEffect = '' }: {
     node: DeckNode
     slide: number
     layout: string
@@ -19,7 +19,7 @@
     /** Auftritte der Schritte (`effect=`) zeigen: nur in der laufenden Präsentation, nie in Miniaturen, Druck oder Lesemodus */
     effects?: boolean
     /** Standard-Effekt dieser Folie (`{effect=…}` bzw. deck.yaml `motion: effect:`) */
-    effect?: string
+    defaultEffect?: string
   } = $props()
 
   let el: HTMLElement
@@ -50,7 +50,7 @@
       item.classList.toggle('step-hidden', !visible)
       item.classList.toggle('step-current', visible && from === current && from > 0)
       // Auftritt: Container (`::: steps effect=up`) vor Folie vor Deck-Standard; fade ist der Standard und braucht nichts
-      const fx = effects ? (item.closest<HTMLElement>('[data-effect]')?.dataset.effect ?? effect) : ''
+      const fx = effects ? (item.closest<HTMLElement>('[data-effect]')?.dataset.effect ?? defaultEffect) : ''
       if (fx && fx !== 'fade') item.dataset.fx = fx
       else delete item.dataset.fx
       const n = group.get(item.dataset.step!) ?? 0

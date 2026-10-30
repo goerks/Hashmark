@@ -399,7 +399,7 @@
     <div class="stage" style="--scale:{scale}; --motion-duration:{motionDuration(speed)}ms">
       {#key `${node.id}:${pos.slide}`}
         <div class="stage-slide" in:enter={{ dir, kind: node.attrs.transition, speed }} out:leave={{ dir, kind: node.attrs.transition, speed }}>
-          <Slide {node} slide={pos.slide} {layout} step={pos.step ?? 0} media={embedded ? 'still' : 'live'} effects {effect} />
+          <Slide {node} slide={pos.slide} {layout} step={pos.step ?? 0} media={embedded ? 'still' : 'live'} effects defaultEffect={effect} />
         </div>
       {/key}
 

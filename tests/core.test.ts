@@ -889,6 +889,8 @@ describe('Bewegung: Effekte für Schritte', () => {
   it('parseDelay', async () => {
     const { parseDelay } = await import('../src/core/render.ts')
     expect([parseDelay('300ms'), parseDelay('0.5s'), parseDelay('250'), parseDelay('2s'), parseDelay('bald'), parseDelay('99s')]).toEqual([300, 500, 250, 2000, undefined, undefined])
+  })
+})
 
 describe('Komponenten: Funktionsbausteine', () => {
   const warns: string[] = []
