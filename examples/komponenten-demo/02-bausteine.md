@@ -75,6 +75,74 @@ Die Felder stehen von links oben nach rechts unten. `focus=2` hebt das zweite Fe
 Die Komponente `bars` kommt aus `components/bars.html`. Die Vorlage rechnet: `{{ value | percent:scale }}` macht aus 72 die Balkenlänge, `{{ children | sum:value | number:1 }}` die Summe, `{{ updated | date:long }}` das Datum. Mit `state=warn` färbt `{{#if state is warn}}` den Balken um.
 :::
 
+## Pipeline
+
+::: pipeline title="Release 4.2" summary steps
+::: stage label="Bauen" state=done time="1:12 min"
+:::
+::: stage label="Testen" state=run progress=62
+:::
+::: stage label="Prüfen"
+:::
+::: stage label="Ausrollen"
+:::
+:::
+
+::: notes
+Jede Stufe hat einen Status: `done` (grün, voll), `run` (läuft, mit Fortschritt) oder `open`. Oben rechts rechnet die Vorlage mit `{{ children | share:state:done }}` den Anteil der erledigten Stufen aus, den Fortschritt der laufenden Stufe mit `{{ progress | percent }}`.
+:::
+
+## Statusautomat
+
+::: states title="Freigabe-Prozess" back="Änderungen nötig"
+::: state label="Entwurf" at=1 then=3
+:::
+::: state label="Prüfung" at=2 then=4
+:::
+::: state label="Freigabe" at=5
+:::
+::: state label="Veröffentlicht" at=6
+:::
+:::
+
+::: notes
+In jedem Schritt leuchtet ein anderer Zustand: `at=2` heißt „im zweiten Schritt“, `then=4` „und noch einmal im vierten“. So geht die Geschichte von Entwurf zur Prüfung, wieder zurück und dann zur Veröffentlichung. Die Vorlage setzt das „bis Schritt“ mit `{{ at | add:1 }}`.
+:::
+
+## Zeitplan
+
+::: gantt title="Projektplan 2027" scale=12 now=6 from="Jan" to="Dez" steps
+::: task label="Konzept" start=0 length=2 state=done
+:::
+::: task label="Bau" start=2 length=5 state=done
+:::
+::: task label="Test" start=6 length=3
+:::
+::: task label="Rollout" start=9 length=3
+:::
+:::
+
+::: notes
+Position und Breite der Balken rechnet die Vorlage aus `start`, `length` und `scale`: `{{ length | percent:scale:1 }}`. Die rote Linie steht bei `now=6`.
+:::
+
+## Checkliste
+
+::: checklist title="Go-Live-Vorbereitung" progress steps
+::: task label="Daten migrieren" state=done owner=Anna
+:::
+::: task label="Rechte prüfen" state=done owner=Ben
+:::
+::: task label="Schulung planen" state=wip owner=Chiara
+:::
+::: task label="Freigabe holen" owner=Ben
+:::
+:::
+
+::: notes
+Der Balken unten zeigt den Anteil der erledigten Aufgaben, `{{ children | count:state:done }} von {{ count }} erledigt` zählt sie. Beides rechnet die Vorlage selbst aus.
+:::
+
 # Layout: image-full {layout=image-full bg=banner.svg bgdim=0.35}
 
 Ein Bild füllt die Folie, der Titel liegt darüber.

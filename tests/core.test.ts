@@ -810,6 +810,19 @@ describe('Komponenten: Funktionsbausteine', () => {
     expect(render('{{#each children}}{{ value | percent:100 }};{{/each}}', {}, kids)).toBe('72%;49%;95%;')
   })
 
+  it('add, count und share: Zahlen addieren, Einträge mit einem Wert zählen', () => {
+    const kids = [kid('t', { state: 'done' }), kid('t', { state: 'Done' }), kid('t', { state: 'wip' }), kid('t', {})]
+    expect(render('{{ n | add:1 }}', { n: '4' })).toBe('5')
+    expect(render('{{ n | add:1 }}', { n: '1,5' })).toBe('2.5')
+    expect(render('{{ children | count:state:done }}', {}, kids)).toBe('2')
+    expect(render('{{ children | share:state:done }}', {}, kids)).toBe('50%')
+    expect(render('{{ children | share:state:wip }}', {}, kids)).toBe('25%')
+    expect(render('{{ children | share:state:done }}', {}, [])).toBe('0%')
+    expect(render('{{ children | count:state:"done" }}', {}, kids)).toBe('2') // auch in Anführungszeichen
+    expect(problem('{{ children | count:state }}')).toMatch(/braucht 2 Argumente/)
+    expect(problem('{{ children | share:"state":done }}')).toMatch(/Name eines Feldes/)
+  })
+
   it('vergleicht in {{#if}}: is, is not und Zahlen', () => {
     expect(render('{{#if t is up}}U{{else}}N{{/if}}', { t: 'UP' })).toBe('U')
     expect(render('{{#if t is not up}}X{{else}}Y{{/if}}', { t: 'up' })).toBe('Y')

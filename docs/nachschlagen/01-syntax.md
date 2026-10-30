@@ -71,7 +71,7 @@ Attribute stehen in geschweiften Klammern am Ende der Überschrift, getrennt dur
 | `::: pin` | nummerierte Markierung (`at=`) |
 
 ::: notes
-Fast alle Container kennen `step=` und `until=`. Eingebaute Komponenten kommen dazu: `timeline`, `process`, `kpis`, `person`, `roadmap`, `pyramid`, `matrix`, `versus` und `aside`; eigene liegen als HTML-Vorlage im Ordner `components/` (siehe Thema „Themes und Firmen-Look“).
+Fast alle Container kennen `step=` und `until=`. Eingebaute Komponenten kommen dazu: `timeline`, `process`, `kpis`, `person`, `roadmap`, `pyramid`, `matrix`, `versus`, `aside`, `pipeline`, `states`, `gantt` und `checklist`; eigene liegen als HTML-Vorlage im Ordner `components/` (siehe Thema „Themes und Firmen-Look“).
 :::
 
 ## Layouts {id=layouts-liste}

@@ -60,7 +60,7 @@ Ein Theme-Ordner (`theme.css`, `layouts/`, Bilder, Schriften) lässt sich in meh
 ::: notes
 Eine Komponente ist ein eigener Container aus einer HTML-Vorlage. Die Datei `components/fact.html` im Deck- oder Theme-Ordner macht aus `::: fact title="…"` einen Baustein, `fact.css` daneben gestaltet ihn. `{{ title }}` setzt ein Attribut ein, `{{{ body }}}` den Inhalt als Markdown. Die Vorlage enthält bewusst **keinen Programmcode** (Platzhalter, Schleifen und fertige Funktionen zum Rechnen und Formatieren), das hält Decks sicher und vorhersehbar. Der Editor schlägt eigene Komponenten nach `::: ` vor.
 
-Eingebaut sind `timeline` (Zeitstrahl), `process` (Prozess), `kpis` (Kennzahlen), `person` (Profilkarte), `roadmap`, `pyramid`, `matrix`, `versus` (vorher und nachher) und `aside` (Randspalte für `two-col-wide`). Das Beispiel-Deck „Komponenten“ zeigt sie alle.
+Eingebaut sind `timeline` (Zeitstrahl), `process` (Prozess), `kpis` (Kennzahlen), `person` (Profilkarte), `roadmap`, `pyramid`, `matrix`, `versus` (vorher und nachher), `aside` (Randspalte für `two-col-wide`), `pipeline` (Ablauf mit Status), `states` (Statusautomat, je Schritt leuchtet ein Zustand), `gantt` (Zeitplan) und `checklist` (Checkliste mit Fortschritt). Das Beispiel-Deck „Komponenten“ zeigt sie alle.
 :::
 
 ### Eigene Komponente in fünf Schritten {id=komponenten-anleitung}
@@ -160,6 +160,9 @@ Mit dem Kopf schlägt der Editor Attribute und Flags vor und markiert Unbekannte
 | `number:1` | Zahl mit Nachkommastellen und Tausenderpunkt, `number:1:"en"` englisch (1,234.6) |
 | `date:long` | Datum `2026-10-29` als „29. Oktober 2026“; `short`, `medium`, `long`, `month`, `iso`; `date:short:"en"` englisch |
 | `sum:value`, `max:value`, `min:value` | über alle `children` (oder `items`, Feld `text`) |
+| `count:state:done` | Zahl der `children`, bei denen `state` gleich `done` ist |
+| `share:state:done` | Anteil dieser Einträge in Prozent, bei 2 von 4 ergibt es `50%` |
+| `add:1` | Zahl addieren, z. B. für „bis Schritt“ (`{{ at \| add:1 }}`) |
 | `upper`, `lower` | Groß- bzw. Kleinbuchstaben |
 | `truncate:40` | auf 40 Zeichen kürzen, mit „…“ |
 | `image` | Bildadresse relativ zum Deck |

@@ -1,0 +1,8 @@
+/* Komponente states: der aktive Zustand ist ein Deckblatt (.state-on), das nur in seinem Schritt sichtbar ist */
+.d-states .states-title { font-family: var(--font-heading); font-size: 0.8em; color: var(--color-muted); margin-bottom: 1.6rem; }
+.d-states .states-row { display: flex; align-items: center; }
+.d-states .state-node { position: relative; flex: 0 0 auto; border: 2px solid var(--color-border); border-radius: 999px; padding: 0.4rem 1.1rem; font-weight: 700; background: var(--color-surface); }
+.d-states .state-on { position: absolute; inset: -2px; display: flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--color-accent); color: var(--color-bg, #fff); transition: opacity 0.3s; }
+.d-states .states-arrow { flex: 1 1 1.5rem; min-width: 1.2rem; height: 2px; background: var(--color-border); position: relative; }
+.d-states .states-arrow::after { content: ''; position: absolute; right: -1px; top: -4px; border-left: 8px solid var(--color-border); border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+.d-states .states-back { margin-top: 1.2rem; font-size: 0.7em; color: var(--color-warning, #d97706); font-weight: 700; text-align: center; }

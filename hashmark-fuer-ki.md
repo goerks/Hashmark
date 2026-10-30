@@ -261,6 +261,10 @@ Das **System** bleibt eine Blackbox.
 | `matrix` | Vierfelder-Matrix aus Liste (4 Einträge, links oben → rechts unten) | `title`, `x`, `y`, `focus=1..4`, `start`; Flag `steps` |
 | `versus` | Vorher/Nachher, Kinder `::: before`/`::: after` | `title`; Kinder: `label`, `step` |
 | `aside` | Randspalte für `two-col-wide` | `title` |
+| `pipeline` | Ablauf in Stufen, Kinder `::: stage` | `title`, `start`; Flags `steps`, `summary` (Anteil erledigt). Kind `stage`: `label` (Pflicht), `state=done\|run\|open`, `progress` (für `run`, Standard 50), `time`, `step` |
+| `states` | Statusautomat, Kinder `::: state`; je Schritt leuchtet ein Zustand | `title`, `back` (Beschriftung des Rückwegs). Kind `state`: `label` (Pflicht), `at` (Schritt, in dem er leuchtet), `then` (zweiter Schritt) |
+| `gantt` | Zeitplan, Kinder `::: task` | `title`, `scale` (Länge der Zeitleiste, Standard 12), `now` („heute“-Linie), `from`, `to`, `start`; Flag `steps`. Kind `task`: `label`, `length` (Pflicht), `start` (Standard 0), `state=done\|open`, `step` |
+| `checklist` | Checkliste, Kinder `::: task` | `title`, `start`; Flags `steps`, `progress` (Balken „n von m erledigt“). Kind `task`: `label` (Pflicht), `state=done\|wip\|open`, `owner`, `step` |
 
 ```md
 ::: timeline title="Roadmap" steps
@@ -287,25 +291,69 @@ Das **System** bleibt eine Blackbox.
 ::: person name="Anna Beispiel" role="Product Owner" photo=anna.svg
 Verantwortet das Backlog.
 :::
+
+::: pipeline title="Release" summary
+::: stage label="Bauen" state=done
+:::
+::: stage label="Testen" state=run progress=62
+:::
+::: stage label="Ausrollen"
+:::
+:::
+
+::: states title="Freigabe" back="Änderungen nötig"
+::: state label="Entwurf" at=1 then=3
+:::
+::: state label="Prüfung" at=2
+:::
+:::
+
+::: gantt scale=12 now=6 steps
+::: task label="Bau" start=2 length=5
+:::
+:::
+
+::: checklist title="Go-Live" progress
+::: task label="Daten migrieren" state=done
+:::
+::: task label="Freigabe holen"
+:::
+:::
 ```
 
 ### 7.2 Eigene Komponenten
 
 Datei `components/<name>.html` im Deck- oder Theme-Ordner macht `::: <name>` verfügbar (optional `<name>.css` daneben; Wrapper-Klasse `.d-<name>`). Eingebaute Container (`cards`, `notes`, `columns` …) können nicht überschrieben werden; Deck-Ordner schlägt Theme-Ordner schlägt eingebaute Komponenten.
 
-Logikfreie Vorlage:
+Vorlage (kein JavaScript, aber fertige Funktionen):
 
 | Platzhalter | Bedeutung |
 | --- | --- |
 | `{{ attr }}` | Attribut des Containers als Text |
 | `{{{ body }}}` | Inhalt als gerendertes Markdown (drei Klammern!) |
 | `{{ foto\|image }}` | Attribut als Bildadresse |
+| `{{ wert\|percent:max }}` | Attribut durch eine Funktion schicken, Argumente nach `:`, verkettbar: `{{ children\|sum:value\|number:1 }}` |
+| `{{#if state is warn}}` | Vergleich mit festem Wert: `is`, `is not`, bei Zahlen auch `>`, `>=`, `<`, `<=` |
 | `{{#if attr}} … {{else}} … {{/if}}` | nur wenn gesetzt |
 | `{{#each items}} … {{/each}}` | je Listenpunkt: `{{{ html }}}`, `{{ text }}`, `{{ number }}`, `{{ index }}`, `{{ first }}`, `{{ last }}`, `{{ step }}`, `{{ count }}` |
 | `{{#each children}} … {{/each}}` | je Kind-Container mit dessen Attributen, `{{{ body }}}`, `{{ number }}`, `{{ step }}` |
-| `{{!meta … }}` (YAML, am Dateianfang) | Beschreibung: `description`, `attrs`, `flags`, `required`, `example`, `children` |
+| `{{!meta … }}` (YAML, am Dateianfang) | Beschreibung: `description`, `attrs`, `flags`, `required`, `defaults` (Standardwerte fehlender Attribute), `example`, `children` |
 
-Keine Ausdrücke, kein JavaScript. Ein Attribut ohne Wert (`::: timeline vertical`) gilt als gesetzt.
+Funktionen (Namen englisch; sie laufen beim Bauen, PDF und PPTX sehen gleich aus):
+
+| Funktion | Ergebnis |
+| --- | --- |
+| `default:"–"` | Ersatzwert, wenn leer oder fehlend |
+| `percent:max` / `percent:100:1` | Wert ÷ Gesamtwert in Prozent (`72` bei 96 → `75%`), optional Nachkommastellen; punkt-dezimal, taugt für `width:` |
+| `number:1` / `number:1:"en"` | Zahl mit Nachkommastellen, Standard deutsch (`1.234,6`), zweites Argument ist die Sprache |
+| `date:long` / `date:short:"en"` | Datum `JJJJ-MM-TT` → Text; `short`, `medium`, `long`, `month`, `iso` |
+| `sum:feld`, `max:feld`, `min:feld` | über `children` oder `items` (Feld `text`) |
+| `count:feld:wert` | Zahl der Kinder, bei denen das Feld gleich `wert` ist |
+| `share:feld:wert` | Anteil dieser Kinder in Prozent (`50%`) |
+| `add:1` | Zahl addieren |
+| `upper`, `lower`, `truncate:40`, `image` | Text umformen bzw. Bildadresse auflösen |
+
+Zahlen werden tolerant gelesen (`1.234,5`, `1,5`, `72 %`). Ein Name als Argument ist ein Attribut (`percent:scale`), Text steht in Anführungszeichen. Fehler in der Vorlage meldet `hashmark check` mit Zeile, Fehler beim Rechnen (z. B. keine Zahl) als Hinweis. Kein freies JavaScript. Ein Attribut ohne Wert (`::: timeline vertical`) gilt als gesetzt.
 
 ## 8. Schritte (Animationen innerhalb einer Folie)
 

@@ -80,6 +80,17 @@ function listNumbers(input: FnInput, field: string, fn: string, ctx: FnContext):
   return out
 }
 
+/** Einträge einer Liste, deren Feld `field` gleich `word` ist (ohne Beachtung von Groß- und Kleinschreibung) */
+function countMatching(input: FnInput, field: string, word: string): { hits: number; total: number } {
+  if (!isList(input)) return { hits: 0, total: 0 }
+  const want = word.trim().toLowerCase()
+  const hits = input.list.filter((entry) => {
+    const v = entry[field]
+    return (typeof v === 'string' ? v : v === true ? 'true' : '').trim().toLowerCase() === want
+  }).length
+  return { hits, total: input.list.length }
+}
+
 function formatDate(s: string, style: string, locale: string, ctx: FnContext): string {
   const m = s.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/)
   if (!m) { if (s.trim()) ctx.warn(`date: „${s}“ ist kein Datum (erwartet JJJJ-MM-TT)`); return s }
@@ -157,6 +168,29 @@ export const FUNCTIONS: Record<string, FnSpec> = {
     detail: `Datum (JJJJ-MM-TT) formatieren: date:long, date:short:"en" (${DATE_STYLES.join(', ')})`,
     args: [{ kind: 'word', optional: true, choices: DATE_STYLES }, { kind: 'value', optional: true }],
     run: (v, [style, locale], c) => formatDate(text(v), style || 'long', locale || c.locale, c),
+  },
+  add: {
+    detail: 'Zahl addieren: add:1 (z. B. für „bis Schritt“)',
+    args: [{ kind: 'value' }],
+    run: (v, [n], c) => {
+      const a = number(text(v), 'add', c), b = number(n, 'add', c)
+      return a === null || b === null ? text(v) : plain(a + b)
+    },
+  },
+  count: {
+    detail: 'Anzahl der Einträge mit einem Wert: children | count:state:done',
+    args: [{ kind: 'field' }, { kind: 'word' }],
+    list: true,
+    run: (v, [field, word]) => String(countMatching(v, field, word).hits),
+  },
+  share: {
+    detail: 'Anteil der Einträge mit einem Wert in %: children | share:state:done',
+    args: [{ kind: 'field' }, { kind: 'word' }],
+    list: true,
+    run: (v, [field, word]) => {
+      const { hits, total } = countMatching(v, field, word)
+      return total === 0 ? '0%' : plain(roundTo((hits / total) * 100, 0)) + '%'
+    },
   },
   sum: {
     detail: 'Summe über children oder items: children | sum:value',
