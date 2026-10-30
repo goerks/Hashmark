@@ -105,6 +105,93 @@ Eine Figur legt Beschriftungen auf ein Bild, ohne Grafikprogramm: `bubble` ist e
 `::: table` um eine Markdown-Tabelle setzt Spaltenbreiten (`widths`), blendet Zeilen oder Spalten schrittweise ein (`steps=rows` bzw. `steps=cols`) und hebt Zellen hervor (`hl="r2c3,c1"`: Zeile und Spalte, ab 1 gezählt, `r0` ist der Kopf).
 :::
 
+## Fertige Bausteine {id=bausteine}
+
+| Baustein | Wofür | Aufbau |
+| --- | --- | --- |
+| `timeline` | Zeitstrahl | Liste; `vertical`, `steps` |
+| `process` | Prozess aus Pfeilen | Liste; `steps` |
+| `kpis` | Kennzahlen | Kinder `::: kpi value= label= trend=up\|down\|flat delta=` |
+| `person` | Profilkarte | `name=`, `role=`, `photo=`; Text als Beschreibung |
+| `roadmap` | Phasen mit „heute“-Linie | Liste; `today="41%"`, `done=2` |
+| `pyramid` | Schichten | Liste; `inverted` |
+| `matrix` | Vierfelder-Matrix | Liste mit 4 Punkten; `x=`, `y=`, `focus=` |
+| `versus` | vorher und nachher | Kinder `::: before` und `::: after` |
+| `pipeline` | Ablauf mit Status | Kinder `::: stage label= state=done\|run\|open progress=` |
+| `states` | Statusautomat | Kinder `::: state label= at=` |
+| `gantt` | Zeitplan | Kinder `::: task label= start= length=` |
+| `checklist` | Checkliste mit Fortschritt | Kinder `::: item label= state=done\|wip\|open` |
+
+::: notes
+Fertige Bausteine sind Container, die aus wenigen Angaben eine fertige Grafik machen. Du schreibst nur den Inhalt, Aussehen und Rechnen übernimmt Hashmark. Die Bausteine übernehmen Farben und Schrift des Themes. Im Editor tippst du `/` und den Namen (zum Beispiel `/pipeline`), dann steht ein fertiges Beispiel im Text, das du anpasst. Mit `steps` erscheinen die Einträge nacheinander. Das Beispiel-Deck „Komponenten“ zeigt alle. Eigene Bausteine baust du selbst, siehe „Themes und Firmen-Look“.
+:::
+
+### Pipeline {id=pipeline}
+
+```md
+::: pipeline title="Release 4.2" summary steps
+::: stage label="Bauen" state=done time="1:12 min"
+:::
+::: stage label="Testen" state=run progress=62
+:::
+::: stage label="Ausrollen"
+:::
+:::
+```
+
+::: notes
+Eine Pipeline zeigt einen Ablauf in Stufen. `state=done` ist erledigt (grün, voll), `state=run` läuft (mit `progress=` in Prozent, Standard 50, pulsiert in der Präsentation), ohne Status ist die Stufe offen. `time=` ist ein freier Text wie eine Dauer. Mit `summary` steht oben rechts der Anteil der erledigten Stufen, den Hashmark selbst ausrechnet. Mit `steps` erscheint jede Stufe in ihrem Schritt.
+:::
+
+### Statusautomat {id=statusautomat}
+
+```md
+::: states title="Freigabe" back="Änderungen nötig"
+::: state label="Entwurf" at=1 then=3
+:::
+::: state label="Prüfung" at=2 then=4
+:::
+::: state label="Freigabe" at=5
+:::
+:::
+```
+
+::: notes
+Die Zustände stehen nebeneinander. `at=2` heißt: Im zweiten Schritt leuchtet dieser Zustand. `then=4` lässt ihn in einem späteren Schritt noch einmal leuchten, so erzählst du einen Rücksprung (Entwurf, Prüfung, zurück zum Entwurf, wieder Prüfung, Freigabe). `back=` schreibt eine Beschriftung für den Rückweg unter die Reihe. Es leuchtet immer nur ein Zustand pro Schritt. Im PDF und im Lesemodus leuchtet keiner.
+:::
+
+### Zeitplan {id=zeitplan}
+
+```md
+::: gantt title="Projektplan 2027" scale=12 now=6 from="Jan" to="Dez" steps
+::: task label="Konzept" start=0 length=2 state=done
+:::
+::: task label="Bau" start=2 length=5
+:::
+:::
+```
+
+::: notes
+`scale=` ist die Länge der Zeitleiste in beliebigen Einheiten (Standard 12, etwa Monate oder Wochen). Jede Aufgabe hat `start=` (ab 0) und `length=`, Position und Breite rechnet Hashmark daraus aus. `now=` setzt eine rote „heute“-Linie, `from=` und `to=` beschriften die Enden. `state=done` macht den Balken kräftig, offene sind blasser.
+:::
+
+### Checkliste {id=checkliste}
+
+```md
+::: checklist title="Go-Live" progress steps
+::: item label="Daten migrieren" state=done owner=Anna
+:::
+::: item label="Schulung planen" state=wip owner=Ben
+:::
+::: item label="Freigabe holen"
+:::
+:::
+```
+
+::: notes
+`state=done` setzt ein Häkchen und streicht den Eintrag durch, `state=wip` zeigt „in Arbeit“, ohne Status ist er offen. `owner=` nennt, wer sich kümmert. Mit `progress` steht unten ein Balken und „n von m erledigt“, beides zählt Hashmark selbst. Mit `steps` erscheinen die Einträge nacheinander.
+:::
+
 ## Hinweiskästen {id=hinweise}
 
 > [!TIP]

@@ -264,7 +264,7 @@ Das **System** bleibt eine Blackbox.
 | `pipeline` | Ablauf in Stufen, Kinder `::: stage` | `title`, `start`; Flags `steps`, `summary` (Anteil erledigt). Kind `stage`: `label` (Pflicht), `state=done\|run\|open`, `progress` (für `run`, Standard 50), `time`, `step` |
 | `states` | Statusautomat, Kinder `::: state`; je Schritt leuchtet ein Zustand | `title`, `back` (Beschriftung des Rückwegs). Kind `state`: `label` (Pflicht), `at` (Schritt, in dem er leuchtet), `then` (zweiter Schritt) |
 | `gantt` | Zeitplan, Kinder `::: task` | `title`, `scale` (Länge der Zeitleiste, Standard 12), `now` („heute“-Linie), `from`, `to`, `start`; Flag `steps`. Kind `task`: `label`, `length` (Pflicht), `start` (Standard 0), `state=done\|open`, `step` |
-| `checklist` | Checkliste, Kinder `::: task` | `title`, `start`; Flags `steps`, `progress` (Balken „n von m erledigt“). Kind `task`: `label` (Pflicht), `state=done\|wip\|open`, `owner`, `step` |
+| `checklist` | Checkliste, Kinder `::: item` | `title`, `start`; Flags `steps`, `progress` (Balken „n von m erledigt“). Kind `item`: `label` (Pflicht), `state=done\|wip\|open`, `owner`, `step` |
 
 ```md
 ::: timeline title="Roadmap" steps
@@ -314,9 +314,9 @@ Verantwortet das Backlog.
 :::
 
 ::: checklist title="Go-Live" progress
-::: task label="Daten migrieren" state=done
+::: item label="Daten migrieren" state=done
 :::
-::: task label="Freigabe holen"
+::: item label="Freigabe holen"
 :::
 :::
 ```
@@ -337,7 +337,7 @@ Vorlage (kein JavaScript, aber fertige Funktionen):
 | `{{#if attr}} … {{else}} … {{/if}}` | nur wenn gesetzt |
 | `{{#each items}} … {{/each}}` | je Listenpunkt: `{{{ html }}}`, `{{ text }}`, `{{ number }}`, `{{ index }}`, `{{ first }}`, `{{ last }}`, `{{ step }}`, `{{ count }}` |
 | `{{#each children}} … {{/each}}` | je Kind-Container mit dessen Attributen, `{{{ body }}}`, `{{ number }}`, `{{ step }}` |
-| `{{!meta … }}` (YAML, am Dateianfang) | Beschreibung: `description`, `attrs`, `flags`, `required`, `defaults` (Standardwerte fehlender Attribute), `example`, `children` |
+| `{{!meta … }}` (YAML, am Dateianfang) | Beschreibung: `description`, `attrs`, `flags`, `required`, `defaults` (Standardwerte fehlender Attribute), `values` (erlaubte Werte je Attribut, `state: [done, run]`), `example`, `children` |
 
 Funktionen (Namen englisch; sie laufen beim Bauen, PDF und PPTX sehen gleich aus):
 

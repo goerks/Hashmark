@@ -139,6 +139,7 @@ Der Kopf ist YAML zwischen `{{!meta` und `}}` ganz am Anfang der Vorlage. Er ers
 | `flags` | Attribute ohne Wert (`::: fact wide`) |
 | `required` | Pflichtattribute, ein Name oder eine Liste |
 | `defaults` | Standardwerte für Attribute, die der Autor weglässt (`scale: "100"`) |
+| `values` | erlaubte Werte eines Attributs (`state: [done, run, open]`): der Editor schlägt sie vor und meldet andere |
 | `example` | Beispiel, das der Editor einfügt |
 | `children` | erlaubte Kind-Container, jeder mit denselben Feldern |
 

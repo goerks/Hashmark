@@ -885,3 +885,61 @@ describe('Komponenten: Funktionsbausteine', () => {
     expect(completeTemplate('{{ v | default:"a|', 17)).toBeNull() // noch im Text in Anführungszeichen
   })
 })
+
+describe('Komponenten: Werte, Slash-Menü und Vorlagen-Hilfen', () => {
+  const components = {
+    pipeline: {
+      description: 'Ablauf', example: '::: pipeline title="Release"\n::: stage label="Bauen" state=done\n:::\n:::\n',
+      children: { stage: { description: 'Eine Stufe', attrs: { label: 'Name', state: 'Status' }, values: { state: ['done', 'run', 'open'] } } },
+    },
+  }
+  const at = async (text: string) => (await import('../src/core/complete.ts')).completionAt(text, text.length, { components })
+
+  it('Kopf: values wird gelesen und geprüft', () => {
+    const t = parseTemplate('{{!meta\nvalues:\n  state: [done, run]\n}}\n<i></i>')
+    expect(t.meta?.values).toEqual({ state: ['done', 'run'] })
+    expect(() => parseTemplate('{{!meta\nvalues:\n  state: done\n}}\n')).toThrow(/muss eine Liste sein/)
+  })
+
+  it('schlägt die erlaubten Werte nach attr= vor, auch bei Kind-Containern', async () => {
+    const r = (await at('::: stage label="Bauen" state=ru'))!
+    expect(r.options.map((o) => o.label)).toEqual(['run'])
+    expect(r.from).toBe('::: stage label="Bauen" state='.length)
+    expect((await at('::: stage state='))!.options.map((o) => o.label)).toEqual(['done', 'run', 'open'])
+    expect(await at('::: stage label="a state=ru')).toBeNull() // noch im Text in Anführungszeichen
+  })
+
+  it('Slash-Menü bietet Komponenten mit ihrem Beispiel an', async () => {
+    const r = (await at('/pipe'))!
+    expect(r.options[0]).toMatchObject({ label: 'Pipeline', kind: 'Komponente' })
+    expect(r.options[0].insert).toContain('::: pipeline title="Release"')
+  })
+
+  it('Linter und Laden melden einen unbekannten Wert mit Vorschlag', async () => {
+    const problems = lintText('::: stage label="x" state=runn\n:::\n', { components })
+    expect(problems).toHaveLength(1)
+    expect(problems[0].message).toMatch(/„state=runn“ ist für stage unbekannt \(erlaubt: done, run, open\)\. Meinst du „run“\?/)
+    expect(problems[0].fix).toBe('run')
+    expect(lintText('::: stage label="x" state=run\n:::\n', { components })).toEqual([])
+    const warns: string[] = []
+    const kid = { type: 'containerDirective', name: 'stage', attributes: { label: 'a', state: 'runn' }, children: [] } as never
+    expandComponent(parseTemplate('{{!meta\nchildren:\n  stage:\n    values:\n      state: [done, run]\n}}\n{{#each children}}{{ label }}{{/each}}'), { name: 'p', attrs: {}, children: [kid] }, { image: (u: string) => u, warn: (m: string) => { warns.push(m) } })
+    expect(warns[0]).toMatch(/„state=runn“ ist unbekannt \(erlaubt: done, run\), meintest du „run“\?/)
+  })
+
+  it('die eingebauten Komponenten zählen ihre Werte auf', async () => {
+    const fs = await import('node:fs')
+    const read = (name: string) => parseTemplate(fs.readFileSync(`src/runtime/components/${name}.html`, 'utf8')).meta!
+    expect(read('pipeline').children!.stage.values).toEqual({ state: ['done', 'run', 'open'] })
+    expect(read('checklist').children!.item.values).toEqual({ state: ['done', 'wip', 'open'] })
+    expect(read('gantt').children!.task.values).toEqual({ state: ['done', 'open'] })
+    expect(read('kpis').children!.kpi.values).toEqual({ trend: ['up', 'down', 'flat'] })
+  })
+
+  it('Vorlage: Vorschläge für date: und nach {{#if name', () => {
+    expect(completeTemplate('{{ d | date:', 12)!.options.map((o) => o.label)).toEqual(['short', 'medium', 'long', 'month', 'iso'])
+    expect(completeTemplate('{{ d | date:lo', 14)!.options.map((o) => o.label)).toEqual(['long'])
+    expect(completeTemplate('{{#if state ', 12)!.options.map((o) => o.label)).toEqual(['is', 'is not'])
+    expect(completeTemplate('{{#if state is done}}x', 22)).toBeNull()
+  })
+})

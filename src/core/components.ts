@@ -28,6 +28,8 @@ export interface ComponentMeta {
   required?: string[]
   /** Standardwerte für Attribute, die der Autor weglässt: Name → Wert */
   defaults?: Record<string, string>
+  /** erlaubte Werte eines Attributs: Name → Liste (für Vorschläge, Hinweise im Editor und beim Laden) */
+  values?: Record<string, string[]>
   /** Beispiel, das der Editor einfügt */
   example?: string
   /** erlaubte Kind-Container (`{{#each children}}`) mit eigener Beschreibung */
@@ -72,6 +74,13 @@ function metaFrom(raw: unknown): ComponentMeta {
   if (m.required !== undefined) meta.required = [m.required].flat().map(String)
   const defaults = textMap(m.defaults, 'defaults')
   if (defaults) meta.defaults = defaults
+  if (m.values !== undefined) {
+    if (typeof m.values !== 'object' || m.values === null || Array.isArray(m.values)) throw new TemplateError('Metadaten: values muss „attribut: [wert, wert]“ enthalten')
+    meta.values = Object.fromEntries(Object.entries(m.values as Record<string, unknown>).map(([k, v]) => {
+      if (!Array.isArray(v)) throw new TemplateError(`Metadaten: values › ${k} muss eine Liste sein`)
+      return [k, v.map(String)]
+    }))
+  }
   if (m.children !== undefined) {
     if (typeof m.children !== 'object' || m.children === null || Array.isArray(m.children)) throw new TemplateError('Metadaten: children muss „name: { … }“ enthalten')
     meta.children = Object.fromEntries(Object.entries(m.children as Record<string, unknown>).map(([k, v]) => [k, metaFrom(v)]))
@@ -282,6 +291,13 @@ function checkAttrs(label: string, attrs: Record<string, string>, meta: Componen
     }
   }
   for (const key of meta.required ?? []) if (!attrs[key] && !meta.defaults?.[key]) warn(`${label}: Attribut „${key}“ fehlt`)
+  for (const [key, allowed] of Object.entries(meta.values ?? {})) {
+    const value = attrs[key]
+    if (value && !allowed.some((a) => a.toLowerCase() === value.trim().toLowerCase())) {
+      const fix = nearest(value, allowed)
+      warn(`${label}: „${key}=${value}“ ist unbekannt (erlaubt: ${allowed.join(', ')})${fix ? `, meintest du „${fix}“?` : ''}`)
+    }
+  }
 }
 
 /**

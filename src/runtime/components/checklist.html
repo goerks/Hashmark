@@ -7,7 +7,7 @@ flags:
   steps: Aufgaben nacheinander einblenden
   progress: Fortschrittsbalken mit „n von m erledigt“ zeigen
 children:
-  task:
+  item:
     description: Eine Aufgabe
     attrs:
       label: Name der Aufgabe
@@ -15,13 +15,15 @@ children:
       owner: Wer sich kümmert, optional
       step: Eigene Schrittnummer
     required: label
+    values:
+      state: [done, wip, open]
 example: |
   ::: checklist title="Go-Live-Vorbereitung" progress
-  ::: task label="Daten migrieren" state=done owner=Anna
+  ::: item label="Daten migrieren" state=done owner=Anna
   :::
-  ::: task label="Schulung planen" state=wip owner=Ben
+  ::: item label="Schulung planen" state=wip owner=Ben
   :::
-  ::: task label="Freigabe holen"
+  ::: item label="Freigabe holen"
   :::
   :::
 }}

@@ -2,7 +2,7 @@
 // Reine Funktionen ohne DOM, damit Editor und Datei-API sie gemeinsam nutzen und tests/core.test.ts sie prüft.
 
 import { parseTemplate, readMetaHead, TemplateError } from './components.ts'
-import { FUNCTIONS } from './functions.ts'
+import { DATE_STYLES, FUNCTIONS } from './functions.ts'
 import type { Problem } from './lint.ts'
 import { CONTAINERS } from './vocab.ts'
 
@@ -60,11 +60,26 @@ const BLOCKS: TemplateOption[] = [
   { label: 'else', detail: 'sonst (in #if)' },
 ]
 
+const COMPARISONS: TemplateOption[] = [
+  { label: 'is', detail: 'gleich: {{#if state is done}}' },
+  { label: 'is not', detail: 'ungleich: {{#if state is not done}}' },
+]
 const FUNCTION_OPTIONS: TemplateOption[] = Object.entries(FUNCTIONS).map(([label, f]) => ({ label, detail: f.detail }))
 
 /** Vorschläge nach `{{` bzw. `{{{`: Attribute aus dem Kopf, eingebaute Namen und Blöcke; nach `|` die Funktionen. Sonst null. */
 export function completeTemplate(text: string, pos: number): TemplateCompletion | null {
   const before = text.slice(0, pos)
+  // Stil nach `date:` und Vergleichswort nach `{{#if name `
+  const style = before.match(/\|[ \t]*date:(\w*)$/)
+  if (style) {
+    const options = DATE_STYLES.filter((d) => d.startsWith(style[1])).map((label) => ({ label, detail: 'Datumsstil' }))
+    return options.length ? { from: pos - style[1].length, to: pos, options } : null
+  }
+  const cmp = before.match(/\{\{#if[ \t]+[\w.-]+[ \t]+(\w*)$/)
+  if (cmp) {
+    const options = COMPARISONS.filter((o) => o.label.startsWith(cmp[1]))
+    return options.length ? { from: pos - cmp[1].length, to: pos, options } : null
+  }
   // nach `|` im selben Platzhalter (Anführungszeichen dürfen ein `|` enthalten): Funktionsname
   const fn = before.match(/\{\{[ \t]*[\w.-]+(?:[ \t]*\|(?:[^|{}"']|"[^"]*"|'[^']*')*)*[ \t]*\|[ \t]*(\w*)$/)
   if (fn) {

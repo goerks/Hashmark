@@ -21,6 +21,8 @@ children:
       state: "done (erledigt, dunkler) oder open (Standard)"
       step: Eigene Schrittnummer
     required: [label, length]
+    values:
+      state: [done, open]
 example: |
   ::: gantt title="Projektplan 2027" scale=12 now=6 from="Jan" to="Dez" steps
   ::: task label="Konzept" start=0 length=2 state=done

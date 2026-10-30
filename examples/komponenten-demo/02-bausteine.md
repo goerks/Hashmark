@@ -129,13 +129,13 @@ Position und Breite der Balken rechnet die Vorlage aus `start`, `length` und `sc
 ## Checkliste
 
 ::: checklist title="Go-Live-Vorbereitung" progress steps
-::: task label="Daten migrieren" state=done owner=Anna
+::: item label="Daten migrieren" state=done owner=Anna
 :::
-::: task label="Rechte prüfen" state=done owner=Ben
+::: item label="Rechte prüfen" state=done owner=Ben
 :::
-::: task label="Schulung planen" state=wip owner=Chiara
+::: item label="Schulung planen" state=wip owner=Chiara
 :::
-::: task label="Freigabe holen" owner=Ben
+::: item label="Freigabe holen" owner=Ben
 :::
 :::
 

@@ -16,6 +16,8 @@ children:
       time: "Dauer oder Zeitpunkt als Text, z. B. 4:40 min"
       step: Eigene Schrittnummer
     required: label
+    values:
+      state: [done, run, open]
 example: |
   ::: pipeline title="Release 4.2" summary
   ::: stage label="Bauen" state=done time="1:12 min"

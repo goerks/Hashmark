@@ -12,15 +12,18 @@ Du schreibst in Hashmark wie in einem Texteditor, siehst aber jede Folie sofort.
 
 | Eingabe | Wirkung |
 | --- | --- |
-| `/` am Zeilenanfang | Bausteine: Kapitel, Spalten, Code, Diagramm, Notizen |
+| `/` am Zeilenanfang | Bausteine: Kapitel, Spalten, Code, Diagramm, Notizen und alle Komponenten (`/pipeline`, `/gantt` …) mit fertigem Beispiel |
 | `::: ` | Container und eigene Komponenten |
+| `::: stage state=` | die erlaubten Werte eines Attributs (`done`, `run`, `open`), ein falscher Wert ist unterstrichen |
 | `+ Komponente` (Dateiliste) | neue Komponente: Vorlage und Gestaltung als Gerüst |
 | `{` an der Überschrift | Attribute und Layouts |
 | Strg+K | Palette mit allen Befehlen |
 | Bild ziehen oder Strg+V | Bild landet in `bilder/` |
 
 ::: notes
-Links steht der Markdown-Text, rechts die Folie an der Stelle des Cursors. Jede Änderung wird nach einem Moment gespeichert und sofort in der Vorschau gezeigt. Vorschläge erscheinen beim Tippen; unbekannte Layouts oder Attribute sind wellig unterstrichen, ein Klick bietet die Korrektur an („Meintest du …?“). Auf schmalen Bildschirmen und Tablets klappt die Vorschau unter den Text, eine Tastenleiste hilft bei `:::` und Klammern.
+Links steht der Markdown-Text, rechts die Folie an der Stelle des Cursors. Jede Änderung wird nach einem Moment gespeichert und sofort in der Vorschau gezeigt. Vorschläge erscheinen beim Tippen, bei Komponenten auch die Attribute und ihre Werte; unbekannte Layouts, Attribute oder Werte sind wellig unterstrichen, ein Klick bietet die Korrektur an („Meintest du …?“). Auf schmalen Bildschirmen und Tablets klappt die Vorschau unter den Text, eine Tastenleiste hilft bei `:::` und Klammern.
+
+Beim Bearbeiten einer eigenen Komponente (Dateiliste, `components/…html`) schlägt der Editor nach `{{ wert |` die Funktionen vor (`percent`, `number`, `date` …) und erklärt sie, nach `date:` die Datumsstile und nach `{{#if name ` den Vergleich (`is`, `is not`). Fehler in der Vorlage erscheinen mit Zeile, ohne zu speichern.
 
 Aus dem Editor heraus präsentierst du (F5 in der App) und exportierst (PDF, PPTX, HTML).
 :::
