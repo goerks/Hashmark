@@ -40,6 +40,8 @@
   const trail = $derived(pos ? nav.path(pos.id) : [])
   /** Tempo der Übergänge: `{speed=…}` der Zielfolie, sonst deck.yaml `motion: speed:`, sonst normal */
   const speed = $derived(node?.attrs.speed ?? deck?.motion?.speed)
+  /** Auftritt der Schritte: `{effect=…}` der Folie, sonst deck.yaml `motion: effect:`, sonst fade */
+  const effect = $derived(node?.attrs.effect ?? deck?.motion?.effect ?? '')
   const planState = $derived(node ? nav.state(node.id) : 'path')
   const tripBack = $derived(trip.length ? nav.node(trip[trip.length - 1].back.id) : undefined)
   const layout = $derived(node ? (node.layout ?? node.attrs.layout ?? deck?.layout ?? 'default') : 'default')
@@ -397,7 +399,7 @@
     <div class="stage" style="--scale:{scale}; --motion-duration:{motionDuration(speed)}ms">
       {#key `${node.id}:${pos.slide}`}
         <div class="stage-slide" in:enter={{ dir, kind: node.attrs.transition, speed }} out:leave={{ dir, kind: node.attrs.transition, speed }}>
-          <Slide {node} slide={pos.slide} {layout} step={pos.step ?? 0} media={embedded ? 'still' : 'live'} />
+          <Slide {node} slide={pos.slide} {layout} step={pos.step ?? 0} media={embedded ? 'still' : 'live'} effects {effect} />
         </div>
       {/key}
 

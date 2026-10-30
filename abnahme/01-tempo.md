@@ -1,6 +1,6 @@
 # Tempo der Übergänge {layout=title}
 
-Abnahme zu Ticket #25: Wie schnell wechseln die Folien?
+Abnahme zu Ticket #25: Wie schnell wechseln die Folien, und wie erscheinen die Schritte?
 
 ::: notes
 Prüfen: Diese Präsentation führt die Neuerung selbst vor. Mit → gehst du durch die Folien und siehst den Unterschied zwischen normal, schnell und langsam. Mit ↓ tauchst du in ein Detail. Das Standardtempo im ganzen Deck ist `normal` (`abnahme/deck.yaml`).
@@ -54,14 +54,4 @@ Hast du im System „Bewegung reduzieren“ eingeschaltet, überblendet Hashmark
 
 ::: notes
 Prüfen: In den Systemeinstellungen „Bewegung reduzieren“ (Windows: Animationseffekte aus; macOS: Bewegung reduzieren) einschalten, Seite neu laden und mit → und ↓ durch die Folien gehen. Es darf nur noch ein sanftes Ineinanderblenden zu sehen sein.
-:::
-
-# Nicht geprüft {id=nicht-geprueft}
-
-- Wirkung im PowerPoint-Export und im PDF: bleibt unverändert und wurde nicht neu geprüft
-- Eigene Themes, die später `--motion-duration` setzen
-- Touch-Wischgesten am Tablet
-
-::: notes
-Hier steht, was Claude nicht selbst im Browser ausprobieren konnte.
 :::

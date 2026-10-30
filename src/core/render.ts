@@ -15,7 +15,7 @@ import { excalidrawSteps } from './excalidraw.ts'
 import { ICON_NAMES, iconSvg } from './icons.ts'
 import { MAX_EMBED_BYTES, VIDEO_ATTRS, VIDEO_MIME, isVideoUrl, mediaName, videoProps } from './media.ts'
 import { renderMath, renderTex } from './math.ts'
-import { nearest } from './vocab.ts'
+import { EFFECTS, nearest } from './vocab.ts'
 import { svgIdSteps } from './svg-steps.ts'
 import { parseAttrs } from './syntax.ts'
 import type { Slide } from './types.ts'
@@ -388,6 +388,14 @@ function markAutoSteps(blocks: AnyNode[]) {
   walk(blocks)
 }
 
+/** `300ms`, `0.5s` oder `300` (ms) → Millisekunden; sonst undefined */
+export function parseDelay(v: string): number | undefined {
+  const m = /^(\d+(?:\.\d+)?)(ms|s)?$/.exec(v.trim())
+  if (!m) return undefined
+  const ms = Number(m[1]) * (m[2] === 's' ? 1000 : 1)
+  return ms <= 10000 ? Math.round(ms) : undefined
+}
+
 /** `cols=3` → 3 gleiche Spalten, `cols="2:1"` → 2fr 1fr, sonst CSS unverändert (`"2fr 1fr"`, `"300px 1fr"`). */
 export function gridColumns(cols: string): string {
   if (/^\d+$/.test(cols)) return `repeat(${cols},minmax(0,1fr))`
@@ -438,6 +446,8 @@ export const DESIGN_ATTRS: Record<string, string[]> = {
   table: ['widths', 'steps', 'start', 'hl'],
   reveal: ['step', 'until'],
 }
+/** Bewegungs-Attribute, die jeder Container mit Schritten versteht */
+const MOTION_ATTRS = ['effect', 'stagger', 'delay']
 const TAILS = ['none', 'left', 'right', 'up', 'down']
 const ALIGNS = ['left', 'center', 'right']
 
@@ -522,7 +532,7 @@ function applyDesignContainer(node: AnyNode, attrs: Record<string, string>, warn
   const allowed = DESIGN_ATTRS[name]
   if (allowed) {
     for (const key of Object.keys(attrs)) {
-      if (key === 'class' || key === 'id' || allowed.includes(key)) continue
+      if (key === 'class' || key === 'id' || MOTION_ATTRS.includes(key) || allowed.includes(key)) continue
       const fix = nearest(key, allowed)
       warn(`::: ${name}: Attribut „${key}“ ist unbekannt${fix ? ` (meintest du „${fix}“?)` : ` (bekannt: ${allowed.join(', ')})`}`)
     }
@@ -605,6 +615,19 @@ function applyDirectives(root: Root, ctx: RenderContext) {
       if (node.name !== 'note-step') {
         if (/^\d+$/.test(attrs.step ?? '')) props.dataStep = attrs.step
         if (/^\d+$/.test(attrs.until ?? '')) props.dataUntil = attrs.until
+      }
+      // `effect=up` (Auftritt der Schritte darunter), `stagger` (gleiche Schrittnummer leicht versetzt), `delay=300ms`
+      if (node.name !== 'note-step') {
+        if (attrs.effect !== undefined) {
+          if (EFFECTS.includes(attrs.effect)) props.dataEffect = attrs.effect
+          else warn(`::: ${node.name}: effect="${attrs.effect}" ist unbekannt (${EFFECTS.join(' | ')})`)
+        }
+        if ('stagger' in attrs && attrs.stagger !== 'false') props.dataStagger = ''
+        if (attrs.delay !== undefined) {
+          const ms = parseDelay(attrs.delay)
+          if (ms === undefined) warn(`::: ${node.name}: delay="${attrs.delay}" ist ungültig (z. B. 300ms oder 0.5s)`)
+          else props.dataDelay = String(ms)
+        }
       }
       // eigener Container: der Inhalt geht durch die Vorlage, der Wrapper `.d-<name>` bleibt (class, step, until)
       const template = ctx.components?.[node.name ?? '']

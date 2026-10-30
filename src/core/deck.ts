@@ -8,7 +8,7 @@ import { buildNodes, parseMarkdown, type RawNode } from './parse.ts'
 import { renderNodeContent, resolveImage, type RenderContext } from './render.ts'
 import { resolveTheme } from './theme.ts'
 import { authorPlan } from './plan.ts'
-import { SPEEDS } from './check.ts'
+import { EFFECTS, SPEEDS } from './check.ts'
 import { parseDuration } from './timing.ts'
 import type { Deck, DeckNode, Manifest, MountEntry } from './types.ts'
 
@@ -193,20 +193,22 @@ function applyFooter(nodes: DeckNode[], manifest: Manifest, warnings: string[]) 
   walk(nodes)
 }
 
-/** `motion:` aus der deck.yaml; unbekannte Tempi werden gemeldet und ignoriert */
-function manifestMotion(manifest: Manifest, warnings: string[]): { speed: string } | undefined {
+/** `motion:` aus der deck.yaml; unbekannte Werte werden gemeldet und ignoriert */
+function manifestMotion(manifest: Manifest, warnings: string[]): { speed?: string; effect?: string } | undefined {
   const m = manifest.motion
   if (m === undefined) return undefined
   if (!m || typeof m !== 'object' || Array.isArray(m)) {
-    warnings.push('deck.yaml: motion muss ein Block sein, z. B. motion: { speed: slow }')
+    warnings.push('deck.yaml: motion muss ein Block sein, z. B. motion: { speed: slow, effect: up }')
     return undefined
   }
-  if (m.speed === undefined) return undefined
-  if (typeof m.speed !== 'string' || !SPEEDS.includes(m.speed)) {
-    warnings.push(`deck.yaml: motion.speed „${m.speed}“ ist unbekannt (${SPEEDS.join(' | ')})`)
-    return undefined
+  const out: { speed?: string; effect?: string } = {}
+  for (const [key, allowed] of [['speed', SPEEDS], ['effect', EFFECTS]] as const) {
+    const value = m[key]
+    if (value === undefined) continue
+    if (typeof value !== 'string' || !allowed.includes(value)) warnings.push(`deck.yaml: motion.${key} „${value}“ ist unbekannt (${allowed.join(' | ')})`)
+    else out[key] = value
   }
-  return { speed: m.speed }
+  return Object.keys(out).length ? out : undefined
 }
 
 export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
