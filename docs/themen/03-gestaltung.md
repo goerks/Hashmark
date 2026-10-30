@@ -2,7 +2,7 @@
 
 ::: cards cols=2
 ::: card icon=layers title="Layouts"
-17 eingebaute, ein Wort an der Überschrift
+23 eingebaute, ein Wort an der Überschrift
 :::
 ::: card icon=card title="Karten"
 Kacheln mit Icon und Titel
@@ -30,9 +30,36 @@ Diese Folie ist selbst ein Beispiel: Die Karten 3 und 4 erscheinen mit den Schri
 ```
 
 ::: notes
-Ein Layout wählst du mit `layout=` an der Überschrift. Die wichtigsten: `title` für den Auftakt, `section` für Kapitel mit Kacheln der Unterknoten, `statement` für eine große Aussage, `quote` für ein Zitat, `two-col` und `three-col` für Spalten, `comparison` für zwei Seiten, `image-left` und `image-right` für Bild und Text, `code-focus` für Code, `agenda` für die Kapitel des Hauptpfads, `banner` für ein Bildband oben. Alle 17 stehen im Teil „Nachschlagen“ unter „Layouts“.
+Ein Layout wählst du mit `layout=` an der Überschrift. Die wichtigsten: `title` für den Auftakt, `section` für Kapitel mit Kacheln der Unterknoten, `statement` für eine große Aussage, `quote` für ein Zitat, `two-col` und `three-col` für Spalten, `comparison` für zwei Seiten, `image-left` und `image-right` für Bild und Text, `code-focus` für Code, `agenda` für die Kapitel des Hauptpfads, `banner` für ein Bildband oben. Dazu kommen `contact` (Kontaktfolie mit Foto, Name, Funktion und Details), `kpi` (Kennzahlen als Kacheln), `big-number` (eine große Zahl), `gallery` (Bilder nebeneinander mit Unterschrift), `timeline` (Zeitstrahl aus einer Liste) und `blank` (leere Folie für Demos und Videos). Alle 23 stehen im Teil „Nachschlagen“ unter „Layouts“.
 
 In der `deck.yaml` legst du Layouts je Ebene fest (`layouts: { 1: section }`) oder für das ganze Deck (`layout:`). Eigene Layouts definierst du im Theme, siehe Thema „Themes und Firmen-Look“.
+:::
+
+## Kontakt, Kennzahlen und mehr {id=weitere-layouts}
+
+```md
+## Kontakt {layout=contact}
+
+![Anna Beispiel](anna.jpg)
+
+**Anna Beispiel**
+Leiterin Digitalisierung
+
+- E-Mail: anna@firma.ch
+- Telefon: +41 00 000 00 00
+
+## Zahlen 2026 {layout=kpi}
+
+- **42 %** weniger Rückfragen
+- **3,2 s** Ladezeit
+```
+
+::: notes
+Sechs Layouts nehmen dir Gestaltungsarbeit ab, ohne dass du etwas zeichnest. `contact` ist die Kontaktfolie: links das Foto (rund) mit Name und Funktion, rechts die Details. Die erste Zeile unter dem Foto ist der Name, die zweite die Funktion; Listenzeilen der Form „Beschriftung: Wert“ erscheinen rechts mit kleiner Beschriftung.
+
+`kpi` macht aus einer Liste Kennzahl-Kacheln (`- **42 %** Beschriftung`), `big-number` zeigt eine einzige große Zahl (`**38 %**`, darunter Beschriftung und Quelle). `gallery` setzt Bilder gleich hoch nebeneinander und nimmt den Alt-Text als Unterschrift. `timeline` macht aus `- **Q1** Konzept` einen waagerechten Zeitstrahl. `blank` ist eine leere Folie ohne Titel und Fußzeile, etwa für ein Video oder eine Live-Demo; der Titel bleibt für Suche und Übersicht erhalten.
+
+`kpi` und `timeline` gibt es auch als Bausteine (`::: kpis`, `::: timeline`) mit Schritten und Trend. Das Layout ist die kürzere Schreibweise, wenn die ganze Folie nur diese Liste zeigt.
 :::
 
 ## Spalten und Raster {id=spalten}
@@ -103,6 +130,93 @@ Eine Figur legt Beschriftungen auf ein Bild, ohne Grafikprogramm: `bubble` ist e
 
 ::: notes
 `::: table` um eine Markdown-Tabelle setzt Spaltenbreiten (`widths`), blendet Zeilen oder Spalten schrittweise ein (`steps=rows` bzw. `steps=cols`) und hebt Zellen hervor (`hl="r2c3,c1"`: Zeile und Spalte, ab 1 gezählt, `r0` ist der Kopf).
+:::
+
+## Fertige Bausteine {id=bausteine}
+
+| Baustein | Wofür | Aufbau |
+| --- | --- | --- |
+| `timeline` | Zeitstrahl | Liste; `vertical`, `steps` |
+| `process` | Prozess aus Pfeilen | Liste; `steps` |
+| `kpis` | Kennzahlen | Kinder `::: kpi value= label= trend=up\|down\|flat delta=` |
+| `person` | Profilkarte | `name=`, `role=`, `photo=`; Text als Beschreibung |
+| `roadmap` | Phasen mit „heute“-Linie | Liste; `today="41%"`, `done=2` |
+| `pyramid` | Schichten | Liste; `inverted` |
+| `matrix` | Vierfelder-Matrix | Liste mit 4 Punkten; `x=`, `y=`, `focus=` |
+| `versus` | vorher und nachher | Kinder `::: before` und `::: after` |
+| `pipeline` | Ablauf mit Status | Kinder `::: stage label= state=done\|run\|open progress=` |
+| `states` | Statusautomat | Kinder `::: state label= at=` |
+| `gantt` | Zeitplan | Kinder `::: task label= start= length=` |
+| `checklist` | Checkliste mit Fortschritt | Kinder `::: item label= state=done\|wip\|open` |
+
+::: notes
+Fertige Bausteine sind Container, die aus wenigen Angaben eine fertige Grafik machen. Du schreibst nur den Inhalt, Aussehen und Rechnen übernimmt Hashmark. Die Bausteine übernehmen Farben und Schrift des Themes. Im Editor tippst du `/` und den Namen (zum Beispiel `/pipeline`), dann steht ein fertiges Beispiel im Text, das du anpasst. Mit `steps` erscheinen die Einträge nacheinander. Das Beispiel-Deck „Komponenten“ zeigt alle. Eigene Bausteine baust du selbst, siehe „Themes und Firmen-Look“.
+:::
+
+### Pipeline {id=pipeline}
+
+```md
+::: pipeline title="Release 4.2" summary steps
+::: stage label="Bauen" state=done time="1:12 min"
+:::
+::: stage label="Testen" state=run progress=62
+:::
+::: stage label="Ausrollen"
+:::
+:::
+```
+
+::: notes
+Eine Pipeline zeigt einen Ablauf in Stufen. `state=done` ist erledigt (grün, voll), `state=run` läuft (mit `progress=` in Prozent, Standard 50, pulsiert in der Präsentation), ohne Status ist die Stufe offen. `time=` ist ein freier Text wie eine Dauer. Mit `summary` steht oben rechts der Anteil der erledigten Stufen, den Hashmark selbst ausrechnet. Mit `steps` erscheint jede Stufe in ihrem Schritt.
+:::
+
+### Statusautomat {id=statusautomat}
+
+```md
+::: states title="Freigabe" back="Änderungen nötig"
+::: state label="Entwurf" at=1 then=3
+:::
+::: state label="Prüfung" at=2 then=4
+:::
+::: state label="Freigabe" at=5
+:::
+:::
+```
+
+::: notes
+Die Zustände stehen nebeneinander. `at=2` heißt: Im zweiten Schritt leuchtet dieser Zustand. `then=4` lässt ihn in einem späteren Schritt noch einmal leuchten, so erzählst du einen Rücksprung (Entwurf, Prüfung, zurück zum Entwurf, wieder Prüfung, Freigabe). `back=` schreibt eine Beschriftung für den Rückweg unter die Reihe. Es leuchtet immer nur ein Zustand pro Schritt. Im PDF und im Lesemodus leuchtet keiner.
+:::
+
+### Zeitplan {id=zeitplan}
+
+```md
+::: gantt title="Projektplan 2027" scale=12 now=6 from="Jan" to="Dez" steps
+::: task label="Konzept" start=0 length=2 state=done
+:::
+::: task label="Bau" start=2 length=5
+:::
+:::
+```
+
+::: notes
+`scale=` ist die Länge der Zeitleiste in beliebigen Einheiten (Standard 12, etwa Monate oder Wochen). Jede Aufgabe hat `start=` (ab 0) und `length=`, Position und Breite rechnet Hashmark daraus aus. `now=` setzt eine rote „heute“-Linie, `from=` und `to=` beschriften die Enden. `state=done` macht den Balken kräftig, offene sind blasser.
+:::
+
+### Checkliste {id=checkliste}
+
+```md
+::: checklist title="Go-Live" progress steps
+::: item label="Daten migrieren" state=done owner=Anna
+:::
+::: item label="Schulung planen" state=wip owner=Ben
+:::
+::: item label="Freigabe holen"
+:::
+:::
+```
+
+::: notes
+`state=done` setzt ein Häkchen und streicht den Eintrag durch, `state=wip` zeigt „in Arbeit“, ohne Status ist er offen. `owner=` nennt, wer sich kümmert. Mit `progress` steht unten ein Balken und „n von m erledigt“, beides zählt Hashmark selbst. Mit `steps` erscheinen die Einträge nacheinander.
 :::
 
 ## Hinweiskästen {id=hinweise}

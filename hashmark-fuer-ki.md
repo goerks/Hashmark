@@ -2,7 +2,7 @@
 
 Diese Datei beschreibt vollständig, wie eine gültige Hashmark-Präsentation aufgebaut ist. Sie ist für KI-Assistenten geschrieben: Wer sie liest, kann ohne weitere Informationen ein Deck erzeugen, das lädt, prüft und vorgetragen werden kann.
 
-Stand: abgeleitet aus dem Quelltext (`src/core/*`) und dem Handbuch (`docs/`). Bei Widerspruch gilt der Quelltext.
+Stand: abgeleitet aus dem Quelltext (`src/core/*`) und dem Handbuch (`docs/`). Bei Widerspruch gilt der Quelltext. Zuletzt ergänzt: Komponenten-Funktionen (`percent`, `number`, `date`, `count`, `share` …) und die Komponenten `pipeline`, `states`, `gantt`, `checklist`.
 
 ## 1. Grundidee in fünf Sätzen
 
@@ -176,6 +176,63 @@ Setzen mit `{layout=name}`. Standard ist `default`.
 | `image-full` | Bild füllt die Folie (`bg=bild`), Titel darüber |
 | `banner` | Bildband oben (`banner=`), Inhalt darunter |
 | `diagram` | kleiner Titel, das Diagramm füllt den Rest |
+| `contact` | Kontaktfolie: links Foto, Name und Funktion, rechts Details (siehe unten) |
+| `kpi` | Kennzahlen als Kacheln aus einer Liste `- **42 %** Beschriftung` (eine Zeile je Kachel, 2 bis 4 Stück) |
+| `big-number` | eine große Zahl: 1. Absatz `**38 %**`, 2. Absatz Beschriftung, weitere Absätze klein (Quelle) |
+| `gallery` | Bilder nebeneinander (2 bis 4), der Alt-Text `![Januar: Aushub](a.jpg)` ist die Unterschrift |
+| `timeline` | Zeitstrahl aus einer Liste `- **Q1** Konzept` (waagerecht, 3 bis 5 Punkte) |
+| `blank` | leere Folie: Titel und Fußzeile unsichtbar, ein Bild oder Video füllt die Folie (für Demos) |
+
+**Aufbau von `contact`:** Der erste Absatz mit Bild ist das Foto (rund, links). Alles vor der ersten Liste steht darunter: erste Zeile Name, weitere Zeilen die Funktion. Die Liste bildet die rechte Seite; Zeilen der Form `Label: Wert` werden zu Beschriftung plus Wert (`- E-Mail: anna@firma.ch`). Ohne Bild bleibt die linke Seite nur mit Name und Funktion.
+
+```md
+## Kontakt {layout=contact}
+
+![Anna Beispiel](anna.jpg)
+
+**Anna Beispiel**
+Leiterin Digitalisierung
+
+- E-Mail: anna@firma.ch
+- Telefon: +41 00 000 00 00
+- Web: firma.ch
+```
+
+Kurze Beispiele für die übrigen neuen Layouts:
+
+```md
+## Zahlen 2026 {layout=kpi}
+
+- **42 %** weniger Rückfragen
+- **3,2 s** Ladezeit
+- **18** neue Kunden
+
+## Marktanteil {layout=big-number}
+
+**38 %**
+
+der Kunden nutzen es täglich
+
+Quelle: interne Erhebung, Q3
+
+## Baustelle {layout=gallery}
+
+![Januar: Aushub](a.jpg)
+![April: Rohbau](b.jpg)
+![August: Fassade](c.jpg)
+
+## Fahrplan {layout=timeline}
+
+- **Q1** Konzept
+- **Q2** Pilot
+- **Q3** Rollout
+
+## Demo {layout=blank}
+
+![](demo.png)
+```
+
+`kpi` und `timeline` gibt es auch als Komponenten (`::: kpis`, `::: timeline` mit Schritten und Trend); das Layout ist die kürzere Schreibweise ohne Container, wenn die ganze Folie nur diese Liste zeigt.
 
 Eigene Layouts: CSS mit Selektor `.layout-<name>` im Theme (`theme.layouts`), dann `{layout=<name>}`.
 
@@ -253,6 +310,8 @@ Das **System** bleibt eine Blackbox.
 
 ### 7.1 Eingebaute Komponenten (Container mit Vorlage)
 
+Welche Komponente wofür: Reihenfolge in der Zeit → `timeline`, `process`, `roadmap`; Ablauf mit **Status** und Fortschritt → `pipeline`; **Zustände** und Rücksprünge, je Schritt einer hervorgehoben → `states`; Terminplan mit Balken → `gantt`; Aufgaben mit Erledigt-Anteil → `checklist`; Zahlen → `kpis`; Gegenüberstellung → `versus`, `matrix`; Rangfolge → `pyramid`; Person → `person`. Erlaubte Werte zählt die Tabelle auf (`state=…`, `trend=…`); ein anderer Wert wird von `hashmark check` als Hinweis mit „Meinst du …“ gemeldet.
+
 | Container | Aufbau | Attribute / Flags |
 | --- | --- | --- |
 | `timeline` | Zeitstrahl aus Liste | `title`, `start`; Flags `vertical`, `steps` |
@@ -264,6 +323,10 @@ Das **System** bleibt eine Blackbox.
 | `matrix` | Vierfelder-Matrix aus Liste (4 Einträge, links oben → rechts unten) | `title`, `x`, `y`, `focus=1..4`, `start`; Flag `steps` |
 | `versus` | Vorher/Nachher, Kinder `::: before`/`::: after` | `title`; Kinder: `label`, `step` |
 | `aside` | Randspalte für `two-col-wide` | `title` |
+| `pipeline` | Ablauf in Stufen, Kinder `::: stage` | `title`, `start`; Flags `steps`, `summary` (Anteil erledigt). Kind `stage`: `label` (Pflicht), `state=done\|run\|open`, `progress` (für `run`, Standard 50), `time`, `step` |
+| `states` | Statusautomat, Kinder `::: state`; je Schritt leuchtet ein Zustand | `title`, `back` (Beschriftung des Rückwegs). Kind `state`: `label` (Pflicht), `at` (Schritt, in dem er leuchtet), `then` (zweiter Schritt) |
+| `gantt` | Zeitplan, Kinder `::: task` | `title`, `scale` (Länge der Zeitleiste, Standard 12), `now` („heute“-Linie), `from`, `to`, `start`; Flag `steps`. Kind `task`: `label`, `length` (Pflicht), `start` (Standard 0), `state=done\|open`, `step` |
+| `checklist` | Checkliste, Kinder `::: item` | `title`, `start`; Flags `steps`, `progress` (Balken „n von m erledigt“). Kind `item`: `label` (Pflicht), `state=done\|wip\|open`, `owner`, `step` |
 
 ```md
 ::: timeline title="Roadmap" steps
@@ -290,25 +353,69 @@ Das **System** bleibt eine Blackbox.
 ::: person name="Anna Beispiel" role="Product Owner" photo=anna.svg
 Verantwortet das Backlog.
 :::
+
+::: pipeline title="Release" summary
+::: stage label="Bauen" state=done
+:::
+::: stage label="Testen" state=run progress=62
+:::
+::: stage label="Ausrollen"
+:::
+:::
+
+::: states title="Freigabe" back="Änderungen nötig"
+::: state label="Entwurf" at=1 then=3
+:::
+::: state label="Prüfung" at=2
+:::
+:::
+
+::: gantt scale=12 now=6 steps
+::: task label="Bau" start=2 length=5
+:::
+:::
+
+::: checklist title="Go-Live" progress
+::: item label="Daten migrieren" state=done
+:::
+::: item label="Freigabe holen"
+:::
+:::
 ```
 
 ### 7.2 Eigene Komponenten
 
 Datei `components/<name>.html` im Deck- oder Theme-Ordner macht `::: <name>` verfügbar (optional `<name>.css` daneben; Wrapper-Klasse `.d-<name>`). Eingebaute Container (`cards`, `notes`, `columns` …) können nicht überschrieben werden; Deck-Ordner schlägt Theme-Ordner schlägt eingebaute Komponenten.
 
-Logikfreie Vorlage:
+Vorlage (kein JavaScript, aber fertige Funktionen):
 
 | Platzhalter | Bedeutung |
 | --- | --- |
 | `{{ attr }}` | Attribut des Containers als Text |
 | `{{{ body }}}` | Inhalt als gerendertes Markdown (drei Klammern!) |
 | `{{ foto\|image }}` | Attribut als Bildadresse |
+| `{{ wert\|percent:max }}` | Attribut durch eine Funktion schicken, Argumente nach `:`, verkettbar: `{{ children\|sum:value\|number:1 }}` |
+| `{{#if state is warn}}` | Vergleich mit festem Wert: `is`, `is not`, bei Zahlen auch `>`, `>=`, `<`, `<=` |
 | `{{#if attr}} … {{else}} … {{/if}}` | nur wenn gesetzt |
 | `{{#each items}} … {{/each}}` | je Listenpunkt: `{{{ html }}}`, `{{ text }}`, `{{ number }}`, `{{ index }}`, `{{ first }}`, `{{ last }}`, `{{ step }}`, `{{ count }}` |
 | `{{#each children}} … {{/each}}` | je Kind-Container mit dessen Attributen, `{{{ body }}}`, `{{ number }}`, `{{ step }}` |
-| `{{!meta … }}` (YAML, am Dateianfang) | Beschreibung: `description`, `attrs`, `flags`, `required`, `example`, `children` |
+| `{{!meta … }}` (YAML, am Dateianfang) | Beschreibung: `description`, `attrs`, `flags`, `required`, `defaults` (Standardwerte fehlender Attribute), `values` (erlaubte Werte je Attribut, `state: [done, run]`), `example`, `children` |
 
-Keine Ausdrücke, kein JavaScript. Ein Attribut ohne Wert (`::: timeline vertical`) gilt als gesetzt.
+Funktionen (Namen englisch; sie laufen beim Bauen, PDF und PPTX sehen gleich aus):
+
+| Funktion | Ergebnis |
+| --- | --- |
+| `default:"–"` | Ersatzwert, wenn leer oder fehlend |
+| `percent:max` / `percent:100:1` | Wert ÷ Gesamtwert in Prozent (`72` bei 96 → `75%`), optional Nachkommastellen; punkt-dezimal, taugt für `width:` |
+| `number:1` / `number:1:"en"` | Zahl mit Nachkommastellen, Standard deutsch (`1.234,6`), zweites Argument ist die Sprache |
+| `date:long` / `date:short:"en"` | Datum `JJJJ-MM-TT` → Text; `short`, `medium`, `long`, `month`, `iso` |
+| `sum:feld`, `max:feld`, `min:feld` | über `children` oder `items` (Feld `text`) |
+| `count:feld:wert` | Zahl der Kinder, bei denen das Feld gleich `wert` ist |
+| `share:feld:wert` | Anteil dieser Kinder in Prozent (`50%`) |
+| `add:1` | Zahl addieren |
+| `upper`, `lower`, `truncate:40`, `image` | Text umformen bzw. Bildadresse auflösen |
+
+Zahlen werden tolerant gelesen (`1.234,5`, `1,5`, `72 %`). Ein Name als Argument ist ein Attribut (`percent:scale`), Text steht in Anführungszeichen. Fehler in der Vorlage meldet `hashmark check` mit Zeile, Fehler beim Rechnen (z. B. keine Zahl) als Hinweis. Kein freies JavaScript. Ein Attribut ohne Wert (`::: timeline vertical`) gilt als gesetzt.
 
 ## 8. Schritte (Animationen innerhalb einer Folie)
 
@@ -329,9 +436,10 @@ Eine Folie hat Schritte 0..n. → blendet den nächsten ein, ← zurück. **Glei
 | draw.io | `![x](a.drawio.svg){steps=layers}` (jede Ebene ein Schritt, erste sofort) |
 | Excalidraw | `![x](a.excalidraw.svg){steps=groups order="3,1,2+4"}` (Szene eingebettet; `+` = gleichzeitig) |
 | Video | `play=1` startet mit Schritt 1 (`play=0` sofort) |
+| Komponente | `steps` blendet Kinder nacheinander ein (`kpis`, `pipeline`, `gantt`, `checklist`, `timeline` …); `::: states` hebt je Schritt einen Zustand hervor (`at=2`, `then=4`) |
+| Zoom-Kamera | `{zoomstep=2 zoomuntil=3}` am Bild |
 
 **Effekte für Schritte:** `effect=` bestimmt, *wie* ein Schritt erscheint: `fade` (Standard), `up` (von unten), `left` (von links), `scale` (wächst auf), `highlight` (der neue Punkt leuchtet), `dim` (Früheres wird leiser). Es steht an der Folie (`## Titel {steps effect=up}`), an einem Container (`::: steps effect=up`, `::: cards effect=scale`) oder im Deck (`motion: { effect: up }`); das Nächstliegende gilt. `stagger` an einem Container versetzt Elemente mit gleicher Schrittnummer um 80 ms (`::: cards stagger` mit `::: card step=1` an jeder Karte), `delay=300ms` verzögert einen Auftritt. Tempo siehe `speed=`; bei „Bewegung reduzieren“ im System werden alle Wege weggelassen. Im PDF, Lesemodus und PowerPoint-Export bleibt es beim Einblenden bzw. Endzustand.
-| Zoom-Kamera | `{zoomstep=2 zoomuntil=3}` am Bild |
 
 Code-Abschnitte: `|` trennt Schritte, `,` mehrere Zeilen, `-` Bereich (`"1,6|2-3"`); Zeilen ohne Schritt stehen von Anfang an; `all` hebt die Hervorhebung auf.
 
@@ -431,7 +539,7 @@ Befehle (CLI `hashmark`, im Projekt über `make`):
 | PowerPoint | `hashmark pptx <deck>` |
 | **Prüfen** | `hashmark check <deck>` (Exit 1 bei Fehlern) |
 
-`hashmark check` meldet: unbekannte Layouts (Fehler), unbekannte Attribute und Übergänge (Warnung), fehlende Bilder, ungültige Dauern, ungültige Plan-Rollen, `banner` ohne Bild, Container-/Komponentenfehler, Formel- und Diagrammfehler, Überlauf von Folien.
+`hashmark check` meldet: unbekannte Layouts (Fehler), unbekannte Attribute und Übergänge (Warnung), fehlende Bilder, ungültige Dauern, ungültige Plan-Rollen, `banner` ohne Bild, Container-/Komponentenfehler (auch ungültige Werte wie `state=runn` und Fehler beim Rechnen in Vorlagen), Formel- und Diagrammfehler, Überlauf von Folien.
 
 ## 13. Checkliste für eine gültige Präsentation
 
@@ -439,7 +547,7 @@ Befehle (CLI `hashmark`, im Projekt über `make`):
 2. Überschriften mit steigenden Ebenen; keine Ebenen überspringen (nach `#` kommt `##`, nicht `###`).
 3. Attribute nur aus Abschnitt 5, am **Zeilenende** der Überschrift, **ohne Doppelpunkt im Wert**.
 4. Nur Layouts aus Abschnitt 6 (oder im Theme definierte) verwenden.
-5. Jeder `:::`-Container ist geschlossen, jeder Name ist in Abschnitt 7 aufgeführt oder als Komponente vorhanden; Attribute passen zum Container.
+5. Jeder `:::`-Container ist geschlossen, jeder Name ist in Abschnitt 7 aufgeführt oder als Komponente vorhanden; Attribute und ihre Werte passen zum Container (Kinder wie `::: stage`, `::: item`, `::: task` nur innerhalb ihrer Komponente).
 6. `---` mit Leerzeile davor und danach als Sub-Slide-Trenner (nicht als Absatzlinie gemeint).
 7. Bilder und Videos existieren relativ zur Datei; `ratio=16/9`, nicht `16:9`.
 8. Codeblöcke und Formeln sind geschlossen; Mermaid ist syntaktisch gültig.

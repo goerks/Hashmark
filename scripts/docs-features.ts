@@ -120,14 +120,15 @@ export const FEATURES: Feature[] = [
   },
   {
     id: 'gestaltung', title: 'Layouts und Gestaltung', thumb: 'figur.jpg',
-    short: '17 Layouts, Karten, Figuren mit Sprechblasen, Bildband und Hinweiskästen.',
+    short: '23 Layouts, Karten, Figuren, fertige Bausteine wie Pipeline und Zeitplan, Hinweiskästen.',
     lead: 'Ein Wort an der Überschrift ordnet die Folie. Karten, Figuren, Tabellen und Hinweiskästen schreibst du als Markdown, ohne zu zeichnen. Alles lässt sich schrittweise einblenden.',
     card: hb('themen/gestaltung', 0), doc: 'themen/gestaltung',
     highlights: [
-      { title: 'Layouts mit einem Wort', text: 'Titel, Kapitel, Aussage, Zitat, Spalten, Vergleich, Bild links oder rechts, Bildband, Code im Fokus: 17 Layouts sind eingebaut.', md: '## Kernaussage {layout=statement}', shot: 'statement.jpg', alt: 'Folie im Layout statement mit großer Aussage', doc: 'themen/gestaltung/layouts' },
+      { title: 'Layouts mit einem Wort', text: 'Titel, Kapitel, Aussage, Zitat, Spalten, Vergleich, Bild links oder rechts, Bildband, Code im Fokus, Kontakt, Kennzahlen, Galerie, Zeitstrahl: 23 Layouts sind eingebaut.', md: '## Kernaussage {layout=statement}', shot: 'statement.jpg', alt: 'Folie im Layout statement mit großer Aussage', doc: 'themen/gestaltung/layouts' },
       { title: 'Karten mit Icons', text: 'Kacheln mit Icon und Titel, im Raster, auf Wunsch nacheinander.', md: '::: cards cols=2\n::: card icon=target title="Ziele"', shot: 'karten.jpg', alt: 'Folie mit vier Karten mit Icons', card: hb('themen/gestaltung', 9), doc: 'themen/gestaltung/karten' },
       { title: 'Figuren mit Beschriftungen', text: 'Sprechblasen, Rahmen und nummerierte Marker auf ein Bild setzen, in Prozent positioniert, schrittweise.', md: '::: bubble at="40,5" tail=down step=2', shot: 'figur.jpg', alt: 'Bild mit Rahmen, Sprechblase und Marker', doc: 'themen/gestaltung/figuren' },
       { title: 'Vergleich und Bildband', text: 'Zwei Seiten gegenüberstellen oder ein Foto als Band über die Folie legen.', md: '## Vorher und nachher {layout=comparison}', shot: 'vergleich.jpg', alt: 'Folie im Layout comparison', doc: 'themen/gestaltung/bilder' },
+      { title: 'Fertige Bausteine', text: 'Pipeline, Statusautomat, Zeitplan, Checkliste, Kennzahlen und mehr: wenige Angaben im Markdown, die Grafik entsteht von selbst, auch Prozent und Anteile.', md: '::: pipeline title="Release" summary\n::: stage label="Bauen" state=done', card: hb('themen/gestaltung/bausteine'), doc: 'themen/gestaltung/bausteine' },
       { title: 'Hinweiskästen und Auto-Fit', text: 'Tipp, Wichtig und Achtung in der Schreibweise von GitHub. Eine volle Folie passt sich mit {fit} an.', md: '> [!TIP]\n> Kurz und klar.', shot: 'hinweise.jpg', alt: 'Folie mit zwei Hinweiskästen', card: hb('themen/gestaltung/hinweise'), doc: 'themen/gestaltung/hinweise' },
     ],
   },
@@ -140,7 +141,7 @@ export const FEATURES: Feature[] = [
       { title: 'Hell oder dunkel, eingebaut', text: 'minimal und dark-tech. Diagramme, Code-Farben und Hinweiskästen übernehmen das Theme von selbst.', shot: 'theme-titel.jpg', alt: 'Titelfolie im Firmen-Theme des Beispiels', doc: 'themen/themes' },
       { title: 'Firmen-Look in wenigen Zeilen', text: 'Ein eingebautes Theme erweitern und einzelne Tokens überschreiben: Akzentfarbe, Schrift, Rundung.', md: 'theme:\n  extends: minimal\n  tokens:\n    color-accent: "#e30613"', shot: 'theme-tokens.jpg', alt: 'Folie über Design-Tokens im Firmen-Theme', doc: 'themen/themes/tokens' },
       { title: 'Eigene Layouts', text: 'Ein Layout ist eine CSS-Datei mit .layout-<name>. Auf der Folie setzt du nur noch {layout=kpi}.', md: '.layout-kpi .content ul { display: grid; }', doc: 'themen/themes/eigene-layouts', card: { deck: 'beispiele/theme-demo', id: 'eigene-layouts' } },
-      { title: 'Komponenten', text: 'Zeitstrahl, Prozess, Kennzahlen, Profilkarte und eigene Bausteine aus HTML-Vorlagen, logikfrei und sicher.', md: '::: timeline title="Roadmap" steps', shot: 'komponenten.jpg', alt: 'Zeitstrahl aus der Komponente timeline', doc: 'themen/themes/komponenten' },
+      { title: 'Komponenten', text: 'Zeitstrahl, Prozess, Kennzahlen, Profilkarte und eigene Bausteine aus HTML-Vorlagen. Fertige Funktionen rechnen und formatieren (Prozent, Summen, Datum), ohne JavaScript und damit sicher.', md: '{{ value | percent:scale }}', shot: 'komponenten.jpg', alt: 'Zeitstrahl aus der Komponente timeline', doc: 'themen/themes/komponenten' },
     ],
   },
   {

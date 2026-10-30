@@ -53,7 +53,7 @@ export function completion(getLayouts: () => string[], getComponents: () => Reco
   ]
 }
 
-/** Vorschläge in der Vorlage einer Komponente: nach `{{` Attribute aus dem Kopf, eingebaute Namen und Blöcke */
+/** Vorschläge in der Vorlage einer Komponente: nach `{{` Attribute aus dem Kopf, eingebaute Namen und Blöcke, nach `|` die Funktionen */
 export function templateCompletion(): Extension {
   const source = (ctx: CompletionContext): CompletionResult | null => {
     const r = completeTemplate(ctx.state.doc.toString(), ctx.pos)
@@ -63,11 +63,11 @@ export function templateCompletion(): Extension {
   return [
     autocompletion({ override: [source], icons: false, maxRenderedOptions: 16, tooltipClass: () => 'st-complete' }),
     keymap.of([{ key: 'Tab', run: acceptCompletion }]),
-    // gleich nach `{{` Vorschläge anbieten, ohne Strg+Leertaste
+    // gleich nach `{{` und nach `|` (Funktionen) Vorschläge anbieten, ohne Strg+Leertaste
     EditorView.updateListener.of((u) => {
       if (!u.docChanged) return
       const head = u.state.selection.main.head
-      if (u.state.sliceDoc(Math.max(0, head - 2), head) === '{{') setTimeout(() => startCompletion(u.view), 0)
+      if (u.state.sliceDoc(Math.max(0, head - 2), head) === '{{' || u.state.sliceDoc(Math.max(0, head - 1), head) === '|') setTimeout(() => startCompletion(u.view), 0)
     }),
   ]
 }

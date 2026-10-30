@@ -65,6 +65,12 @@ Die Dokumentation ist selbst mit Hashmark gebaut: Startseite (`scripts/docs-land
 
 Faustregel: Was Anwender wissen müssen, gehört ins Handbuch. Das README bleibt das Schaufenster.
 
+## Komponenten und Funktionen erweitern
+
+- **Neue eingebaute Komponente:** `<name>.html` (mit Kopf `{{!meta … }}`: `description`, `attrs`, `flags`, `children`, `values`, `defaults`, `example`) und `<name>.css` in `src/runtime/components/` anlegen. Der Name darf kein eingebauter Container sein, Kind-Namen müssen über alle Komponenten eindeutig sein. Danach eine Folie im Beispiel-Deck `examples/komponenten-demo`, einen Abschnitt in `docs/themen/03-gestaltung.md` („Fertige Bausteine“), die Tabelle in `hashmark-fuer-ki.md` (7.1) und einen Test in `tests/bausteine.test.ts` ergänzen.
+- **Neue Funktion für Vorlagen** (`{{ wert | name:argument }}`): Eintrag in `FUNCTIONS` in `src/core/functions.ts` (Name englisch, `detail` für den Editor, `args` mit `value`, `field` oder `word`), Test in „Komponenten: Funktionsbausteine“ (`tests/core.test.ts`), Zeile in der Tabelle in `docs/themen/04-themes.md` und in `hashmark-fuer-ki.md` (7.2).
+- **Pflege des KI-Leitfadens:** `hashmark-fuer-ki.md` bei jeder Änderung an Syntax, Containern, Komponenten oder Funktionen mitziehen.
+
 ## Desktop-App
 
 Eine schlanke Go-Hülle (ohne CGO, ca. 7 MB) um die Webview des Systems; die Arbeit macht Node als Sidecar. Zum Bauen genügt Go im `PATH`, die Bibliotheken lädt Go beim ersten Build. Keine Installer: das Programm ist immer ein Ordner bzw. eine Datei.

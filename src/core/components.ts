@@ -1,17 +1,22 @@
-// Komponenten: logikfreie HTML-Vorlagen für eigene Container (`::: timeline` → components/timeline.html).
-// Die Vorlage kennt Platzhalter, `each` und `if`, aber keine Ausdrücke und kein JavaScript.
+// Komponenten: HTML-Vorlagen für eigene Container (`::: timeline` → components/timeline.html).
+// Die Vorlage kennt Platzhalter, `each`, `if` und fertige Funktionen (`{{ value | percent:max }}`, functions.ts),
+// aber keine freien Ausdrücke und kein JavaScript.
 // Rumpf und Listenpunkte bleiben mdast und werden an die Platzhalter gesetzt, damit sie ganz normal gerendert werden
 // (Bilder, Code, Mermaid, Schritte, Zeilennummern für den Editor-Sync).
 
 import YAML from 'yaml'
 import type { RootContent } from 'mdast'
 import { nearest } from './vocab.ts'
+import { FnError, FUNCTIONS, parseCall, parseNumber, runCalls, splitOutside, type FnCall, type FnInput } from './functions.ts'
+
+/** Vergleich in `{{#if trend is up}}`: rechts steht immer ein Literal (Text oder Zahl) */
+export type Compare = { op: 'is' | 'is not' | '>' | '>=' | '<' | '<='; value: string }
 
 type Part =
   | { t: 'text'; v: string }
-  | { t: 'var'; name: string; raw: boolean; filter?: string }
+  | { t: 'var'; name: string; raw: boolean; calls: FnCall[] }
   | { t: 'each'; name: string; body: Part[] }
-  | { t: 'if'; name: string; yes: Part[]; no: Part[] }
+  | { t: 'if'; name: string; compare?: Compare; yes: Part[]; no: Part[] }
 
 /** Beschreibung einer Komponente (Kopf `{{!meta … }}` in der Vorlage, YAML): für Editor-Vorschläge und Hinweise */
 export interface ComponentMeta {
@@ -21,6 +26,10 @@ export interface ComponentMeta {
   /** Flags ohne Wert: Name → Beschreibung */
   flags?: Record<string, string>
   required?: string[]
+  /** Standardwerte für Attribute, die der Autor weglässt: Name → Wert */
+  defaults?: Record<string, string>
+  /** erlaubte Werte eines Attributs: Name → Liste (für Vorschläge, Hinweise im Editor und beim Laden) */
+  values?: Record<string, string[]>
   /** Beispiel, das der Editor einfügt */
   example?: string
   /** erlaubte Kind-Container (`{{#each children}}`) mit eigener Beschreibung */
@@ -43,8 +52,6 @@ const escape = (s: string) =>
 const TAG = /\{\{\{\s*([^{}]*?)\s*\}\}\}|\{\{\s*([^{}]*?)\s*\}\}/g
 const NAME = /^[\w.-]+$/
 
-export const FILTERS = ['image'] as const
-
 const META = /^\s*\{\{!meta[ \t]*\r?\n([^]*?)\}\}[ \t]*\r?\n?/
 
 function textMap(v: unknown, where: string): Record<string, string> | undefined {
@@ -65,6 +72,15 @@ function metaFrom(raw: unknown): ComponentMeta {
   const flags = textMap(m.flags, 'flags')
   if (flags) meta.flags = flags
   if (m.required !== undefined) meta.required = [m.required].flat().map(String)
+  const defaults = textMap(m.defaults, 'defaults')
+  if (defaults) meta.defaults = defaults
+  if (m.values !== undefined) {
+    if (typeof m.values !== 'object' || m.values === null || Array.isArray(m.values)) throw new TemplateError('Metadaten: values muss „attribut: [wert, wert]“ enthalten')
+    meta.values = Object.fromEntries(Object.entries(m.values as Record<string, unknown>).map(([k, v]) => {
+      if (!Array.isArray(v)) throw new TemplateError(`Metadaten: values › ${k} muss eine Liste sein`)
+      return [k, v.map(String)]
+    }))
+  }
   if (m.children !== undefined) {
     if (typeof m.children !== 'object' || m.children === null || Array.isArray(m.children)) throw new TemplateError('Metadaten: children muss „name: { … }“ enthalten')
     meta.children = Object.fromEntries(Object.entries(m.children as Record<string, unknown>).map(([k, v]) => [k, metaFrom(v)]))
@@ -124,25 +140,43 @@ export function parseTemplate(full: string): Template {
         target = top!.target
         continue
       }
-      const open = body.slice(1).match(/^(each|if)\s+(\S+)$/)
-      if (!open) { fail(index, `unbekannter Block {{${body}}} (erlaubt: #each name, #if name)`); continue }
-      const [, kind, name] = open
+      const open = body.slice(1).match(/^(each|if)\s+(\S+)(?:\s+(is not|is|>=|<=|>|<)\s+([^]+))?$/)
+      if (!open) { fail(index, `unbekannter Block {{${body}}} (erlaubt: #each name, #if name, #if name is wert)`); continue }
+      const [, kind, name, op, rhs] = open
       if (!NAME.test(name)) fail(index, `ungültiger Name „${name}“`)
+      if (op && kind === 'each') fail(index, '{{#each}} kennt keinen Vergleich')
+      let compare: Compare | undefined
+      if (op) {
+        const value = /^(["'])([^]*)\1$/.test(rhs) ? rhs.slice(1, -1) : rhs.trim()
+        if (op.length <= 2 && op !== 'is' && parseNumber(value) === null) fail(index, `{{#if ${name} ${op} …}} vergleicht Zahlen, „${value}“ ist keine`)
+        compare = { op: op as Compare['op'], value }
+      }
       uses.add(name)
-      const part: Part = kind === 'each' ? { t: 'each', name, body: [] } : { t: 'if', name, yes: [], no: [] }
+      const part: Part = kind === 'each' ? { t: 'each', name, body: [] } : { t: 'if', name, ...(compare ? { compare } : {}), yes: [], no: [] }
       target.push(part)
       stack.push({ kind: kind as 'each' | 'if', part, target, line: lineAt(index) })
       target = part.t === 'each' ? part.body : (part as Extract<Part, { t: 'if' }>).yes
       continue
     }
 
-    const [name, filter, ...extra] = body.split('|').map((s) => s.trim())
+    const [name, ...calls] = splitOutside(body, '|')
     if (!NAME.test(name)) { fail(index, `ungültiger Platzhalter „${body}“`); continue }
-    if (extra.length || (filter !== undefined && !(FILTERS as readonly string[]).includes(filter))) {
-      fail(index, `unbekannter Filter in „${body}“ (erlaubt: ${FILTERS.join(', ')})`)
+    if (triple && calls.length) { fail(index, `Inhalt mit drei Klammern nimmt keine Funktionen: {{{ ${name} }}}`); continue }
+    const parsed: FnCall[] = []
+    for (const call of calls) {
+      try { parsed.push(parseCall(call)) } catch (e) {
+        if (!(e instanceof FnError)) throw e
+        fail(index, `${e.message} in „${body}“`)
+      }
     }
+    for (const call of parsed) call.args.forEach((a, i) => {
+      if (a.kind !== 'name') return
+      if (!NAME.test(a.name)) fail(index, `ungültiges Argument „${a.name}“ in „${body}“ (Text gehört in Anführungszeichen)`)
+      // Feldnamen (sum:value) gehören der Liste, nur Werte werden im Gültigkeitsbereich gesucht
+      if (FUNCTIONS[call.name].args[i].kind === 'value') uses.add(a.name)
+    })
     uses.add(name)
-    target.push({ t: 'var', name, raw: triple, ...(filter ? { filter } : {}) })
+    target.push({ t: 'var', name, raw: triple, calls: parsed })
   }
   if (last < source.length) target.push({ t: 'text', v: source.slice(last) })
   if (stack.length) {
@@ -176,23 +210,49 @@ const lookup = (scopes: Scope[], name: string): Value | undefined => {
 interface Env {
   image: (url: string) => string
   warn: (message: string) => void
+  /** Sprache für Zahlen und Datum (`number`, `date`), Standard `de` */
+  locale?: string
+}
+
+/** Vergleich in `{{#if name is wert}}`: Zahlen werden als Zahlen verglichen, `is` sonst als Text ohne Beachtung der Schreibweise */
+function compares(v: Value | undefined, c: Compare): boolean {
+  const left = typeof v === 'string' ? v.trim() : v === true ? 'true' : ''
+  if (c.op === 'is' || c.op === 'is not') {
+    const a = parseNumber(left), b = parseNumber(c.value)
+    const same = a !== null && b !== null ? a === b : left.toLowerCase() === c.value.trim().toLowerCase()
+    return c.op === 'is' ? same : !same
+  }
+  const a = parseNumber(left), b = parseNumber(c.value)
+  if (a === null || b === null) return false
+  return c.op === '>' ? a > b : c.op === '>=' ? a >= b : c.op === '<' ? a < b : a <= b
 }
 
 function run(parts: Part[], scopes: Scope[], out: Piece[], env: Env) {
+  const ctx = { locale: env.locale ?? 'de', image: env.image, warn: env.warn }
   for (const part of parts) {
     if (part.t === 'text') out.push(part.v)
     else if (part.t === 'var') {
       const v = lookup(scopes, part.name)
-      if (isNodes(v)) {
+      if (part.calls.length) {
+        // Funktionen: Liste (children, items) nur für sum/max/min, sonst Text; fehlender Wert zählt als leer
+        let input: FnInput
+        if (isList(v)) input = { list: v.list }
+        else if (isNodes(v)) { env.warn(`{{ ${part.name} | … }}: Inhalt (body) nimmt keine Funktionen`); continue }
+        else input = v === undefined || v === false ? '' : v === true ? 'true' : v
+        const resolve = (name: string) => { const r = lookup(scopes, name); return typeof r === 'string' ? r : r === true ? 'true' : undefined }
+        try { out.push(escape(runCalls(input, part.calls, resolve, ctx))) } catch (e) {
+          if (!(e instanceof FnError)) throw e
+          env.warn(`{{ ${part.name} | … }}: ${e.message}`)
+        }
+      } else if (isNodes(v)) {
         if (part.raw) out.push(structuredClone(v.nodes))
         else env.warn(`{{ ${part.name} }} ist Inhalt und braucht drei Klammern: {{{ ${part.name} }}}`)
       } else if (isList(v)) env.warn(`{{ ${part.name} }} ist eine Liste, benutze {{#each ${part.name}}}`)
-      else if (v !== undefined && v !== false) {
-        const text = v === true ? 'true' : v
-        out.push(escape(part.filter === 'image' && text ? env.image(text) : text))
-      }
-    } else if (part.t === 'if') run(truthy(lookup(scopes, part.name)) ? part.yes : part.no, scopes, out, env)
-    else {
+      else if (v !== undefined && v !== false) out.push(escape(v === true ? 'true' : v))
+    } else if (part.t === 'if') {
+      const v = lookup(scopes, part.name)
+      run((part.compare ? compares(v, part.compare) : truthy(v)) ? part.yes : part.no, scopes, out, env)
+    } else {
       const v = lookup(scopes, part.name)
       if (v !== undefined && !isList(v)) env.warn(`{{#each ${part.name}}}: nur Listen (items, children) lassen sich durchlaufen`)
       if (isList(v)) for (const item of v.list) run(part.body, [...scopes, item], out, env)
@@ -230,7 +290,14 @@ function checkAttrs(label: string, attrs: Record<string, string>, meta: Componen
       warn(`${label}: Attribut „${key}“ ist unbekannt${fix ? ` (meintest du „${fix}“?)` : ` (bekannt: ${known.join(', ')})`}`)
     }
   }
-  for (const key of meta.required ?? []) if (!attrs[key]) warn(`${label}: Attribut „${key}“ fehlt`)
+  for (const key of meta.required ?? []) if (!attrs[key] && !meta.defaults?.[key]) warn(`${label}: Attribut „${key}“ fehlt`)
+  for (const [key, allowed] of Object.entries(meta.values ?? {})) {
+    const value = attrs[key]
+    if (value && !allowed.some((a) => a.toLowerCase() === value.trim().toLowerCase())) {
+      const fix = nearest(value, allowed)
+      warn(`${label}: „${key}=${value}“ ist unbekannt (erlaubt: ${allowed.join(', ')})${fix ? `, meintest du „${fix}“?` : ''}`)
+    }
+  }
 }
 
 /**
@@ -239,8 +306,10 @@ function checkAttrs(label: string, attrs: Record<string, string>, meta: Componen
  * Ergibt mdast-Knoten: rohes HTML der Vorlage, dazwischen die Original-Knoten des Autors.
  */
 export function expandComponent(template: Template, input: ComponentInput, env: Env): RootContent[] {
-  const attrs = withFlags(input.attrs)
-  checkAttrs(`::: ${input.name}`, attrs, template.meta, env.warn)
+  const authored = withFlags(input.attrs)
+  checkAttrs(`::: ${input.name}`, authored, template.meta, env.warn)
+  // Standardwerte aus dem Kopf gelten nur für Attribute, die der Autor weglässt
+  const attrs = { ...template.meta?.defaults, ...authored }
   const usesItems = template.uses.has('items')
   const usesChildren = template.uses.has('children')
   const body: Mdast[] = []
@@ -273,10 +342,11 @@ export function expandComponent(template: Template, input: ComponentInput, env: 
     },
     children: {
       list: kids.map((kid, i): Scope => {
-        const own = withFlags(kid.attributes ?? {})
+        const authoredKid = withFlags(kid.attributes ?? {})
         const name = kid.name ?? ''
+        const own = { ...template.meta?.children?.[name]?.defaults, ...authoredKid }
         if (known.length && !known.includes(name)) env.warn(`::: ${input.name}: „${name}“ ist hier unbekannt (erlaubt: ${known.join(', ')})`)
-        else checkAttrs(`::: ${input.name} › ${name}`, own, template.meta?.children?.[name], env.warn)
+        else checkAttrs(`::: ${input.name} › ${name}`, authoredKid, template.meta?.children?.[name], env.warn)
         return {
           ...own,
           kind: name,

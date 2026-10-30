@@ -788,8 +788,49 @@ async function blocksToHtml(blocks: AnyNode[], ctx: RenderContext): Promise<{ ht
   return { html, steps }
 }
 
+/** `contact`: „Label: Wert“ in der Detailliste wird zu Beschriftung und Wert. */
+function contactDetails(html: string): string {
+  return html.replace(/<li>([^<:]{1,30}):\s+([\s\S]*?)<\/li>/g, '<li><small>$1</small><span>$2</span></li>')
+}
+
+/** `contact`: Name und Funktion dürfen in einem Absatz stehen (Zeilenumbruch), die erste Zeile ist der Name. */
+function contactWho(html: string): string {
+  return html.replace(/<p>([\s\S]*?)<\/p>/, (whole, inner: string) => {
+    const [first, ...rest] = inner.split(/\n|<br\s*\/?>/).map((l) => l.trim()).filter(Boolean)
+    return rest.length ? `<p>${first}</p><p>${rest.join('<br>')}</p>` : whole
+  })
+}
+
+/** `gallery`: Absätze nur aus Bildern werden zu Figuren mit Bildunterschrift (Alt-Text), benachbarte zu einer Galerie. */
+function galleryHtml(html: string): string {
+  return html
+    .replace(/<p>((?:\s*<img\b[^>]*>\s*)+)<\/p>/g, (_, imgs: string) => {
+      const figures = (imgs.match(/<img\b[^>]*>/g) ?? []).map((img) => {
+        const alt = /\balt="([^"]*)"/.exec(img)?.[1]
+        return `<figure>${img}${alt ? `<figcaption>${alt}</figcaption>` : ''}</figure>`
+      })
+      return `<div class="gallery">${figures.join('')}</div>`
+    })
+    .replace(/<\/div>\s*<div class="gallery">/g, '')
+}
+
 /** Sub-Slide rendern; bei Bild-Layouts in Bildspalte (`.media`) und Text (`.body`) geteilt. */
 async function renderSlide(blocks: AnyNode[], ctx: RenderContext, layout?: string): Promise<Slide> {
+  if (layout === 'gallery') {
+    const r = await blocksToHtml(blocks, ctx)
+    return { html: galleryHtml(r.html), steps: r.steps }
+  }
+  if (layout === 'contact') {
+    const split = splitMedia(blocks)
+    const rest = split ? split.body : blocks
+    const at = rest.findIndex((b) => b.type === 'list')
+    const who = await blocksToHtml(at < 0 ? rest : rest.slice(0, at), ctx)
+    const details = await blocksToHtml(at < 0 ? [] : rest.slice(at), ctx)
+    const media = split ? await blocksToHtml(split.media, ctx) : { html: '', steps: [] as Slide['steps'] }
+    const html = `<div class="side"><div class="media">${media.html}</div><div class="who">${contactWho(who.html)}</div></div><div class="details">${contactDetails(details.html)}</div>`
+    const all = [media.steps, who.steps, details.steps]
+    return { html, steps: all.reduce((a, b) => (b.length > a.length ? b : a)) }
+  }
   const split = layout === 'image-left' || layout === 'image-right' ? splitMedia(blocks) : null
   if (!split) return blocksToHtml(blocks, ctx)
   const media = await blocksToHtml(split.media, ctx)

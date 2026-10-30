@@ -112,6 +112,13 @@ export function lintText(text: string, opts: LintOptions = {}): Problem[] {
           const restCol = m[1].length + m[2].length + name.length
           for (const t of m[4].matchAll(/([\w-]+)(?:=("[^"]*"|\S+))?/g)) {
             const key = t[1]
+            const allowed = meta?.values?.[key]
+            const raw = t[2]?.replace(/^"|"$/g, '')
+            if (allowed && raw && !allowed.some((a) => a.toLowerCase() === raw.toLowerCase())) {
+              const fix = nearest(raw, allowed)
+              problems.push({ ...at(restCol + (t.index ?? 0) + key.length + 1 + (t[2].startsWith('"') ? 1 : 0), raw.length), severity: 'warning', message: `„${key}=${raw}“ ist für ${name} unbekannt (erlaubt: ${allowed.join(', ')}).${meant(fix)}`, fix })
+              continue
+            }
             if (known.includes(key) || ['class', 'id', 'step', 'until'].includes(key)) continue
             const fix = nearest(key, known)
             problems.push({ ...at(restCol + (t.index ?? 0), key.length), severity: 'warning', message: `Attribut „${key}“ ist für ${name} unbekannt.${meant(fix)}`, fix })

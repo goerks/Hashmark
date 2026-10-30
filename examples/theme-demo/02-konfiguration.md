@@ -40,7 +40,7 @@ Wer ein Theme wiederverwenden will, legt es als Ordner ab und zeigt mit `extends
 acme/
   theme.css          # Tokens und Basisstile (Pflicht)
   layouts/
-    kpi.css          # → {layout=kpi}
+    kennzahl.css          # → {layout=kennzahl}
   logo.svg           # in theme.css per url(logo.svg)
 ```
 

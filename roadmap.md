@@ -32,7 +32,7 @@ Im Baum entscheidet man live, ob man abtaucht – dafür muss man sehen, welche 
 
 - Vorgaben je Ebene in `deck.yaml`: `layouts: { 1: section, 2: default }`.
 - Spalten: `::: columns cols=3`, `three-col`, Verhältnisse `cols="2:1"`.
-- Neue Layouts: `statement`/`quote`, `image-left`/`image-right`, Hintergrundbild `{bg=…}`, `agenda` (automatisch aus dem Baum), ✅ `comparison` und `code-focus`. Offen: `diagram`.
+- Neue Layouts: `statement`/`quote`, `image-left`/`image-right`, Hintergrundbild `{bg=…}`, `agenda` (automatisch aus dem Baum), ✅ `comparison`, `code-focus` und `diagram`; ✅ `contact`, `kpi`, `big-number`, `gallery`, `timeline`, `blank` (Ticket #27).
 - Hinweiskästen in GitHub-Syntax `> [!NOTE]`, `[!TIP]`, `[!WARNING]` …
 - Kapitel-Nummerierung optional, Fortschritt pro Kapitel.
 - ✅ Auto-Fit `{fit}` und Überlauf-Badge (Dev-Server, Editor-Vorschau), ✅ `hashmark check` (Linter inkl. Überlauf aller Folien, `make check`). Offen: Miniatur-Hinweis im Presenter, Prüfungen für Notizen/Schritte.
@@ -142,7 +142,7 @@ Vergleich mit reveal.js, Marp, Slidev und Quarto. Das Alleinstellungsmerkmal ist
    - Kacheln, Karten und Rahmen als echte Formen statt im Hintergrundbild; SVG als Vektor (PowerPoint 365).
    - Fehlende Schriften auf dem Zielrechner (Cascadia → Consolas ist abgedeckt, Web-Fonts gibt es nicht).
    - PPTX-Import (wurde gebaut und verworfen, siehe Memory), Export als Google-Slides-tauglich prüfen.
-2. **Plugin-API** (Stufe 2): Komponenten mit Logik, eigene Container und Diagrammsprachen, damit ein Ökosystem entsteht.
+2. **Plugin-API** (Stufe 2): eigene Container und Diagrammsprachen sowie Komponenten mit eigener Logik (JS-Funktionen), damit ein Ökosystem entsteht. ✅ Ein Teil ist da (30.10.2026, Ticket #20): Komponenten-Vorlagen rechnen mit fertigen **Funktionen** (`src/core/functions.ts`: default, percent, number, date, add, count, share, sum, max, min, upper, lower, truncate), dazu `{{#if x is y}}`, `defaults:` und `values:` im Kopf, die eingebauten Komponenten `pipeline`, `states`, `gantt`, `checklist` und Editor-Hilfen. Offen: eigene Funktionen per JS-Datei (Sicherheit im Webdienst klären), Daten aus Tabellen/CSV, Zwischensummen (`running`) für Wasserfall-Diagramme, Komponenten ineinander, Sprachwahl für `number`/`date` (Ticket #23).
 3. ✅ **Formeln (KaTeX)** (05.10.2026, `src/core/math.ts`, kein neues Paket: KaTeX kam schon mit Mermaid, nur die Version ist festgeschrieben; Beispiel `examples/formeln-demo`). Offen: PlantUML/D2 (nur als optionale Erweiterung über die Plugin-API, D2-WASM hat 59 MB), Diagramme aus Daten (CSV, Vega-Lite), `macros:` in der deck.yaml, Formeln als bearbeitbare PowerPoint-Formeln (LaTeX → OMML).
 4. **Animationen:** Auto-Animate und Magic Move für Code und Elemente, Klick-Animationen.
 5. **Linux und macOS wirklich testen**, mit CI-Läufen auf allen drei Systemen.
