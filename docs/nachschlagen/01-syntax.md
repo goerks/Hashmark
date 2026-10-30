@@ -116,6 +116,17 @@ Fast alle Container kennen `step=` und `until=`. Eingebaute Komponenten kommen d
 | `banner` | Bildband oben (`banner=`), Inhalt darunter |
 | `diagram` | kleiner Titel, das Diagramm füllt den Rest |
 
+---
+
+| Layout | Wofür |
+| --- | --- |
+| `contact` | Kontakt: links Foto mit Name und Funktion, rechts die Details |
+| `kpi` | Kennzahlen als Kacheln, aus einer Liste `- **42 %** Text` |
+| `big-number` | eine große Zahl `**38 %**` mit Beschriftung |
+| `gallery` | Bilder nebeneinander, der Alt-Text ist die Unterschrift |
+| `timeline` | Zeitstrahl aus einer Liste `- **Q1** Text` |
+| `blank` | leere Folie ohne Titel und Fußzeile, der Inhalt füllt alles |
+
 ::: notes
 Layouts setzt du mit `{layout=…}` an der Überschrift, je Ebene in der `deck.yaml` (`layouts: { 1: section, 2: default }`) oder für das ganze Deck (`layout: default`). Eigene Layouts kommen aus dem Theme (`.layout-<name>`).
 :::

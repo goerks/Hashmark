@@ -32,7 +32,7 @@ Im Baum entscheidet man live, ob man abtaucht – dafür muss man sehen, welche 
 
 - Vorgaben je Ebene in `deck.yaml`: `layouts: { 1: section, 2: default }`.
 - Spalten: `::: columns cols=3`, `three-col`, Verhältnisse `cols="2:1"`.
-- Neue Layouts: `statement`/`quote`, `image-left`/`image-right`, Hintergrundbild `{bg=…}`, `agenda` (automatisch aus dem Baum), ✅ `comparison` und `code-focus`. Offen: `diagram`.
+- Neue Layouts: `statement`/`quote`, `image-left`/`image-right`, Hintergrundbild `{bg=…}`, `agenda` (automatisch aus dem Baum), ✅ `comparison`, `code-focus` und `diagram`; ✅ `contact`, `kpi`, `big-number`, `gallery`, `timeline`, `blank` (Ticket #27).
 - Hinweiskästen in GitHub-Syntax `> [!NOTE]`, `[!TIP]`, `[!WARNING]` …
 - Kapitel-Nummerierung optional, Fortschritt pro Kapitel.
 - ✅ Auto-Fit `{fit}` und Überlauf-Badge (Dev-Server, Editor-Vorschau), ✅ `hashmark check` (Linter inkl. Überlauf aller Folien, `make check`). Offen: Miniatur-Hinweis im Presenter, Prüfungen für Notizen/Schritte.

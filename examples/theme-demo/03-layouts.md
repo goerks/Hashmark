@@ -4,17 +4,17 @@ Ein Layout ist eine CSS-Datei. Der Dateiname ist egal, der Selektor `.layout-<na
 
 ## So entsteht ein Layout {fit}
 
-1. Datei in den `layouts`-Ordner legen, z. B. `theme/layouts/kpi.css`
-2. Darin Regeln für `.layout-kpi` schreiben
-3. Auf der Folie `{layout=kpi}` an die Überschrift setzen
+1. Datei in den `layouts`-Ordner legen, z. B. `theme/layouts/kennzahl.css`
+2. Darin Regeln für `.layout-kennzahl` schreiben
+3. Auf der Folie `{layout=kennzahl}` an die Überschrift setzen
 
-```css {title="theme/layouts/kpi.css" lines="1-4|5-9|all"}
-.layout-kpi .content ul {
+```css {title="theme/layouts/kennzahl.css" lines="1-4|5-9|all"}
+.layout-kennzahl .content ul {
   list-style: none; margin: 0; padding: 0;
   display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: var(--space-3);
 }
-.layout-kpi .content li {
+.layout-kennzahl .content li {
   padding: 28px 24px; background: var(--color-surface);
   border-top: 6px solid var(--color-accent);
 }
@@ -23,7 +23,7 @@ Ein Layout ist eine CSS-Datei. Der Dateiname ist egal, der Selektor `.layout-<na
 > [!TIP] Tokens statt fester Werte
 > Mit `var(--color-accent)` und Co. passt sich das Layout jedem Theme und jedem Token-Override an.
 
-## Beispiel: Layout „kpi“ {layout=kpi}
+## Beispiel: Layout „kennzahl“ {layout=kennzahl}
 
 - **42 %** weniger Zeit für Folienpflege
 - **3 min** bis zur ersten Präsentation
