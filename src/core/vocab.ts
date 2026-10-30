@@ -22,6 +22,12 @@ export const LAYOUT_INFO: Record<string, string> = {
   split: 'Links Farbfläche mit Titel, rechts der Inhalt',
   diagram: 'Kleiner Titel, das Diagramm füllt den Rest',
   'two-col-wide': 'Text links, schmale Randspalte (::: aside) rechts',
+  contact: 'Kontakt: links Foto mit Name und Funktion, rechts die Details als Liste',
+  kpi: 'Kennzahlen als Kacheln (Liste „- **42 %** Text“)',
+  'big-number': 'Eine einzige große Zahl mit Beschriftung',
+  gallery: 'Bilder nebeneinander, Alt-Text als Bildunterschrift',
+  timeline: 'Zeitstrahl aus einer Liste („- **Q1** Text“)',
+  blank: 'Leere Folie ohne Titel und Fußzeile, der Inhalt füllt alles',
 }
 
 export const CONTAINER_INFO: Record<string, { detail: string; text: string }> = {

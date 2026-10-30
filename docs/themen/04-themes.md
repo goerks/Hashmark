@@ -36,14 +36,14 @@ Schriften kommen aus dem System, damit alles offline bleibt. Eine eigene Schrift
 ## Eigene Layouts {id=eigene-layouts}
 
 ```css
-.layout-kpi .content ul {
+.layout-kennzahl .content ul {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
 }
 ```
 
 ::: notes
-Ein eigenes Layout ist eine CSS-Datei im Ordner unter `layouts:`. Der Selektor `.layout-<name>` zählt, auf der Folie setzt du dann `{layout=kpi}`. Mit `var(--color-accent)` und den anderen Tokens passt sich das Layout jedem Theme an. Unter `css:` legst du weitere Regeln ab, etwa Logo und Fußzeile; eine Datei oder eine Liste.
+Ein eigenes Layout ist eine CSS-Datei im Ordner unter `layouts:`. Der Selektor `.layout-<name>` zählt, auf der Folie setzt du dann `{layout=kennzahl}`. Mit `var(--color-accent)` und den anderen Tokens passt sich das Layout jedem Theme an. Unter `css:` legst du weitere Regeln ab, etwa Logo und Fußzeile; eine Datei oder eine Liste.
 
 Ein Theme-Ordner (`theme.css`, `layouts/`, Bilder, Schriften) lässt sich in mehreren Decks wiederverwenden: `extends: ../acme`.
 :::

@@ -1,2 +1,4 @@
-title: Abnahme – keine offene Abnahme
+title: Abnahme – Ticket #27 Sechs neue Layouts
 theme: minimal
+footer: Hashmark · Abnahme
+slideNumber: "{n} / {total}"

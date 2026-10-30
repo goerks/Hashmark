@@ -173,6 +173,63 @@ Setzen mit `{layout=name}`. Standard ist `default`.
 | `image-full` | Bild füllt die Folie (`bg=bild`), Titel darüber |
 | `banner` | Bildband oben (`banner=`), Inhalt darunter |
 | `diagram` | kleiner Titel, das Diagramm füllt den Rest |
+| `contact` | Kontaktfolie: links Foto, Name und Funktion, rechts Details (siehe unten) |
+| `kpi` | Kennzahlen als Kacheln aus einer Liste `- **42 %** Beschriftung` (eine Zeile je Kachel, 2 bis 4 Stück) |
+| `big-number` | eine große Zahl: 1. Absatz `**38 %**`, 2. Absatz Beschriftung, weitere Absätze klein (Quelle) |
+| `gallery` | Bilder nebeneinander (2 bis 4), der Alt-Text `![Januar: Aushub](a.jpg)` ist die Unterschrift |
+| `timeline` | Zeitstrahl aus einer Liste `- **Q1** Konzept` (waagerecht, 3 bis 5 Punkte) |
+| `blank` | leere Folie: Titel und Fußzeile unsichtbar, ein Bild oder Video füllt die Folie (für Demos) |
+
+**Aufbau von `contact`:** Der erste Absatz mit Bild ist das Foto (rund, links). Alles vor der ersten Liste steht darunter: erste Zeile Name, weitere Zeilen die Funktion. Die Liste bildet die rechte Seite; Zeilen der Form `Label: Wert` werden zu Beschriftung plus Wert (`- E-Mail: anna@firma.ch`). Ohne Bild bleibt die linke Seite nur mit Name und Funktion.
+
+```md
+## Kontakt {layout=contact}
+
+![Anna Beispiel](anna.jpg)
+
+**Anna Beispiel**
+Leiterin Digitalisierung
+
+- E-Mail: anna@firma.ch
+- Telefon: +41 00 000 00 00
+- Web: firma.ch
+```
+
+Kurze Beispiele für die übrigen neuen Layouts:
+
+```md
+## Zahlen 2026 {layout=kpi}
+
+- **42 %** weniger Rückfragen
+- **3,2 s** Ladezeit
+- **18** neue Kunden
+
+## Marktanteil {layout=big-number}
+
+**38 %**
+
+der Kunden nutzen es täglich
+
+Quelle: interne Erhebung, Q3
+
+## Baustelle {layout=gallery}
+
+![Januar: Aushub](a.jpg)
+![April: Rohbau](b.jpg)
+![August: Fassade](c.jpg)
+
+## Fahrplan {layout=timeline}
+
+- **Q1** Konzept
+- **Q2** Pilot
+- **Q3** Rollout
+
+## Demo {layout=blank}
+
+![](demo.png)
+```
+
+`kpi` und `timeline` gibt es auch als Komponenten (`::: kpis`, `::: timeline` mit Schritten und Trend); das Layout ist die kürzere Schreibweise ohne Container, wenn die ganze Folie nur diese Liste zeigt.
 
 Eigene Layouts: CSS mit Selektor `.layout-<name>` im Theme (`theme.layouts`), dann `{layout=<name>}`.
 

@@ -2,7 +2,7 @@
 
 ::: cards cols=2
 ::: card icon=layers title="Layouts"
-17 eingebaute, ein Wort an der Überschrift
+23 eingebaute, ein Wort an der Überschrift
 :::
 ::: card icon=card title="Karten"
 Kacheln mit Icon und Titel
@@ -30,7 +30,7 @@ Diese Folie ist selbst ein Beispiel: Die Karten 3 und 4 erscheinen mit den Schri
 ```
 
 ::: notes
-Ein Layout wählst du mit `layout=` an der Überschrift. Die wichtigsten: `title` für den Auftakt, `section` für Kapitel mit Kacheln der Unterknoten, `statement` für eine große Aussage, `quote` für ein Zitat, `two-col` und `three-col` für Spalten, `comparison` für zwei Seiten, `image-left` und `image-right` für Bild und Text, `code-focus` für Code, `agenda` für die Kapitel des Hauptpfads, `banner` für ein Bildband oben. Alle 17 stehen im Teil „Nachschlagen“ unter „Layouts“.
+Ein Layout wählst du mit `layout=` an der Überschrift. Die wichtigsten: `title` für den Auftakt, `section` für Kapitel mit Kacheln der Unterknoten, `statement` für eine große Aussage, `quote` für ein Zitat, `two-col` und `three-col` für Spalten, `comparison` für zwei Seiten, `image-left` und `image-right` für Bild und Text, `code-focus` für Code, `agenda` für die Kapitel des Hauptpfads, `banner` für ein Bildband oben. Dazu kommen `contact` (Kontaktfolie mit Foto, Name, Funktion und Details), `kpi` (Kennzahlen als Kacheln), `big-number` (eine große Zahl), `gallery` (Bilder nebeneinander mit Unterschrift), `timeline` (Zeitstrahl aus einer Liste) und `blank` (leere Folie für Demos und Videos). Alle 23 stehen im Teil „Nachschlagen“ unter „Layouts“.
 
 In der `deck.yaml` legst du Layouts je Ebene fest (`layouts: { 1: section }`) oder für das ganze Deck (`layout:`). Eigene Layouts definierst du im Theme, siehe Thema „Themes und Firmen-Look“.
 :::

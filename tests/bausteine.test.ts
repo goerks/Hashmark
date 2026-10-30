@@ -33,8 +33,8 @@ describe('Bausteine im Beispiel-Deck', () => {
     expect(versus.slides[0].steps.length).toBe(1)
   })
 
-  it('die vier Layouts sind eingebaut und beschrieben', () => {
-    for (const name of ['image-full', 'split', 'diagram', 'two-col-wide']) {
+  it('die Layouts sind eingebaut und beschrieben', () => {
+    for (const name of ['image-full', 'split', 'diagram', 'two-col-wide', 'contact', 'kpi', 'big-number', 'gallery', 'timeline', 'blank']) {
       expect(BUILTIN_LAYOUTS).toContain(name)
       expect(LAYOUT_INFO[name]).toBeTruthy()
     }

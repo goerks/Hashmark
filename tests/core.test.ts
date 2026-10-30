@@ -693,6 +693,54 @@ describe('Komponenten: Kopf, Kinder, Bibliothek', () => {
   })
 })
 
+describe('Layouts contact und gallery', () => {
+  it('contact: Foto, Name und Funktion links, Details mit Beschriftung rechts', async () => {
+    const dir = await tempDeck({
+      'a.md': '## Kontakt {layout=contact}\n\n![Anna](anna.svg)\n\n**Anna Beispiel**\nLeiterin Digitalisierung\n\n- E-Mail: anna@firma.ch\n- Web: https://firma.ch\n- ohne Beschriftung\n',
+      'anna.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>',
+    })
+    const r = await loadDeck(dir)
+    expect(r.warnings).toEqual([])
+    const html = r.deck.nodes[0].slides[0].html
+    expect(html).toMatch(/<div class="side"><div class="media"><p><img[^>]*alt="Anna"/)
+    expect(html).toContain('<div class="who"><p><strong>Anna Beispiel</strong></p><p>Leiterin Digitalisierung</p></div>')
+    expect(html).toContain('<li><small>E-Mail</small><span>anna@firma.ch</span></li>')
+    expect(html).toContain('<li><small>Web</small><span>https://firma.ch</span></li>')
+    expect(html).toContain('<li>ohne Beschriftung</li>')
+    expect(html.indexOf('class="who"')).toBeLessThan(html.indexOf('class="details"'))
+  })
+
+  it('contact ohne Bild und ohne Liste bleibt gültig', async () => {
+    const r = await loadDeck(await tempDeck({ 'a.md': '## Kontakt {layout=contact}\n\n**Anna**\n' }))
+    expect(r.warnings).toEqual([])
+    expect(r.deck.nodes[0].slides[0].html).toContain('<div class="details"></div>')
+  })
+
+  it('gallery: Bilder werden Figuren, der Alt-Text die Unterschrift, benachbarte eine Galerie', async () => {
+    const dir = await tempDeck({
+      'a.md': '## Baustelle {layout=gallery}\n\n![Januar: Aushub](a.svg)\n![April: Rohbau](b.svg)\n\n![](c.svg)\n',
+      'a.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>',
+      'b.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>',
+      'c.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>',
+    })
+    const r = await loadDeck(dir)
+    expect(r.warnings).toEqual([])
+    const html = r.deck.nodes[0].slides[0].html
+    expect(html.match(/<div class="gallery">/g)).toHaveLength(1)
+    expect(html.match(/<figure>/g)).toHaveLength(3)
+    expect(html).toContain('<figcaption>Januar: Aushub</figcaption>')
+    expect(html).toContain('<figcaption>April: Rohbau</figcaption>')
+    expect(html.match(/<figcaption>/g)).toHaveLength(2) // das dritte Bild hat keinen Alt-Text
+  })
+
+  it('in anderen Layouts bleibt alles beim Alten', async () => {
+    const r = await loadDeck(await tempDeck({ 'a.md': '## A\n\n![x](a.svg)\n', 'a.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"/>' }))
+    const html = r.deck.nodes[0].slides[0].html
+    expect(html).not.toContain('class="gallery"')
+    expect(html).not.toContain('<figure>')
+  })
+})
+
 describe('Komponenten im Editor: Gerüst, Prüfung, Vorschläge', () => {
   it('erkennt Komponentendateien nur unter components/', () => {
     expect(componentKind('components/fact.html')).toBe('template')
