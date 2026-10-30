@@ -35,6 +35,33 @@ Ein Layout wählst du mit `layout=` an der Überschrift. Die wichtigsten: `title
 In der `deck.yaml` legst du Layouts je Ebene fest (`layouts: { 1: section }`) oder für das ganze Deck (`layout:`). Eigene Layouts definierst du im Theme, siehe Thema „Themes und Firmen-Look“.
 :::
 
+## Kontakt, Kennzahlen und mehr {id=weitere-layouts}
+
+```md
+## Kontakt {layout=contact}
+
+![Anna Beispiel](anna.jpg)
+
+**Anna Beispiel**
+Leiterin Digitalisierung
+
+- E-Mail: anna@firma.ch
+- Telefon: +41 00 000 00 00
+
+## Zahlen 2026 {layout=kpi}
+
+- **42 %** weniger Rückfragen
+- **3,2 s** Ladezeit
+```
+
+::: notes
+Sechs Layouts nehmen dir Gestaltungsarbeit ab, ohne dass du etwas zeichnest. `contact` ist die Kontaktfolie: links das Foto (rund) mit Name und Funktion, rechts die Details. Die erste Zeile unter dem Foto ist der Name, die zweite die Funktion; Listenzeilen der Form „Beschriftung: Wert“ erscheinen rechts mit kleiner Beschriftung.
+
+`kpi` macht aus einer Liste Kennzahl-Kacheln (`- **42 %** Beschriftung`), `big-number` zeigt eine einzige große Zahl (`**38 %**`, darunter Beschriftung und Quelle). `gallery` setzt Bilder gleich hoch nebeneinander und nimmt den Alt-Text als Unterschrift. `timeline` macht aus `- **Q1** Konzept` einen waagerechten Zeitstrahl. `blank` ist eine leere Folie ohne Titel und Fußzeile, etwa für ein Video oder eine Live-Demo; der Titel bleibt für Suche und Übersicht erhalten.
+
+`kpi` und `timeline` gibt es auch als Bausteine (`::: kpis`, `::: timeline`) mit Schritten und Trend. Das Layout ist die kürzere Schreibweise, wenn die ganze Folie nur diese Liste zeigt.
+:::
+
 ## Spalten und Raster {id=spalten}
 
 ```md
