@@ -705,8 +705,9 @@ describe('Layouts contact und gallery', () => {
     const html = r.deck.nodes[0].slides[0].html
     expect(html).toMatch(/<div class="side"><div class="media"><p><img[^>]*alt="Anna"/)
     expect(html).toContain('<div class="who"><p><strong>Anna Beispiel</strong></p><p>Leiterin Digitalisierung</p></div>')
-    expect(html).toContain('<li><small>E-Mail</small><span>anna@firma.ch</span></li>')
-    expect(html).toContain('<li><small>Web</small><span>https://firma.ch</span></li>')
+    // Adressen werden von Markdown zu Links, bleiben aber der Wert hinter der Beschriftung
+    expect(html).toContain('<li><small>E-Mail</small><span><a href="mailto:anna@firma.ch">anna@firma.ch</a></span></li>')
+    expect(html).toContain('<li><small>Web</small><span><a href="https://firma.ch">https://firma.ch</a></span></li>')
     expect(html).toContain('<li>ohne Beschriftung</li>')
     expect(html.indexOf('class="who"')).toBeLessThan(html.indexOf('class="details"'))
   })
