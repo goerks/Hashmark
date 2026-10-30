@@ -8,6 +8,7 @@ import { buildNodes, parseMarkdown, type RawNode } from './parse.ts'
 import { renderNodeContent, resolveImage, type RenderContext } from './render.ts'
 import { resolveTheme } from './theme.ts'
 import { authorPlan } from './plan.ts'
+import { EFFECTS, SPEEDS } from './check.ts'
 import { parseDuration } from './timing.ts'
 import type { Deck, DeckNode, Manifest, MountEntry } from './types.ts'
 
@@ -192,6 +193,24 @@ function applyFooter(nodes: DeckNode[], manifest: Manifest, warnings: string[]) 
   walk(nodes)
 }
 
+/** `motion:` aus der deck.yaml; unbekannte Werte werden gemeldet und ignoriert */
+function manifestMotion(manifest: Manifest, warnings: string[]): { speed?: string; effect?: string } | undefined {
+  const m = manifest.motion
+  if (m === undefined) return undefined
+  if (!m || typeof m !== 'object' || Array.isArray(m)) {
+    warnings.push('deck.yaml: motion muss ein Block sein, z. B. motion: { speed: slow, effect: up }')
+    return undefined
+  }
+  const out: { speed?: string; effect?: string } = {}
+  for (const [key, allowed] of [['speed', SPEEDS], ['effect', EFFECTS]] as const) {
+    const value = m[key]
+    if (value === undefined) continue
+    if (typeof value !== 'string' || !allowed.includes(value)) warnings.push(`deck.yaml: motion.${key} „${value}“ ist unbekannt (${allowed.join(' | ')})`)
+    else out[key] = value
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
 export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
   const deckDir = path.resolve(deckDirInput)
   const manifest = await readManifest(deckDir)
@@ -230,12 +249,14 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
   const duration = parseDuration(manifest.duration)
   if (manifest.duration !== undefined && duration === undefined) warnings.push(`deck.yaml: ungültige Dauer "${manifest.duration}" (z. B. 30m, 1h)`)
   warnings.push(...theme.warnings)
+  const motion = manifestMotion(manifest, warnings)
   return {
     deck: {
       title: manifest.title ?? nodes[0]?.title ?? 'Hashmark',
       maxDepth,
       layout: manifest.layout ?? 'default',
       ...(duration ? { duration } : {}),
+      ...(motion ? { motion } : {}),
       nodes,
       files: files.map((f) => path.relative(deckDir, f).split(path.sep).join('/')),
     },

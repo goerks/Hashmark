@@ -3,7 +3,7 @@
 
 import type { ComponentMeta } from './components.ts'
 import { PLAN_STATES } from './plan.ts'
-import { BUILTIN_LAYOUTS, CONTAINERS, KNOWN_ATTRS, TRANSITIONS, nearest } from './vocab.ts'
+import { BUILTIN_LAYOUTS, CONTAINERS, EFFECTS, KNOWN_ATTRS, SPEEDS, TRANSITIONS, nearest } from './vocab.ts'
 
 export interface Problem {
   from: number
@@ -79,6 +79,12 @@ export function lintText(text: string, opts: LintOptions = {}): Problem[] {
           } else if (key === 'plan' && !(PLAN_STATES as readonly string[]).includes(val)) {
             const fix = nearest(val, PLAN_STATES)
             problems.push({ ...at(valCol, val.length), severity: 'error', message: `Plan „${val}“ ist unbekannt (${PLAN_STATES.join(', ')}).${meant(fix)}`, fix })
+          } else if (key === 'effect' && !EFFECTS.includes(val)) {
+            const fix = nearest(val, EFFECTS)
+            problems.push({ ...at(valCol, val.length), severity: 'warning', message: `Effekt „${val}“ ist unbekannt (${EFFECTS.join(', ')}).${meant(fix)}`, fix })
+          } else if (key === 'speed' && !SPEEDS.includes(val)) {
+            const fix = nearest(val, SPEEDS)
+            problems.push({ ...at(valCol, val.length), severity: 'warning', message: `Tempo „${val}“ ist unbekannt (${SPEEDS.join(', ')}).${meant(fix)}`, fix })
           } else if (key === 'transition' && !TRANSITIONS.includes(val)) {
             const fix = nearest(val, TRANSITIONS)
             problems.push({ ...at(valCol, val.length), severity: 'warning', message: `Übergang „${val}“ ist unbekannt (${TRANSITIONS.join(', ')}).${meant(fix)}`, fix })

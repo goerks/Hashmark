@@ -6,7 +6,7 @@
   import { clearLiveRoot, prepareVideos, setLiveRoot, syncVideos, type MediaMode } from './video.ts'
   import { clearZoomRoot, refreshZoom, setZoomRoot, syncZoom, zoomClick } from './zoom.ts'
 
-  let { node, slide, layout, step = Infinity, titleTag = 'h1', media = 'off' }: {
+  let { node, slide, layout, step = Infinity, titleTag = 'h1', media = 'off', effects = false, defaultEffect = '' }: {
     node: DeckNode
     slide: number
     layout: string
@@ -16,6 +16,10 @@
     titleTag?: string
     /** Videos: `live` spielt (nur die laufende Präsentation), `still` zeigt ein Standbild, `off` lädt nichts (Übersicht, Lesemodus) */
     media?: MediaMode
+    /** Auftritte der Schritte (`effect=`) zeigen: nur in der laufenden Präsentation, nie in Miniaturen, Druck oder Lesemodus */
+    effects?: boolean
+    /** Standard-Effekt dieser Folie (`{effect=…}` bzw. deck.yaml `motion: effect:`) */
+    defaultEffect?: string
   } = $props()
 
   let el: HTMLElement
@@ -36,12 +40,24 @@
 
   /** Element mit `data-step="k"` ist ab Schritt k sichtbar, mit `data-until="m"` nur bis vor Schritt m. */
   function applySteps(root: HTMLElement, current: number) {
+    // Abstand zwischen Elementen mit gleicher Schrittnummer bei `stagger` (ms)
+    const STAGGER = 80
+    const group = new Map<string, number>()
     for (const item of root.querySelectorAll<HTMLElement>('[data-step]')) {
       const from = Number(item.dataset.step)
       const until = item.dataset.until ? Number(item.dataset.until) : Infinity
       const visible = current >= from && (until === Infinity || current < until)
       item.classList.toggle('step-hidden', !visible)
       item.classList.toggle('step-current', visible && from === current && from > 0)
+      // Auftritt: Container (`::: steps effect=up`) vor Folie vor Deck-Standard; fade ist der Standard und braucht nichts
+      const fx = effects ? (item.closest<HTMLElement>('[data-effect]')?.dataset.effect ?? defaultEffect) : ''
+      if (fx && fx !== 'fade') item.dataset.fx = fx
+      else delete item.dataset.fx
+      const n = group.get(item.dataset.step!) ?? 0
+      group.set(item.dataset.step!, n + 1)
+      const wait = effects ? Number(item.closest<HTMLElement>('[data-delay]')?.dataset.delay ?? 0) + (item.closest('[data-stagger]') ? n * STAGGER : 0) : 0
+      if (wait) item.style.setProperty('--step-delay', `${wait}ms`)
+      else item.style.removeProperty('--step-delay')
     }
     // Code `lines="2-3|5|all"`: Abschnitt k ab Schritt k; danach bleibt der letzte stehen
     for (const pre of root.querySelectorAll<HTMLElement>('pre[data-hl-count]')) {

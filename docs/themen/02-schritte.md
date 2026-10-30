@@ -84,6 +84,27 @@ Tabellen in `::: table steps=rows` erscheinen Zeile für Zeile, mit `steps=cols`
 Zeichnungen bauen sich auf, ohne dass du sie zerlegst. In einem beliebigen SVG erscheinen Elemente mit `id="step-1"`, `id="step-2"` … ab ihrem Schritt (`steps=ids`). Bei einem draw.io-Export (`.drawio.svg`) wird jede **Ebene** ein Schritt (`steps=layers`), die erste ist sofort da. Bei einem Excalidraw-Export mit eingebetteter Szene werden die **Gruppen** zu Schritten (`steps=groups`); `order` legt die Reihenfolge fest, `+` heißt gleichzeitig. Ungruppierte Elemente bleiben sichtbar.
 :::
 
+## Effekte für Schritte {id=schritt-effekte}
+
+```md
+## Agenda {steps effect=up}
+```
+
+| Effekt | Wirkung |
+| --- | --- |
+| `fade` | blendet ein (Standard) |
+| `up` | schwebt von unten ein |
+| `left` | gleitet von links an den Platz |
+| `scale` | wächst auf |
+| `highlight` | der neue Punkt leuchtet, solange er dran ist |
+| `dim` | Früheres wird leiser, der aktuelle Punkt bleibt voll |
+
+::: notes
+`effect=` legt fest, *wie* ein Schritt erscheint. Du schreibst es an die Folie (`## Agenda {steps effect=up}`), an einen Container (`::: steps effect=scale`) oder fürs ganze Deck in die `deck.yaml` (`motion: { effect: up }`). Das Nächstliegende gilt: Container vor Folie vor Deck.
+
+Mit `stagger` an einem Container (z. B. `::: cards stagger` mit `step=1` an jeder Karte) erscheinen Elemente derselben Schrittnummer im Abstand von 80 ms als kleine Welle. `delay=300ms` verzögert einen Auftritt. Das Tempo stellst du mit `speed=` ein, bei „Bewegung reduzieren“ im System entfällt der Weg und es wird nur überblendet. Im PDF, im Lesemodus und im PowerPoint-Export ändert sich nichts: Dort zählt der Endzustand bzw. das Einblenden.
+:::
+
 ## Übergänge {id=uebergaenge}
 
 ```md
@@ -92,6 +113,10 @@ Zeichnungen bauen sich auf, ohne dass du sie zerlegst. In einem beliebigen SVG e
 
 ::: notes
 Ohne Angabe sind die Übergänge **räumlich**, passend zum Baum: → und ← schieben die Folie seitlich, ↓ kommt das Detail aus der Tiefe, ↑ fliegt es nach vorn weg, ein Sprung (Suche, Übersicht) blendet über. Mit `transition=` legst du den Wechsel **zu** dieser Folie fest: `slide` schiebt, `zoom` fährt hinein, `fade` blendet über, `none` springt ohne Bewegung. Beim PowerPoint-Export werden Übergänge übernommen.
+
+**Tempo:** `{speed=slow}` macht den Wechsel zu dieser Folie ruhiger (760 ms, gut für den Auftritt eines Kapitels), `{speed=fast}` huscht in 190 ms vorbei, `normal` (380 ms) ist der Standard. Für das ganze Deck schreibst du in die `deck.yaml`: `motion: { speed: slow }`; `speed=` an der Folie hat Vorrang. Die Einblendungen der Schritte laufen im selben Tempo.
+
+**Bewegung reduzieren:** Hat jemand im System „Bewegung reduzieren“ eingeschaltet, überblendet Hashmark jeden Wechsel kurz (120 ms) statt zu schieben oder zu zoomen. Das geschieht automatisch, du musst nichts einstellen.
 :::
 
 ## Bild, Code und Diagramm vergrößern {id=bild-zoom}

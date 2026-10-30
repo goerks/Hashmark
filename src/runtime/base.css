@@ -349,8 +349,29 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* ---------- Schritte (::: steps, Code steps="…", Mermaid %% step) ---------- */
 
-[data-step] { transition: opacity 0.35s ease, visibility 0.35s; }
-.step-hidden { opacity: 0; visibility: hidden; }
+/* Tempo kommt von der Bühne (--motion-duration, siehe App.svelte); 350 ms bei normalem Tempo.
+ * Auftritt (`effect=`): Slide.svelte setzt `data-fx` am Element (nur in der laufenden Präsentation), `--step-delay` für delay/stagger */
+[data-step] {
+  --fx-ease: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --fx-time: calc(var(--motion-duration, 380ms) * 0.92);
+  transition: opacity var(--fx-time) ease, visibility var(--fx-time), transform var(--fx-time) var(--fx-ease), background-color var(--fx-time), box-shadow var(--fx-time);
+  transition-delay: var(--step-delay, 0ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-step] { --fx-time: 120ms; transition-delay: 0ms; }
+  [data-fx].step-hidden { transform: none !important; }
+}
+/* Startzustände: nur im versteckten Zustand, der sichtbare hat keine Regel und fällt auf den Normalzustand zurück */
+[data-fx="up"].step-hidden { transform: translateY(22px); }
+[data-fx="left"].step-hidden { transform: translateX(-32px); }
+[data-fx="scale"] { transform-origin: left center; }
+[data-fx="scale"].step-hidden { transform: scale(0.7); }
+/* Hervorheben: der neue Punkt leuchtet, solange er der aktuelle Schritt ist */
+[data-fx="highlight"] { border-radius: 4px; }
+[data-fx="highlight"].step-current { background: color-mix(in srgb, var(--color-accent) 22%, transparent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 22%, transparent); }
+/* Abdunkeln: alles Frühere wird leiser, der aktuelle Schritt bleibt voll */
+[data-fx="dim"]:not(.step-hidden):not(.step-current) { opacity: 0.3; }
+.step-hidden { opacity: 0; visibility: hidden; transition-delay: 0ms; }
 /* Code: neu hinzugekommene Zeilen kurz hervorheben */
 .code-block pre:has(.line[data-step]) .line { display: inline-block; width: 100%; }
 .code-block .line.step-current { background: color-mix(in srgb, var(--color-accent) 14%, transparent); }

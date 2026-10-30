@@ -813,6 +813,85 @@ describe('Komponenten im Editor: Gerüst, Prüfung, Vorschläge', () => {
   })
 })
 
+describe('Bewegung: Tempo', () => {
+  it('liest motion.speed aus der deck.yaml und meldet Unbekanntes', async () => {
+    const ok = await loadDeck(await tempDeck({ 'deck.yaml': 'motion:\n  speed: slow\n', 'a.md': '# A' }))
+    expect(ok.deck.motion).toEqual({ speed: 'slow' })
+    expect(ok.warnings).toEqual([])
+    const bad = await loadDeck(await tempDeck({ 'deck.yaml': 'motion:\n  speed: rasend\n', 'a.md': '# A' }))
+    expect(bad.deck.motion).toBeUndefined()
+    expect(bad.warnings.join('\n')).toContain('motion.speed „rasend“')
+    const none = await loadDeck(await tempDeck({ 'a.md': '# A' }))
+    expect(none.deck.motion).toBeUndefined()
+  })
+
+  it('check und Linter kennen speed=', async () => {
+    const { staticChecks } = await import('../src/core/check.ts')
+    const result = await loadDeck(await tempDeck({ 'a.md': '# A {speed=slow}\n\n# B {speed=rasend}' }))
+    const text = staticChecks(result).map((f) => f.message).join('\n')
+    expect(text).toContain('speed „rasend“')
+    expect(text).not.toContain('Attribut „speed“')
+    const msgs = lintText('## A {speed=slwo}').map((p) => p.message).join('\n')
+    expect(msgs).toContain('Tempo „slwo“')
+    expect(lintText('## A {speed=fast}')).toEqual([])
+  })
+
+  it('Dauer je Tempo, bei reduzierter Bewegung nur kurzes Überblenden', async () => {
+    const { motionDuration, motionPlan } = await import('../src/runtime/transitions.ts')
+    expect([motionDuration('fast'), motionDuration('normal'), motionDuration('slow'), motionDuration(undefined), motionDuration('x')]).toEqual([190, 380, 760, 380, 380])
+    expect(motionPlan('right', undefined, 'slow', false)).toEqual({ kind: undefined, duration: 760 })
+    expect(motionPlan('down', 'zoom', 'slow', true)).toEqual({ kind: 'fade', duration: 120 })
+    expect(motionPlan('right', 'none', 'slow', true)).toEqual({ kind: 'none', duration: 0 })
+    expect(motionPlan('right', 'none', 'fast', false).duration).toBe(0)
+  })
+})
+
+describe('Bewegung: Effekte für Schritte', () => {
+  it('liest motion.effect aus der deck.yaml und meldet Unbekanntes', async () => {
+    const ok = await loadDeck(await tempDeck({ 'deck.yaml': 'motion:\n  speed: slow\n  effect: up\n', 'a.md': '# A' }))
+    expect(ok.deck.motion).toEqual({ speed: 'slow', effect: 'up' })
+    expect(ok.warnings).toEqual([])
+    const bad = await loadDeck(await tempDeck({ 'deck.yaml': 'motion:\n  effect: wirbel\n', 'a.md': '# A' }))
+    expect(bad.deck.motion).toBeUndefined()
+    expect(bad.warnings.join('\n')).toContain('motion.effect „wirbel“')
+  })
+
+  it('check und Linter kennen effect=', async () => {
+    const { staticChecks } = await import('../src/core/check.ts')
+    const result = await loadDeck(await tempDeck({ 'a.md': '# A {effect=up}\n\n# B {effect=wirbel}' }))
+    const text = staticChecks(result).map((f) => f.message).join('\n')
+    expect(text).toContain('effect „wirbel“')
+    expect(text).not.toContain('Attribut „effect“')
+    expect(lintText('## A {effect=sacle}').map((p) => p.message).join('\n')).toContain('Meinst du „scale“?')
+    expect(lintText('## A {steps effect=dim}')).toEqual([])
+  })
+
+  it('Container tragen effect, stagger und delay ins HTML', async () => {
+    const dir = await tempDeck({
+      'a.md': '# A\n\n::: steps effect=scale\n- eins\n- zwei\n:::\n\n::: cards stagger delay=0.5s\n::: card step=1 title=X\nText\n:::\n::: card step=1 title=Y\nText\n:::\n:::\n',
+    })
+    const { deck, warnings } = await loadDeck(dir)
+    expect(warnings).toEqual([])
+    const html = deck.nodes[0].slides[0].html
+    expect(html).toContain('d-steps"')
+    expect(html).toMatch(/data-effect="scale"/)
+    expect(html).toMatch(/data-stagger=""/)
+    expect(html).toMatch(/data-delay="500"/)
+  })
+
+  it('meldet ungültige Container-Angaben', async () => {
+    const dir = await tempDeck({ 'a.md': '# A\n\n::: steps effect=wirbel\n- eins\n:::\n\n::: cards delay=bald\n::: card step=1\nx\n:::\n:::\n' })
+    const text = (await loadDeck(dir)).warnings.join('\n')
+    expect(text).toContain('effect="wirbel" ist unbekannt')
+    expect(text).toContain('delay="bald" ist ungültig')
+  })
+
+  it('parseDelay', async () => {
+    const { parseDelay } = await import('../src/core/render.ts')
+    expect([parseDelay('300ms'), parseDelay('0.5s'), parseDelay('250'), parseDelay('2s'), parseDelay('bald'), parseDelay('99s')]).toEqual([300, 500, 250, 2000, undefined, undefined])
+  })
+})
+
 describe('Komponenten: Funktionsbausteine', () => {
   const warns: string[] = []
   const env = { image: (u: string) => `IMG:${u}`, warn: (m: string) => { warns.push(m) } }
