@@ -17,8 +17,8 @@ Hashmark macht aus einer oder mehreren Markdown-Dateien eine Präsentation, aber
 | --- | --- |
 | [**Baum und Navigation**](https://goerks.github.io/Hashmark/funktionen/navigation/) | Jede Überschrift ist ein Knoten. **→** erzählt den Hauptpfad, **↓** taucht ins Detail, Space führt nach einem Abstecher zurück. Übersicht, Suche und Links auf jede Folie. |
 | [**Schritte und Animationen**](https://goerks.github.io/Hashmark/funktionen/schritte/) | Listen, Code Zeile für Zeile, wachsende Diagramme, Formelteile und die Ebenen von draw.io- und Excalidraw-Zeichnungen erscheinen nacheinander. Übergänge folgen dem Baum, Z fährt die Kamera auf ein Bild. |
-| [**Layouts und Gestaltung**](https://goerks.github.io/Hashmark/funktionen/gestaltung/) | 17 Layouts mit einem Wort an der Überschrift, dazu Karten, Figuren mit Sprechblasen, Tabellen, Bildband und Hinweiskästen, alles als Markdown. |
-| [**Themes und Firmen-Look**](https://goerks.github.io/Hashmark/funktionen/themes/) | `minimal` und `dark-tech` eingebaut, eigener Look über Tokens, eigene Layouts und Komponenten aus HTML-Vorlagen. |
+| [**Layouts und Gestaltung**](https://goerks.github.io/Hashmark/funktionen/gestaltung/) | 17 Layouts mit einem Wort an der Überschrift, dazu Karten, Figuren mit Sprechblasen, Tabellen, Bildband, Hinweiskästen und fertige Bausteine wie Pipeline, Statusautomat, Zeitplan und Checkliste, alles als Markdown. |
+| [**Themes und Firmen-Look**](https://goerks.github.io/Hashmark/funktionen/themes/) | `minimal` und `dark-tech` eingebaut, eigener Look über Tokens, eigene Layouts und Komponenten aus HTML-Vorlagen mit fertigen Funktionen zum Rechnen und Formatieren (ohne JavaScript). |
 | [**Diagramme, Formeln, Medien**](https://goerks.github.io/Hashmark/funktionen/medien/) | Mermaid in den Farben des Themes, KaTeX, Code-Hervorhebung, Video und QR-Codes. Nichts wird von außen geladen. |
 | [**Vortrag und Presenter**](https://goerks.github.io/Hashmark/funktionen/vortrag/) | Notizen, Timer, Zeitplan und Baum auf dem zweiten Bildschirm. Ein Vortragsplan mit Pfad, Optional und Anhang, ein Zeitbudget kürzt von selbst. |
 | [**Editor und App**](https://goerks.github.io/Hashmark/funktionen/editor/) | Editor mit Live-Vorschau und Vorschlägen, „Prüfen“ findet Fehler und volle Folien. Desktop-App ohne Installer, Webdienst als Docker-Image. |
@@ -27,7 +27,7 @@ Hashmark macht aus einer oder mehreren Markdown-Dateien eine Präsentation, aber
 | | |
 | --- | --- |
 | ![Folie mit dem Baum einer Präsentation als Mermaid-Diagramm](assets/screenshots/baum.jpg) | ![Folie mit vier Karten mit Icons](assets/screenshots/karten.jpg) |
-| Diagramme in den Farben des Themes | Karten, Spalten, Figuren und Komponenten |
+| Diagramme in den Farben des Themes | Karten, Spalten, Figuren und Komponenten, die selbst rechnen |
 
 ![Das Handbuch im Lesemodus: der Baum als Inhaltsverzeichnis, daneben Text und Folien](assets/screenshots/lesemodus.jpg)
 

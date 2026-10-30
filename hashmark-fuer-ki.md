@@ -2,7 +2,7 @@
 
 Diese Datei beschreibt vollständig, wie eine gültige Hashmark-Präsentation aufgebaut ist. Sie ist für KI-Assistenten geschrieben: Wer sie liest, kann ohne weitere Informationen ein Deck erzeugen, das lädt, prüft und vorgetragen werden kann.
 
-Stand: abgeleitet aus dem Quelltext (`src/core/*`) und dem Handbuch (`docs/`). Bei Widerspruch gilt der Quelltext.
+Stand: abgeleitet aus dem Quelltext (`src/core/*`) und dem Handbuch (`docs/`). Bei Widerspruch gilt der Quelltext. Zuletzt ergänzt: Komponenten-Funktionen (`percent`, `number`, `date`, `count`, `share` …) und die Komponenten `pipeline`, `states`, `gantt`, `checklist`.
 
 ## 1. Grundidee in fünf Sätzen
 
@@ -250,6 +250,8 @@ Das **System** bleibt eine Blackbox.
 
 ### 7.1 Eingebaute Komponenten (Container mit Vorlage)
 
+Welche Komponente wofür: Reihenfolge in der Zeit → `timeline`, `process`, `roadmap`; Ablauf mit **Status** und Fortschritt → `pipeline`; **Zustände** und Rücksprünge, je Schritt einer hervorgehoben → `states`; Terminplan mit Balken → `gantt`; Aufgaben mit Erledigt-Anteil → `checklist`; Zahlen → `kpis`; Gegenüberstellung → `versus`, `matrix`; Rangfolge → `pyramid`; Person → `person`. Erlaubte Werte zählt die Tabelle auf (`state=…`, `trend=…`); ein anderer Wert wird von `hashmark check` als Hinweis mit „Meinst du …“ gemeldet.
+
 | Container | Aufbau | Attribute / Flags |
 | --- | --- | --- |
 | `timeline` | Zeitstrahl aus Liste | `title`, `start`; Flags `vertical`, `steps` |
@@ -374,6 +376,7 @@ Eine Folie hat Schritte 0..n. → blendet den nächsten ein, ← zurück. **Glei
 | draw.io | `![x](a.drawio.svg){steps=layers}` (jede Ebene ein Schritt, erste sofort) |
 | Excalidraw | `![x](a.excalidraw.svg){steps=groups order="3,1,2+4"}` (Szene eingebettet; `+` = gleichzeitig) |
 | Video | `play=1` startet mit Schritt 1 (`play=0` sofort) |
+| Komponente | `steps` blendet Kinder nacheinander ein (`kpis`, `pipeline`, `gantt`, `checklist`, `timeline` …); `::: states` hebt je Schritt einen Zustand hervor (`at=2`, `then=4`) |
 | Zoom-Kamera | `{zoomstep=2 zoomuntil=3}` am Bild |
 
 Code-Abschnitte: `|` trennt Schritte, `,` mehrere Zeilen, `-` Bereich (`"1,6|2-3"`); Zeilen ohne Schritt stehen von Anfang an; `all` hebt die Hervorhebung auf.
@@ -474,7 +477,7 @@ Befehle (CLI `hashmark`, im Projekt über `make`):
 | PowerPoint | `hashmark pptx <deck>` |
 | **Prüfen** | `hashmark check <deck>` (Exit 1 bei Fehlern) |
 
-`hashmark check` meldet: unbekannte Layouts (Fehler), unbekannte Attribute und Übergänge (Warnung), fehlende Bilder, ungültige Dauern, ungültige Plan-Rollen, `banner` ohne Bild, Container-/Komponentenfehler, Formel- und Diagrammfehler, Überlauf von Folien.
+`hashmark check` meldet: unbekannte Layouts (Fehler), unbekannte Attribute und Übergänge (Warnung), fehlende Bilder, ungültige Dauern, ungültige Plan-Rollen, `banner` ohne Bild, Container-/Komponentenfehler (auch ungültige Werte wie `state=runn` und Fehler beim Rechnen in Vorlagen), Formel- und Diagrammfehler, Überlauf von Folien.
 
 ## 13. Checkliste für eine gültige Präsentation
 
@@ -482,7 +485,7 @@ Befehle (CLI `hashmark`, im Projekt über `make`):
 2. Überschriften mit steigenden Ebenen; keine Ebenen überspringen (nach `#` kommt `##`, nicht `###`).
 3. Attribute nur aus Abschnitt 5, am **Zeilenende** der Überschrift, **ohne Doppelpunkt im Wert**.
 4. Nur Layouts aus Abschnitt 6 (oder im Theme definierte) verwenden.
-5. Jeder `:::`-Container ist geschlossen, jeder Name ist in Abschnitt 7 aufgeführt oder als Komponente vorhanden; Attribute passen zum Container.
+5. Jeder `:::`-Container ist geschlossen, jeder Name ist in Abschnitt 7 aufgeführt oder als Komponente vorhanden; Attribute und ihre Werte passen zum Container (Kinder wie `::: stage`, `::: item`, `::: task` nur innerhalb ihrer Komponente).
 6. `---` mit Leerzeile davor und danach als Sub-Slide-Trenner (nicht als Absatzlinie gemeint).
 7. Bilder und Videos existieren relativ zur Datei; `ratio=16/9`, nicht `16:9`.
 8. Codeblöcke und Formeln sind geschlossen; Mermaid ist syntaktisch gültig.

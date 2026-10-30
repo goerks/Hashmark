@@ -70,6 +70,16 @@ Attribute stehen in geschweiften Klammern am Ende der Überschrift, getrennt dur
 | `::: frame` | Rahmen (`at=`, `size=`, `label=`) |
 | `::: pin` | nummerierte Markierung (`at=`) |
 
+---
+
+| Komponente | Wofür | Kinder und wichtige Angaben |
+| --- | --- | --- |
+| `pipeline` | Ablauf mit Status | `::: stage label= state=done\|run\|open progress= time=`; `summary`, `steps` |
+| `states` | Statusautomat | `::: state label= at= then=`; `back=` |
+| `gantt` | Zeitplan | `::: task label= start= length= state=done\|open`; `scale=`, `now=`, `from=`, `to=` |
+| `checklist` | Checkliste | `::: item label= state=done\|wip\|open owner=`; `progress`, `steps` |
+| `kpis` | Kennzahlen | `::: kpi value= label= trend=up\|down\|flat delta=` |
+
 ::: notes
 Fast alle Container kennen `step=` und `until=`. Eingebaute Komponenten kommen dazu: `timeline`, `process`, `kpis`, `person`, `roadmap`, `pyramid`, `matrix`, `versus`, `aside`, `pipeline`, `states`, `gantt` und `checklist`; eigene liegen als HTML-Vorlage im Ordner `components/` (siehe Thema „Themes und Firmen-Look“).
 :::

@@ -1,3 +1,0 @@
-.d-figures .figures { border-collapse: collapse; font-size: 0.75em; }
-.d-figures .figures th, .d-figures .figures td { text-align: left; padding: 0.3rem 1.2rem 0.3rem 0; border-bottom: 1px solid var(--color-border); }
-.d-figures .figures td:last-child { font-weight: 700; }
