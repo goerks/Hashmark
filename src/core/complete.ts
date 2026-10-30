@@ -52,8 +52,14 @@ function pick(from: number, to: number, title: string, all: Suggestion[], query:
   return { from, to, title, options: hits.slice(0, 24) }
 }
 
-const bausteine = (): Suggestion[] =>
-  SNIPPETS.map((s) => ({ label: s.label, detail: s.title, kind: s.kind, insert: s.text.replace(/^\n/, ''), keywords: fold(s.keywords ?? '') }))
+const bausteine = (components?: Record<string, ComponentMeta>): Suggestion[] => [
+  ...SNIPPETS.map((s) => ({ label: s.label, detail: s.title, kind: s.kind, insert: s.text.replace(/^\n/, ''), keywords: fold(s.keywords ?? '') })),
+  // Komponenten (eingebaute, Theme, Deck) mit ihrem Beispiel; Suchwort ist der Name, z. B. /pipeline
+  ...Object.entries(components ?? {}).map(([label, meta]): Suggestion => ({
+    label: label.charAt(0).toUpperCase() + label.slice(1), detail: meta.description ?? `Komponente ${label}`, kind: 'Komponente',
+    insert: meta.example ?? `::: ${label}\n§\n:::\n`, keywords: fold(label),
+  })),
+]
 
 export function completionAt(text: string, pos: number, opts: CompleteOptions = {}): Completion | null {
   const ls = text.lastIndexOf('\n', pos - 1) + 1
@@ -65,7 +71,7 @@ export function completionAt(text: string, pos: number, opts: CompleteOptions = 
   if (fences % 2 === 1) return null
 
   // /baustein am Zeilenanfang
-  if ((m = before.match(/^\/([\wäöüß-]*)$/))) return pick(ls, pos, 'Bausteine', bausteine(), m[1])
+  if ((m = before.match(/^\/([\wäöüß-]*)$/))) return pick(ls, pos, 'Bausteine', bausteine(opts.components), m[1])
 
   // ::: + Leertaste → Container (ein bloßes ::: schließt meist einen Block)
   if ((m = before.match(/^:{3}(\s+([\w-]*))?$/)) && (m[1] || opts.explicit)) {
@@ -84,6 +90,15 @@ export function completionAt(text: string, pos: number, opts: CompleteOptions = 
       }
     }
     return pick(ls, pos, 'Container', all, m[2] ?? '')
+  }
+
+  // Werte eines Attributs, das die Komponente im Kopf aufzählt (`values:`): ::: stage state=ru§
+  if ((m = before.match(/^:{3,}\s*([\w-]+)\s+(?:.*?\s)?([\w-]+)=([\w-]*)$/)) && (before.match(/"/g) ?? []).length % 2 === 0) {
+    const allowed = findMeta(opts.components, m[1])?.values?.[m[2]]
+    if (allowed) {
+      const all = allowed.map((label): Suggestion => ({ label, detail: `Wert für ${m![2]}`, kind: 'Wert', insert: label }))
+      return pick(pos - m[3].length, pos, `Werte für ${m[2]}`, all, m[3])
+    }
   }
 
   // Attribute eines Containers, dessen Komponente sie im Kopf beschreibt: ::: person na§

@@ -64,7 +64,7 @@ Regeln je Bereich:
 ## Architektur in Kürze
 
 ```
-src/core/      framework-unabhängig (Node + Browser), getestet: Parser, Deck-Baum, Render, Navigator, Vortragsplan, Themes, Komponenten
+src/core/      framework-unabhängig (Node + Browser), getestet: Parser, Deck-Baum, Render, Navigator, Vortragsplan, Themes, Komponenten samt Funktionen (`functions.ts`)
 src/vite/      Vite-Plugin: Deck als virtuelles Modul, File-Watcher, Hot Reload, Editor-API
 src/cli/       hashmark dev | edit | serve | build | preview | export | pdf | pptx | check
 src/runtime/   Svelte-App: Präsentation, Presenter-View, Lesemodus, Druckansicht, Editor (CodeMirror 6)

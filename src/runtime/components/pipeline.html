@@ -1,0 +1,48 @@
+{{!meta
+description: "Ablauf in Stufen mit Status und Fortschritt, z. B. Bauen, Testen, Ausrollen"
+attrs:
+  title: Überschrift über der Pipeline
+  start: Erste Schrittnummer bei steps (Standard 1)
+flags:
+  steps: Stufen nacheinander einblenden
+  summary: Anteil der erledigten Stufen neben der Überschrift zeigen
+children:
+  stage:
+    description: Eine Stufe der Pipeline
+    attrs:
+      label: Name der Stufe
+      state: "done (erledigt), run (läuft) oder open (Standard)"
+      progress: "Fortschritt der laufenden Stufe in Prozent (Standard 50)"
+      time: "Dauer oder Zeitpunkt als Text, z. B. 4:40 min"
+      step: Eigene Schrittnummer
+    required: label
+    values:
+      state: [done, run, open]
+example: |
+  ::: pipeline title="Release 4.2" summary
+  ::: stage label="Bauen" state=done time="1:12 min"
+  :::
+  ::: stage label="Testen" state=run progress=62
+  :::
+  ::: stage label="Prüfen"
+  :::
+  ::: stage label="Ausrollen"
+  :::
+  :::
+}}
+<div class="pipeline">
+  <div class="pipeline-head">
+    {{#if title}}<div class="pipeline-title">{{ title }}</div>{{/if}}
+    {{#if summary}}<div class="pipeline-summary">{{ children | share:state:done }} erledigt</div>{{/if}}
+  </div>
+  <div class="pipeline-stages">
+    {{#each children}}
+    <div class="stage stage-{{ state | default:"open" }}"{{#if step}} data-step="{{ step }}"{{/if}}>
+      <div class="stage-label">{{ label }}</div>
+      <div class="stage-bar"><i style="width: {{ progress | default:"50" | percent }}"></i></div>
+      <div class="stage-info">{{#if state is done}}✓{{/if}}{{#if state is run}}{{ progress | default:"50" | percent }}{{/if}}{{#if time}} {{ time }}{{/if}}</div>
+    </div>
+    {{/each}}
+  </div>
+  {{{ body }}}
+</div>
