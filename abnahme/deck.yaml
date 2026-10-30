@@ -1,2 +1,4 @@
-title: Abnahme – keine offene Abnahme
-theme: minimal
+title: Abnahme – Tempo der Übergänge (#25)
+theme: dark-tech
+motion:
+  speed: normal

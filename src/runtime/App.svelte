@@ -13,7 +13,7 @@
   import NavOverview from './NavOverview.svelte'
   import Search from './Search.svelte'
   import Notes from './Notes.svelte'
-  import { enter, leave } from './transitions.ts'
+  import { enter, leave, motionDuration } from './transitions.ts'
   import { openLink, type PresenterMessage } from './presenter-link.ts'
   import type { VideoInfo } from '../core/media.ts'
   import { onVideoChange, skipVideo, toggleVideo, videoInfo } from './video.ts'
@@ -38,6 +38,8 @@
 
   const node = $derived(pos ? nav.node(pos.id) : undefined)
   const trail = $derived(pos ? nav.path(pos.id) : [])
+  /** Tempo der Übergänge: `{speed=…}` der Zielfolie, sonst deck.yaml `motion: speed:`, sonst normal */
+  const speed = $derived(node?.attrs.speed ?? deck?.motion?.speed)
   const planState = $derived(node ? nav.state(node.id) : 'path')
   const tripBack = $derived(trip.length ? nav.node(trip[trip.length - 1].back.id) : undefined)
   const layout = $derived(node ? (node.layout ?? node.attrs.layout ?? deck?.layout ?? 'default') : 'default')
@@ -392,9 +394,9 @@
 
 <main class="viewport">
   {#if deck && node && pos}
-    <div class="stage" style="--scale:{scale}">
+    <div class="stage" style="--scale:{scale}; --motion-duration:{motionDuration(speed)}ms">
       {#key `${node.id}:${pos.slide}`}
-        <div class="stage-slide" in:enter={{ dir, kind: node.attrs.transition }} out:leave={{ dir, kind: node.attrs.transition }}>
+        <div class="stage-slide" in:enter={{ dir, kind: node.attrs.transition, speed }} out:leave={{ dir, kind: node.attrs.transition, speed }}>
           <Slide {node} slide={pos.slide} {layout} step={pos.step ?? 0} media={embedded ? 'still' : 'live'} />
         </div>
       {/key}

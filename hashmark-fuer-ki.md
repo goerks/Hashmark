@@ -40,6 +40,7 @@ maxDepth: 3                      # wie tief Überschriften Knoten sind (Code-Sta
 layout: default                  # Standard-Layout aller Folien
 layouts: { 1: section, 2: default }   # Layout je Ebene
 duration: 25m                    # geplante Gesamtdauer (90s, 5m, 1h30m, 1:30, Zahl = Minuten)
+motion: { speed: normal }         # Tempo der Übergänge: fast | normal | slow (Folie überschreibt mit {speed=…})
 footer: Firma · Vortrag          # Fußzeile auf jeder Folie
 slideNumber: "{n} / {total}"     # true = nur Zahl, sonst Vorlage mit {n} und {total}
 zoom: true                       # alle Bilder mit Z vergrößerbar
@@ -136,6 +137,7 @@ Formate: `key=wert`, `key="wert mit Leerzeichen"`, `.klasse` (CSS-Klasse), `#id`
 | `id=…` | eigene Sprungmarke |
 | `.klasse` | CSS-Klasse an der Folie |
 | `transition=slide\|zoom\|fade\|none` | Übergang **zu** dieser Folie |
+| `speed=fast\|normal\|slow` | Tempo dieses Übergangs (190 / 380 / 760 ms); fürs ganze Deck `motion: { speed: slow }` in der `deck.yaml`. Schritt-Einblendungen laufen im selben Tempo. Bei „Bewegung reduzieren“ im System wird automatisch nur kurz überblendet |
 | `duration=5m` | geplante Redezeit (`90s`, `5m`, `1h`) |
 | `bg=…` | Hintergrund: Farbe (`#123`, `red`), Verlauf (`linear-gradient(…)`) oder Bildpfad |
 | `bgdim=0.5` | Hintergrundbild abdunkeln (0 bis 1) |

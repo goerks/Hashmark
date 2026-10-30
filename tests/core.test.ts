@@ -762,3 +762,36 @@ describe('Komponenten im Editor: Gerüst, Prüfung, Vorschläge', () => {
     expect(completeTemplate('{{ zzz', 6)).toBeNull()
   })
 })
+
+describe('Bewegung: Tempo', () => {
+  it('liest motion.speed aus der deck.yaml und meldet Unbekanntes', async () => {
+    const ok = await loadDeck(await tempDeck({ 'deck.yaml': 'motion:\n  speed: slow\n', 'a.md': '# A' }))
+    expect(ok.deck.motion).toEqual({ speed: 'slow' })
+    expect(ok.warnings).toEqual([])
+    const bad = await loadDeck(await tempDeck({ 'deck.yaml': 'motion:\n  speed: rasend\n', 'a.md': '# A' }))
+    expect(bad.deck.motion).toBeUndefined()
+    expect(bad.warnings.join('\n')).toContain('motion.speed „rasend“')
+    const none = await loadDeck(await tempDeck({ 'a.md': '# A' }))
+    expect(none.deck.motion).toBeUndefined()
+  })
+
+  it('check und Linter kennen speed=', async () => {
+    const { staticChecks } = await import('../src/core/check.ts')
+    const result = await loadDeck(await tempDeck({ 'a.md': '# A {speed=slow}\n\n# B {speed=rasend}' }))
+    const text = staticChecks(result).map((f) => f.message).join('\n')
+    expect(text).toContain('speed „rasend“')
+    expect(text).not.toContain('Attribut „speed“')
+    const msgs = lintText('## A {speed=slwo}').map((p) => p.message).join('\n')
+    expect(msgs).toContain('Tempo „slwo“')
+    expect(lintText('## A {speed=fast}')).toEqual([])
+  })
+
+  it('Dauer je Tempo, bei reduzierter Bewegung nur kurzes Überblenden', async () => {
+    const { motionDuration, motionPlan } = await import('../src/runtime/transitions.ts')
+    expect([motionDuration('fast'), motionDuration('normal'), motionDuration('slow'), motionDuration(undefined), motionDuration('x')]).toEqual([190, 380, 760, 380, 380])
+    expect(motionPlan('right', undefined, 'slow', false)).toEqual({ kind: undefined, duration: 760 })
+    expect(motionPlan('down', 'zoom', 'slow', true)).toEqual({ kind: 'fade', duration: 120 })
+    expect(motionPlan('right', 'none', 'slow', true)).toEqual({ kind: 'none', duration: 0 })
+    expect(motionPlan('right', 'none', 'fast', false).duration).toBe(0)
+  })
+})

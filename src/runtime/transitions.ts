@@ -7,9 +7,24 @@ export interface TransitionParams {
   dir: Direction
   /** `transition=`-Attribut des Zielknotens: slide | zoom | fade | none */
   kind?: string
+  /** `speed=` des Zielknotens bzw. deck.yaml `motion: speed:`: fast | normal | slow */
+  speed?: string
 }
 
-const DURATION = 380
+/** Dauer je Tempo in ms; `normal` ist das ursprüngliche Verhalten */
+const DURATIONS: Record<string, number> = { fast: 190, normal: 380, slow: 760 }
+/** Bei reduzierter Bewegung bleibt nur ein kurzes Überblenden */
+const REDUCED_DURATION = 120
+
+export const motionDuration = (speed?: string) => DURATIONS[speed ?? 'normal'] ?? DURATIONS.normal
+
+export const prefersReducedMotion = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+
+/** Art und Dauer eines Wechsels; `reduced` ersetzt jede Bewegung durch Überblenden (außer `none`) */
+export function motionPlan(dir: Direction, kind: string | undefined, speed: string | undefined, reduced: boolean): { kind: string | undefined; duration: number } {
+  if (reduced) return { kind: kind === 'none' ? 'none' : 'fade', duration: kind === 'none' ? 0 : REDUCED_DURATION }
+  return { kind, duration: kind === 'none' ? 0 : motionDuration(speed) }
+}
 
 function frame(dir: Direction, kind: string | undefined, phase: 'in' | 'out') {
   const k = kind === 'none' || kind === 'fade' ? kind : kind === 'zoom' ? 'zoom' : dir === 'down' || dir === 'up' ? 'zoom' : dir === 'jump' ? 'fade' : 'slide'
@@ -25,12 +40,16 @@ function frame(dir: Direction, kind: string | undefined, phase: 'in' | 'out') {
   return (t: number) => `transform:scale(${from + (1 - from) * t});opacity:${t}`
 }
 
-export function enter(_node: Element, { dir, kind }: TransitionParams) {
-  const css = frame(dir, kind, 'in')
-  return css ? { duration: DURATION, easing: cubicOut, css } : { duration: 0 }
+function run(dir: Direction, kind: string | undefined, speed: string | undefined, phase: 'in' | 'out') {
+  const plan = motionPlan(dir, kind, speed, prefersReducedMotion())
+  const css = frame(dir, plan.kind, phase)
+  return css ? { duration: plan.duration, easing: cubicOut, css } : { duration: 0 }
 }
 
-export function leave(_node: Element, { dir, kind }: TransitionParams) {
-  const css = frame(dir, kind, 'out')
-  return css ? { duration: DURATION, easing: cubicOut, css } : { duration: 0 }
+export function enter(_node: Element, { dir, kind, speed }: TransitionParams) {
+  return run(dir, kind, speed, 'in')
+}
+
+export function leave(_node: Element, { dir, kind, speed }: TransitionParams) {
+  return run(dir, kind, speed, 'out')
 }

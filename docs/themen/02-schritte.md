@@ -92,6 +92,10 @@ Zeichnungen bauen sich auf, ohne dass du sie zerlegst. In einem beliebigen SVG e
 
 ::: notes
 Ohne Angabe sind die Übergänge **räumlich**, passend zum Baum: → und ← schieben die Folie seitlich, ↓ kommt das Detail aus der Tiefe, ↑ fliegt es nach vorn weg, ein Sprung (Suche, Übersicht) blendet über. Mit `transition=` legst du den Wechsel **zu** dieser Folie fest: `slide` schiebt, `zoom` fährt hinein, `fade` blendet über, `none` springt ohne Bewegung. Beim PowerPoint-Export werden Übergänge übernommen.
+
+**Tempo:** `{speed=slow}` macht den Wechsel zu dieser Folie ruhiger (760 ms, gut für den Auftritt eines Kapitels), `{speed=fast}` huscht in 190 ms vorbei, `normal` (380 ms) ist der Standard. Für das ganze Deck schreibst du in die `deck.yaml`: `motion: { speed: slow }`; `speed=` an der Folie hat Vorrang. Die Einblendungen der Schritte laufen im selben Tempo.
+
+**Bewegung reduzieren:** Hat jemand im System „Bewegung reduzieren“ eingeschaltet, überblendet Hashmark jeden Wechsel kurz (120 ms) statt zu schieben oder zu zoomen. Das geschieht automatisch, du musst nichts einstellen.
 :::
 
 ## Bild, Code und Diagramm vergrößern {id=bild-zoom}

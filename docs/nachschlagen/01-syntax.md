@@ -24,6 +24,7 @@ Die oberste Überschriftenebene jeder Datei wird auf Tiefe 1 gelegt, `maxDepth` 
 | `id=…` | eigene Sprungmarke (sonst aus dem Titel) |
 | `.klasse` | CSS-Klasse an der Folie |
 | `transition=…` | Übergang zu dieser Folie, siehe „Übergänge“ |
+| `speed=…` | Tempo des Übergangs zu dieser Folie: `fast`, `normal`, `slow` |
 | `duration=5m` | geplante Redezeit (`90s`, `5m`, `1h`) |
 | `bg=…` | Hintergrund: Farbe, Verlauf oder Bild |
 | `bgdim=0.5` | Hintergrundbild abdunkeln (0 bis 1) |
@@ -120,7 +121,7 @@ Layouts setzt du mit `{layout=…}` an der Überschrift, je Ebene in der `deck.y
 | `none` | ohne Bewegung |
 
 ::: notes
-Ohne `transition=` richtet sich der Übergang nach der Richtung: seitlich schieben bei → und ←, zoomen bei ↓ und ↑, überblenden bei Sprüngen. Der Übergang gilt für den Wechsel zu der Folie, an der er steht.
+Ohne `transition=` richtet sich der Übergang nach der Richtung: seitlich schieben bei → und ←, zoomen bei ↓ und ↑, überblenden bei Sprüngen. Der Übergang gilt für den Wechsel zu der Folie, an der er steht. Das Tempo stellst du mit `speed=` ein (`fast` 190 ms, `normal` 380 ms, `slow` 760 ms), fürs ganze Deck mit `motion: speed:` in der `deck.yaml`.
 :::
 
 ## Bilder und Video {id=bild-attribute}

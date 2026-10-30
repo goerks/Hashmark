@@ -1,8 +1,8 @@
 // Wortschatz der Hashmark-Syntax für Editor-Vorschläge und Linter. Die Listen der Laufzeit (check.ts) bleiben die Quelle.
 
-import { BUILTIN_LAYOUTS, KNOWN_ATTRS, TRANSITIONS } from './check.ts'
+import { BUILTIN_LAYOUTS, KNOWN_ATTRS, SPEEDS, TRANSITIONS } from './check.ts'
 
-export { BUILTIN_LAYOUTS, KNOWN_ATTRS, TRANSITIONS }
+export { BUILTIN_LAYOUTS, KNOWN_ATTRS, SPEEDS, TRANSITIONS }
 
 export const LAYOUT_INFO: Record<string, string> = {
   title: 'Titelfolie, groß und mittig',
@@ -58,6 +58,7 @@ export const ATTR_INFO: { label: string; detail: string; insert: string; chain?:
   { label: 'bgdim=', detail: 'Bild abdunkeln, z. B. 0.5', insert: 'bgdim=0.5' },
   { label: 'duration=', detail: 'Zeitplan, z. B. 5m', insert: 'duration=5m' },
   { label: 'transition=', detail: 'Übergang zu dieser Folie', insert: 'transition=', chain: true },
+  { label: 'speed=', detail: 'Tempo des Übergangs: fast, normal oder slow', insert: 'speed=', chain: true },
   { label: '.klasse', detail: 'CSS-Klasse anhängen', insert: '.klasse' },
 ]
 

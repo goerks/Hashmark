@@ -16,6 +16,7 @@
 | `footer` | Fußzeile auf jeder Folie |
 | `slideNumber` | Folienzahl: `true` oder Vorlage `"{n} / {total}"` |
 | `mount` | Dateien und Reihenfolge, `under:` hängt unter einen Knoten |
+| `motion` | Bewegung: `speed: fast \| normal \| slow` für alle Übergänge |
 | `zoom` | alle Bilder mit Z vergrößerbar |
 | `embedImages` | alle Bilder einbetten |
 | `embedMedia` | Videos in die HTML-Datei einbetten (bis 25 MB) |

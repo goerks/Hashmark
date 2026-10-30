@@ -349,7 +349,9 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* ---------- Schritte (::: steps, Code steps="…", Mermaid %% step) ---------- */
 
-[data-step] { transition: opacity 0.35s ease, visibility 0.35s; }
+/* Tempo kommt von der Bühne (--motion-duration, siehe App.svelte); 350 ms bei normalem Tempo */
+[data-step] { transition: opacity calc(var(--motion-duration, 380ms) * 0.92) ease, visibility calc(var(--motion-duration, 380ms) * 0.92); }
+@media (prefers-reduced-motion: reduce) { [data-step] { transition-duration: 120ms; } }
 .step-hidden { opacity: 0; visibility: hidden; }
 /* Code: neu hinzugekommene Zeilen kurz hervorheben */
 .code-block pre:has(.line[data-step]) .line { display: inline-block; width: 100%; }
