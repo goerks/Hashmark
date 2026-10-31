@@ -73,24 +73,32 @@ function typeOf(src: string): string {
   return src.split(/\r?\n/).find((l) => l.trim() && !l.trim().startsWith('%%') && !l.trim().startsWith('---'))?.trim().split(/[\s;]/)[0] ?? ''
 }
 
-/** Die `id`s von Knoten, Gruppen und Kanten einer gerenderten Version */
-function partIds(svg: string): Set<string> {
+/** `id` ohne die Kennung des SVG davor (Mermaid stellt sie je Rendern voran, `mermaid-12-flowchart-A-0`), damit Versionen vergleichbar sind */
+function keyOf(id: string, svgId: string): string {
+  return svgId && id.startsWith(svgId) ? id.slice(svgId.length).replace(/^[-_]/, '') : id
+}
+
+/** Die Schlüssel von Knoten, Gruppen und Kanten einer gerenderten Version */
+function partKeys(svg: string): Set<string> {
   const t = document.createElement('template')
   t.innerHTML = svg
-  return new Set([...t.content.querySelectorAll(PARTS)].map((e) => e.id))
+  const svgId = t.content.querySelector('svg')?.id ?? ''
+  return new Set([...t.content.querySelectorAll(PARTS)].map((e) => keyOf(e.id, svgId)))
 }
 
 /**
- * Version `ids` im Layout der letzten Version zeigen: was es in dieser Version noch nicht gibt, ist ausgeblendet.
+ * Version `keys` im Layout der letzten Version zeigen: was es in dieser Version noch nicht gibt, ist ausgeblendet.
  * Dadurch verschiebt sich beim Weiterschalten nichts. Was gegenüber der vorigen Version neu ist, bekommt `data-new`
  * (Aufwachsen bzw. Zeichnen, siehe base.css).
  */
-function showVersion(state: HTMLElement, ids: Set<string>, before: Set<string> | undefined) {
+function showVersion(state: HTMLElement, keys: Set<string>, before: Set<string> | undefined) {
+  const svgId = state.querySelector('svg')?.id ?? ''
   const parts = [...state.querySelectorAll<SVGElement>(PARTS)]
   for (const el of parts) {
+    const key = keyOf(el.id, svgId)
     const edge = el.tagName.toLowerCase() === 'path'
-    if (!ids.has(el.id)) el.style.display = 'none'
-    else if (before && !before.has(el.id)) {
+    if (!keys.has(key)) el.style.display = 'none'
+    else if (before && !before.has(key)) {
       el.dataset.new = edge ? 'edge' : 'node'
       if (edge) el.setAttribute('pathLength', '1')
     }
@@ -98,10 +106,11 @@ function showVersion(state: HTMLElement, ids: Set<string>, before: Set<string> |
   // Kantenbeschriftungen gehören zur Kante gleicher Reihenfolge (oder zur `data-id` im Label)
   const edges = parts.filter((e) => e.tagName.toLowerCase() === 'path')
   state.querySelectorAll<SVGElement>('.edgeLabels > g').forEach((label, i) => {
-    const id = label.querySelector('[data-id]')?.getAttribute('data-id') ?? edges[i]?.id
-    if (!id) return
-    if (!ids.has(id)) label.style.display = 'none'
-    else if (before && !before.has(id)) label.dataset.new = 'node'
+    const raw = label.querySelector('[data-id]')?.getAttribute('data-id')
+    const key = raw ? keyOf(raw, svgId) : edges[i] ? keyOf(edges[i].id, svgId) : ''
+    if (!key) return
+    if (!keys.has(key)) label.style.display = 'none'
+    else if (before && !before.has(key)) label.dataset.new = 'node'
   })
 }
 
@@ -144,24 +153,27 @@ export async function renderMermaid(root: HTMLElement) {
       }
       rendered.push({ pre, src, svg })
     }
-    // Flussdiagramme mit Schritten: jede Version im Layout der letzten, damit nichts springt
+    // Flussdiagramme mit Schritten: jede Version im Layout der letzten, damit nichts springt.
+    // Nur wenn jede Version eine Teilmenge der letzten ist; sonst (z. B. etwas entfällt, andere Kennungen) bleibt es bei einer eigenen Zeichnung je Version.
     const last = [...rendered].reverse().find((r) => r.svg && !r.svg.includes('mermaid-error'))
-    const stable = stepped && !!last && STABLE_TYPES.includes(typeOf(last.src)) && partIds(last.svg).size > 0
+    const keys = rendered.map((r) => (r.svg && !r.svg.includes('mermaid-error') ? partKeys(r.svg) : new Set<string>()))
+    const finalKeys = last ? partKeys(last.svg) : new Set<string>()
+    const stable = stepped && !!last && STABLE_TYPES.includes(typeOf(last.src)) && finalKeys.size > 0
+      && keys.every((k) => [...k].every((x) => finalKeys.has(x)))
     let before: Set<string> | undefined
-    for (const { pre, svg } of rendered) {
-      if (!pre.isConnected) continue
+    rendered.forEach(({ pre, svg }, index) => {
+      if (!pre.isConnected) return
       const state = document.createElement('div')
       state.className = 'mermaid-state'
       if (pre.dataset.step) state.dataset.step = pre.dataset.step
       if (pre.dataset.until) state.dataset.until = pre.dataset.until
       if (stable) {
-        const ids = svg ? partIds(svg) : new Set<string>()
         state.innerHTML = last!.svg
-        showVersion(state, ids, before)
-        before = ids
+        showVersion(state, keys[index], before)
+        before = keys[index]
       } else state.innerHTML = svg
       pre.replaceWith(state)
-    }
+    })
     block.dataset.rendered = ''
   }
 }
