@@ -1,16 +1,16 @@
 # Hashmark {layout=title}
 
-![Logo](logo.svg){morph=logo width=200}
+![Logo](logo.svg){morph=logo class=logo-gross}
 
 Mächtige Präsentationen aus reinem Markdown
 
 ::: notes
-Prüfen: Das ist dasselbe Beispiel wie in der Vorschau. Mit → gehst du durch die Folien, mit ← zurück. Hier steht das große Logo und der Titel in der Mitte. Auf der nächsten Folie wandern beide in die Ecke, der Titel wird zu „Architektur“.
+Prüfen: Das ist dasselbe Beispiel wie in der Vorschau. Mit → gehst du durch die Folien, mit ← zurück. Hier steht das große Logo oben und der Titel in der Mitte. Auf der nächsten Folie wandern beide: das Logo klein nach oben rechts, der Titel in die Ecke oben links, dabei wird er zu „Architektur“.
 :::
 
 # Architektur {id=kennzahlen}
 
-![Logo](logo.svg){morph=logo width=64}
+![Logo](logo.svg){morph=logo class=logo-ecke}
 
 ::: cards cols=3
 ::: card morph=kunden title="Kunden"
@@ -25,14 +25,14 @@ Prüfen: Das ist dasselbe Beispiel wie in der Vorschau. Mit → gehst du durch d
 :::
 
 ::: notes
-Prüfen: Logo und Titel sind aus der Mitte in die Ecke gewandert. Auf der nächsten Folie ordnen sich die drei Karten neu an. Eingestellt ist das mit `{morph=logo}` am Bild und `morph=kunden`, `morph=quote`, `morph=antwort` an den Karten. Der Titel braucht keinen Namen.
+Prüfen: Logo und Titel sind an ihren neuen Platz gewandert. Mit → ordnen sich die drei Karten neu an. Eingestellt ist das mit `{morph=logo}` am Bild und `morph=kunden`, `morph=quote`, `morph=antwort` an den Karten. Der Titel braucht keinen Namen.
 :::
 
 # Architektur {id=schwerpunkt}
 
-![Logo](logo.svg){morph=logo width=64}
+![Logo](logo.svg){morph=logo class=logo-ecke}
 
-::: columns
+::: columns class=raster
 ::: col
 ::: card morph=quote title="Quote"
 94 %
@@ -48,18 +48,20 @@ Prüfen: Logo und Titel sind aus der Mitte in die Ecke gewandert. Auf der nächs
 :::
 :::
 
+*Drücke ↓: Die Karte „Quote“ wird zum Detail.*
+
 ::: notes
-Prüfen: Die Karten sind an ihre neue Stelle gewandert, „Quote“ steht jetzt links, die anderen zwei untereinander rechts. Der Titel bleibt stehen, er ist an derselben Stelle. Mit ↓ gelangst du in das Detail zur Karte „Quote“, mit ↑ wieder zurück.
+Prüfen: Die Karten sind an ihre neue Stelle gewandert: „Quote“ links groß, die anderen zwei untereinander rechts. Der Titel bleibt stehen. Jetzt das Eintauchen testen: ↓ führt in das Detail zur Karte „Quote“, ↑ wieder heraus. Direkt zum Detail geht die Adresse mit `#schwerpunkt/detail` am Ende, zum Nachlesen `/?reader`.
 :::
 
 ## Quote im Detail {id=detail}
 
-::: card morph=quote title="Quote"
+::: card morph=quote title="Quote" class=riesig
 94 %
 :::
 
 ::: notes
-Prüfen: Die Karte „Quote“ wird auf dem Weg ins Detail zur großen Karte (gleicher Name, `morph=quote`). Mit ↑ schrumpft sie zurück an ihre Stelle.
+Prüfen: Die Karte „Quote“ ist auf dem Weg ins Detail zur großen Karte geworden (gleicher Name, `morph=quote`). Mit ↑ schrumpft sie zurück an ihren Platz auf der Folie „Schwerpunkt“. Mit → geht es von hier nicht weiter, das Detail gehört zu „Schwerpunkt“.
 :::
 
 # Code {id=code-1}

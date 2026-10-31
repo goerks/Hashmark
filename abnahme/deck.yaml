@@ -1,2 +1,4 @@
 title: Abnahme – Auto-Animate (#34)
-theme: dark-tech
+theme:
+  extends: dark-tech
+  css: ./vorschau.css

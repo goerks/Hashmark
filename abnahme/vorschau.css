@@ -1,0 +1,29 @@
+/* Abnahme zu Auto-Animate: sieht aus wie die Vorschau (Logo oben, Karten mit großem Wert, Quote links groß) */
+
+/* Logo: groß oben auf der Titelfolie, klein oben rechts auf den anderen (beide tragen morph=logo) */
+.slide img[data-morph="logo"] { border-radius: 22%; display: block; margin: 0; }
+.slide .logo-gross { position: absolute; left: 540px; top: 96px; width: 200px; height: 200px; }
+.slide .logo-ecke { position: absolute; right: 80px; top: 34px; width: 64px; height: 64px; }
+
+/* Karten: der Wert groß oben, die Beschriftung klein darunter */
+.d-card { flex-direction: column; justify-content: center; min-height: 270px; padding: 0 30px; border: 2px solid #2c3a6b; }
+.d-card .d-card-body { flex-direction: column-reverse; gap: 8px; }
+.d-card .card-title { font-size: 26px; font-weight: 400; color: var(--color-muted); }
+.d-card .d-card-body > p { font-size: 96px; font-weight: 700; line-height: 1; color: var(--color-heading); }
+.d-card[data-morph="quote"] { background: var(--color-accent); border-color: transparent; }
+.d-card[data-morph="quote"] .card-title { color: rgba(255, 255, 255, 0.8); }
+.d-card[data-morph="quote"] .d-card-body > p { color: #fff; }
+
+/* Folie „Schwerpunkt“: Quote groß links, die anderen zwei untereinander rechts */
+.raster { grid-auto-flow: unset; grid-template-columns: 3fr 2fr; align-items: stretch; min-height: 440px; }
+.raster .d-col:first-child .d-card { flex: 1; }
+.raster .d-col:first-child .d-card-body > p { font-size: 150px; }
+.raster .d-col:last-child .d-card { flex: 1; min-height: 0; }
+.raster .d-col:last-child .d-card-body > p { font-size: 72px; }
+
+/* Detail: die Karte füllt die Folie */
+.d-card.riesig { min-height: 440px; }
+.d-card.riesig .d-card-body > p { font-size: 220px; }
+
+/* Hinweis auf das Detail: der Absatz unter den Karten */
+.layout-default .content > p:last-child { color: var(--color-muted); font-size: 24px; margin: 0; }
