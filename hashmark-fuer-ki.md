@@ -40,7 +40,7 @@ maxDepth: 3                      # wie tief Überschriften Knoten sind (Code-Sta
 layout: default                  # Standard-Layout aller Folien
 layouts: { 1: section, 2: default }   # Layout je Ebene
 duration: 25m                    # geplante Gesamtdauer (90s, 5m, 1h30m, 1:30, Zahl = Minuten)
-motion: { speed: normal, effect: fade }   # Tempo der Übergänge (fast | normal | slow) und Auftritt der Schritte (fade | up | left | scale | highlight | dim); die Folie überschreibt mit {speed=…} bzw. {effect=…}
+motion: { speed: normal, effect: fade }   # Tempo der Übergänge (fast | normal | slow) und Auftritt der Schritte (fade | up | left | scale | wipe | highlight | dim); die Folie überschreibt mit {speed=…} bzw. {effect=…}
 footer: Firma · Vortrag          # Fußzeile auf jeder Folie
 slideNumber: "{n} / {total}"     # true = nur Zahl, sonst Vorlage mit {n} und {total}
 zoom: true                       # alle Bilder mit Z vergrößerbar
@@ -137,7 +137,7 @@ Formate: `key=wert`, `key="wert mit Leerzeichen"`, `.klasse` (CSS-Klasse), `#id`
 | `id=…` | eigene Sprungmarke |
 | `.klasse` | CSS-Klasse an der Folie |
 | `transition=slide\|zoom\|fade\|none` | Übergang **zu** dieser Folie |
-| `effect=fade\|up\|left\|scale\|highlight\|dim` | Auftritt aller Schritte dieser Folie (Standard `fade`); gilt auch als Container-Attribut (`::: steps effect=up`), fürs Deck `motion: { effect: up }` |
+| `effect=fade\|up\|left\|scale\|wipe\|highlight\|dim` | Auftritt aller Schritte dieser Folie (Standard `fade`); gilt auch als Container-Attribut (`::: steps effect=up`), fürs Deck `motion: { effect: up }` |
 | `speed=fast\|normal\|slow` | Tempo dieses Übergangs (190 / 380 / 760 ms); fürs ganze Deck `motion: { speed: slow }` in der `deck.yaml`. Schritt-Einblendungen laufen im selben Tempo. Bei „Bewegung reduzieren“ im System wird automatisch nur kurz überblendet |
 | `duration=5m` | geplante Redezeit (`90s`, `5m`, `1h`) |
 | `bg=…` | Hintergrund: Farbe (`#123`, `red`), Verlauf (`linear-gradient(…)`) oder Bildpfad |
@@ -439,7 +439,7 @@ Eine Folie hat Schritte 0..n. → blendet den nächsten ein, ← zurück. **Glei
 | Komponente | `steps` blendet Kinder nacheinander ein (`kpis`, `pipeline`, `gantt`, `checklist`, `timeline` …); `::: states` hebt je Schritt einen Zustand hervor (`at=2`, `then=4`) |
 | Zoom-Kamera | `{zoomstep=2 zoomuntil=3}` am Bild |
 
-**Effekte für Schritte:** `effect=` bestimmt, *wie* ein Schritt erscheint: `fade` (Standard), `up` (von unten), `left` (von links), `scale` (wächst auf), `highlight` (der neue Punkt leuchtet), `dim` (Früheres wird leiser). Es steht an der Folie (`## Titel {steps effect=up}`), an einem Container (`::: steps effect=up`, `::: cards effect=scale`) oder im Deck (`motion: { effect: up }`); das Nächstliegende gilt. `stagger` an einem Container versetzt Elemente mit gleicher Schrittnummer um 80 ms (`::: cards stagger` mit `::: card step=1` an jeder Karte), `delay=300ms` verzögert einen Auftritt. Tempo siehe `speed=`; bei „Bewegung reduzieren“ im System werden alle Wege weggelassen. Im PDF, Lesemodus und PowerPoint-Export bleibt es beim Einblenden bzw. Endzustand.
+**Effekte für Schritte:** `effect=` bestimmt, *wie* ein Schritt erscheint: `fade` (Standard), `up` (von unten), `left` (von links), `scale` (wächst auf), `wipe` (von links nach rechts aufgedeckt), `highlight` (der neue Punkt leuchtet), `dim` (Früheres wird leiser). Es steht an der Folie (`## Titel {steps effect=up}`), an einem Container (`::: steps effect=up`, `::: cards effect=scale`) oder im Deck (`motion: { effect: up }`); das Nächstliegende gilt. `stagger` an einem Container versetzt Elemente mit gleicher Schrittnummer um 80 ms (`::: cards stagger` mit `::: card step=1` an jeder Karte), `delay=300ms` verzögert einen Auftritt. Tempo siehe `speed=`; bei „Bewegung reduzieren“ im System werden alle Wege weggelassen. **Ohne `effect=`** treten Bausteine passend zur Form auf: `process`, `pipeline`, `gantt`, `roadmap` wischen von links auf, `timeline` gleitet von links, `kpis` wachsen als Welle auf, `checklist` schwebt von unten, `pyramid` baut sich von unten auf; in Zeichnungen (`steps=layers|groups|ids`) zeichnen sich die Linien jeder neuen Ebene, in Mermaid mit `%% step` wachsen neue Knoten auf und neue Kanten zeichnen sich. `effect=fade` (Folie, Container oder Deck) schaltet das ab. `::: kpis countup` lässt die Zahlen beim Auftritt von 0 hochlaufen. Im PDF, Lesemodus und PowerPoint-Export bleibt es beim Einblenden bzw. Endzustand.
 
 Code-Abschnitte: `|` trennt Schritte, `,` mehrere Zeilen, `-` Bereich (`"1,6|2-3"`); Zeilen ohne Schritt stehen von Anfang an; `all` hebt die Hervorhebung auf.
 
