@@ -9,7 +9,7 @@
 | O | Übersicht des Baums |
 
 ::: notes
-Eine Hashmark-Präsentation ist ein Baum aus Überschriften. Du erzählst den Hauptpfad und entscheidest im Vortrag, wo du ins Detail gehst. Unten rechts zeigt ein **Steuerkreuz** auf jeder Folie, welche Richtungen möglich sind; nicht mögliche sind ausgegraut. **H** blendet es aus.
+Eine Hashmark-Präsentation ist ein Baum aus Überschriften. Du erzählst den Hauptpfad und entscheidest im Vortrag, wo du ins Detail gehst. Auf der Folie bleibt es ruhig: unten ein dünner Fortschrittsbalken, rechts „12 / 31“, links „↓ 3 Details“, wenn es welche gibt. Bewegst du die Maus oder drückst eine Taste, erscheint unten rechts eine Karte mit dem Ziel von Space und einem **Steuerkreuz**, das zeigt, welche Richtungen möglich sind (nicht mögliche sind ausgegraut). Nach 3 Sekunden verschwindet sie wieder. **H** blendet alle Hinweise aus.
 
 In diesem Kapitel: wie Überschriften zu Knoten werden, wie Ausflüge funktionieren, wie du eine Folie teilst, wie du mehrere Dateien zusammenstellst und wie du im Vortrag springst.
 :::

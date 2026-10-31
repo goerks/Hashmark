@@ -20,7 +20,7 @@
 | P in der Presenter-View | Vortragsplan bearbeiten |
 | B oder . | Bildschirm schwarz |
 | F oder F5 | Vollbild |
-| H | Steuerkreuz aus / an |
+| H | Navigationshinweise aus / an |
 | ? | Hilfe mit allen Tasten |
 
 ---
@@ -36,7 +36,7 @@
 | Wischen (Touch) | links weiter, rechts zurück |
 
 ::: notes
-Unten rechts zeigt ein Steuerkreuz auf jeder Folie, welche Richtungen möglich sind; nicht mögliche Richtungen sind ausgegraut. Bild ab und Bild auf verhalten sich wie Space, damit Presenter-Fernbedienungen funktionieren. Am Telefon oder Tablet: Antippen eines Bildes, Codeblocks, Diagramms oder einer Tabelle zoomt hinein, zwei Finger spreizen zoomt, ein Finger verschiebt.
+Dauerhaft stehen nur ein dünner Fortschrittsbalken, die Position („12 / 31“) und, falls vorhanden, „↓ 3 Details“ auf der Folie. Bei Mausbewegung oder Tastendruck erscheint unten rechts für 3 Sekunden eine Karte mit dem Ziel von Space und einem Steuerkreuz; nicht mögliche Richtungen sind ausgegraut. Auf Touchgeräten bleibt das Steuerkreuz sichtbar. Mit verbundener Presenter-View entfallen alle Hinweise; im PDF steht unten rechts nur die Seitenzahl. Bild ab und Bild auf verhalten sich wie Space, damit Presenter-Fernbedienungen funktionieren. Am Telefon oder Tablet: Antippen eines Bildes, Codeblocks, Diagramms oder einer Tabelle zoomt hinein, zwei Finger spreizen zoomt, ein Finger verschiebt.
 
 **?** zeigt in der Präsentation jederzeit die vollständige Liste.
 :::
