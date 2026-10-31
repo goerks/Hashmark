@@ -1,4 +1,2 @@
-title: Abnahme – Auto-Animate (#34)
-theme:
-  extends: dark-tech
-  css: ./vorschau.css
+title: Abnahme – keine offene Abnahme
+theme: minimal
