@@ -79,6 +79,8 @@ export function lintText(text: string, opts: LintOptions = {}): Problem[] {
           } else if (key === 'plan' && !(PLAN_STATES as readonly string[]).includes(val)) {
             const fix = nearest(val, PLAN_STATES)
             problems.push({ ...at(valCol, val.length), severity: 'error', message: `Plan „${val}“ ist unbekannt (${PLAN_STATES.join(', ')}).${meant(fix)}`, fix })
+          } else if (key === 'morph' && !/^[\w-]+$/.test(val)) {
+            problems.push({ ...at(valCol, val.length), severity: 'warning', message: `Morph-Name „${val}“ ist ungültig (Buchstaben, Ziffern, _ und -, oder off).` })
           } else if (key === 'effect' && !EFFECTS.includes(val)) {
             const fix = nearest(val, EFFECTS)
             problems.push({ ...at(valCol, val.length), severity: 'warning', message: `Effekt „${val}“ ist unbekannt (${EFFECTS.join(', ')}).${meant(fix)}`, fix })

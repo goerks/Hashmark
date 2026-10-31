@@ -129,6 +129,32 @@ Die auffälligen Übergänge (`iris`, `curtain`, `diagonal`, `mosaic`, `blinds`)
 **Bewegung reduzieren:** Hat jemand im System „Bewegung reduzieren“ eingeschaltet, überblendet Hashmark jeden Wechsel kurz (120 ms) statt zu schieben oder zu zoomen. Das geschieht automatisch, du musst nichts einstellen.
 :::
 
+## Elemente wandern {id=auto-animate}
+
+````md
+## Architektur {morph=titel}
+
+![Logo](logo.svg){morph=logo}
+
+::: card morph=quote title="Quote"
+94 %
+:::
+
+```ts {morph=code}
+const baum = lesen(deck)
+```
+````
+
+::: notes
+**Auto-Animate** lässt ein Element, das auf der nächsten Folie wieder vorkommt, dorthin wandern, statt zu verschwinden und neu zu erscheinen.
+
+- **Der Folientitel wandert von selbst.** Steht er auf der nächsten Folie an einer anderen Stelle oder in anderer Größe (z. B. von der Mitte der Titelfolie in die Ecke), fliegt er hin, auch mit anderem Text. Mit `{morph=off}` an der Folie oder `motion: { morph: off }` in der `deck.yaml` bleibt er, wo er ist.
+- **`morph=name` benennt ein Element.** An Bildern (`{morph=logo}`), Containern wie Karten (`::: card morph=quote`), Code-Blöcken und der Überschrift. Trägt die nächste Folie ein Element mit demselben Namen, wandert es dorthin, in neuer Größe und an neuer Stelle. Das geht auch von einer Kapitelfolie in ihr Detail: Die Karte wird zur ganzen Folie. Ein Logo hat Hashmark nicht als eigenes Element, es wandert, wenn es einen Namen trägt.
+- **Code-Blöcke mit gleichem Namen ordnen ihre Zeilen zu.** Gleiche Zeilen rutschen an ihren neuen Platz, neue blenden ein. So sieht man, was sich geändert hat.
+
+Der Rest der Folie blendet kurz um. Bewegt sich nichts (alles an derselben Stelle), gilt der normale Übergang. Das Tempo stellst du mit `speed=` ein, bei „Bewegung reduzieren“ im System gibt es nur Überblenden. Im PDF, Druck und Lesemodus ändert sich nichts, beim PowerPoint-Export wird übergeblendet.
+:::
+
 ## Bild, Code und Diagramm vergrößern {id=bild-zoom}
 
 ````md

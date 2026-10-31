@@ -26,6 +26,7 @@ Die oberste Überschriftenebene jeder Datei wird auf Tiefe 1 gelegt, `maxDepth` 
 | `transition=…` | Übergang zu dieser Folie (`push`, `blur`, `iris` …), siehe „Übergänge“ |
 | `effect=…` | Auftritt der Schritte dieser Folie: `fade`, `up`, `left`, `scale`, `wipe`, `highlight`, `dim` (siehe „Effekte für Schritte“) |
 | `speed=…` | Tempo des Übergangs zu dieser Folie: `fast`, `normal`, `slow` |
+| `morph=…` | Auto-Animate: Name des Titels (wandert zur gleichnamigen Stelle der nächsten Folie) oder `off` (Titel wandert nicht), siehe „Elemente wandern“ |
 | `duration=5m` | geplante Redezeit (`90s`, `5m`, `1h`) |
 | `bg=…` | Hintergrund: Farbe, Verlauf oder Bild |
 | `bgdim=0.5` | Hintergrundbild abdunkeln (0 bis 1) |

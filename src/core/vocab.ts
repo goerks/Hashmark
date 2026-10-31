@@ -66,6 +66,7 @@ export const ATTR_INFO: { label: string; detail: string; insert: string; chain?:
   { label: 'transition=', detail: 'Übergang zu dieser Folie: push, blur, iris, curtain, diagonal …', insert: 'transition=', chain: true },
   { label: 'speed=', detail: 'Tempo des Übergangs: fast, normal oder slow', insert: 'speed=', chain: true },
   { label: 'effect=', detail: 'Auftritt der Schritte: fade, up, left, scale, wipe, highlight oder dim', insert: 'effect=', chain: true },
+  { label: 'morph=', detail: 'Auto-Animate: Name des Elements, das zur nächsten Folie wandert (off = Titel bleibt)', insert: 'morph=' },
   { label: '.klasse', detail: 'CSS-Klasse anhängen', insert: '.klasse' },
 ]
 
