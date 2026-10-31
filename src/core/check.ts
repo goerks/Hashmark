@@ -18,7 +18,8 @@ export const BUILTIN_LAYOUTS = [
 ]
 /** Attribute einer Überschrift `{…}`, die Hashmark kennt */
 export const KNOWN_ATTRS = ['layout', 'id', 'class', 'transition', 'duration', 'bg', 'bgdim', 'steps', 'fit', 'optional', 'appendix', 'plan', 'banner', 'bannerpos', 'bannerh', 'footer', 'speed', 'effect']
-export const TRANSITIONS = ['slide', 'zoom', 'fade', 'none']
+/** Übergang zu einer Folie (`transition=…`, deck.yaml `motion: transition:`); ohne Angabe schiebt → ←, ↓ ↑ zeigt Tiefe (`depth`) */
+export const TRANSITIONS = ['slide', 'zoom', 'fade', 'none', 'push', 'cover', 'reveal', 'blur', 'iris', 'curtain', 'diagonal', 'mosaic', 'blinds', 'depth']
 /** Tempo der Übergänge und Schritt-Einblendungen (`{speed=…}`, deck.yaml `motion: speed:`) */
 export const SPEEDS = ['fast', 'normal', 'slow']
 /** Auftritt der Schritte (`effect=…` an Folie, Container oder im Deck): fade ist der Standard */

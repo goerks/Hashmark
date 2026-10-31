@@ -236,8 +236,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 /* ---------- Bedienelemente ---------- */
 
 .breadcrumb {
-  position: absolute; top: 22px; left: 80px; right: 80px;
-  display: flex; align-items: center; gap: 8px;
+  position: absolute; z-index: 3; top: 22px; left: 80px; right: 80px;  display: flex; align-items: center; gap: 8px;
   font-size: 16px; color: var(--color-muted); white-space: nowrap; overflow: hidden;
 }
 .breadcrumb button:hover { color: var(--color-accent); }
