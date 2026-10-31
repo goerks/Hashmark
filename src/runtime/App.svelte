@@ -45,7 +45,6 @@
   const planState = $derived(node ? nav.state(node.id) : 'path')
   const tripBack = $derived(trip.length ? nav.node(trip[trip.length - 1].back.id) : undefined)
   const layout = $derived(node ? (node.layout ?? node.attrs.layout ?? deck?.layout ?? 'default') : 'default')
-  const stepCount = $derived(pos ? stepsOf(node, pos.slide) : 0)
   let controlsHidden = $state(false)
   let black = $state(false)
   let help = $state(false)
@@ -340,6 +339,7 @@
 
   onMount(() => {
     fit()
+    wake()
     void loadPlanFile().then(applyPlan)
     const ticker = setInterval(() => (tick = Date.now()), 500)
     const onHash = () => {
@@ -415,28 +415,26 @@
         {:else if planState !== 'path'}
           <span class="plan-tag {planState}" title="Space überspringt diese Folie; sie ist nur über ↓, Suche oder Übersicht erreichbar">{PLAN_LABEL[planState]}</span>
         {/if}
-        {#if !withPresenter}<span class="subslide">
-          {#if stepCount}
-            <span class="step-dots" title="Schritt {pos.step ?? 0} von {stepCount}">
-              {#each { length: stepCount } as _, i (i)}<i class:done={i < (pos.step ?? 0)}></i>{/each}
-            </span>
-          {/if}
-          {#if node.slides.length > 1}{pos.slide + 1}/{node.slides.length}{/if}
-        </span>{/if}
       </nav>
 
       {#if desktop && !embedded && !dimmed}
         <button class="end-show" onclick={() => void desktopAction({ action: 'close' })} title="Präsentation beenden (Strg+W)">✕ Beenden</button>
       {/if}
 
-      <footer class="status">
-        {#if node.children.length && !withPresenter}
-          <button class="children-hint" onclick={() => go(nav.down(pos!))} title="↓ abtauchen">
-            <span class="dots">{#each node.children as c (c.id)}<i class:off={!nav.onPath(c.id)}></i>{/each}</span>
-            ↓ {node.children.length} {node.children.length === 1 ? 'Detail' : 'Details'}
-          </button>
-        {/if}
-      </footer>
+      <!-- Ruhezustand unten: Details links, Position rechts, dünner Fortschrittsbalken. Alles Weitere steht in der Karte (NavControls). -->
+      {#if !withPresenter && !controlsHidden}
+        {@const p = nav.progress(pos)}
+        <footer class="status">
+          {#if node.children.length}
+            <button class="children-hint" onclick={() => go(nav.down(pos!))} title="↓ abtauchen">
+              <span class="dots">{#each node.children as c (c.id)}<i class:off={!nav.onPath(c.id)}></i>{/each}</span>
+              ↓ {node.children.length} {node.children.length === 1 ? 'Detail' : 'Details'}
+            </button>
+          {/if}
+          <span class="progress" title="Folie {p.index} von {p.total} · Kapitel {topIndex + 1} von {nav.nodes.length}">{p.index} / {p.total}</span>
+        </footer>
+        <div class="progress-bar" aria-hidden="true"><b style="width:{(p.index / p.total) * 100}%"></b></div>
+      {/if}
 
       {#if tripBack && !withPresenter}
         <div class="trip-bar" role="status">
@@ -445,16 +443,9 @@
         </div>
       {/if}
 
-      <!-- in der Bühne, im freien Randstreifen unten rechts: überdeckt nie Inhalt, skaliert mit -->
+      <!-- Karte unten rechts: Space-Ziel und Steuerkreuz, nur bei Mausbewegung oder Taste (3 s) -->
       {#if controls && !controlsHidden && !withPresenter}
-        {@const p = nav.progress(pos)}
-        <NavControls
-          {controls}
-          progress="{p.index} / {p.total}"
-          chapter="Kapitel {topIndex + 1} / {nav.nodes.length}"
-          {dimmed}
-          onmove={moveBy}
-        />
+        <NavControls {controls} awake={!dimmed} onmove={moveBy} />
       {/if}
     </div>
   {:else if !error}

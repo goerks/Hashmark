@@ -6,16 +6,13 @@
 </script>
 
 <script lang="ts">
-  // Steuerkreuz: zeigt, wohin es von hier aus geht, und ist klickbar.
+  // Karte mit Steuerkreuz: zeigt, wohin es von hier aus geht, und ist klickbar.
+  // Erscheint bei Mausbewegung oder Taste und zieht sich nach 3 s zurück (awake); Position und Details stehen dauerhaft in der Fußzeile.
 
-  let { controls, progress, chapter, dimmed, onmove }: {
+  let { controls, awake, onmove }: {
     controls: Record<ControlKey, Control>
-    /** Folie in Lesereihenfolge, z. B. "12 / 31" */
-    progress: string
-    /** Kapitel auf dem Hauptpfad, z. B. "Kapitel 4 / 8" */
-    chapter: string
-    /** nach einer Weile ohne Maus/Tasten zurückhaltender */
-    dimmed: boolean
+    /** Maus oder Tasten waren zuletzt aktiv */
+    awake: boolean
     onmove: (key: ControlKey) => void
   } = $props()
 
@@ -30,7 +27,7 @@
   ]
 </script>
 
-<nav class="nav-controls" class:dimmed aria-label="Navigation">
+<nav class="nav-controls" class:gone={!awake} aria-label="Navigation">
   <div class="nc-info">
     {#if hover && hover !== 'forward'}
       <span class="nc-next nc-hover"><kbd>{pad.find((p) => p.key === hover)?.keyHint}</kbd><span class="nc-next-label">{controls[hover].label}</span></span>
@@ -41,7 +38,6 @@
     {:else}
       <span class="nc-next nc-end">Ende</span>
     {/if}
-    <span class="nc-progress">{progress}<span class="nc-chapter">{chapter}</span></span>
   </div>
 
   <div class="nc-pad">

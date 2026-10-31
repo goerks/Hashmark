@@ -243,13 +243,15 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .breadcrumb button:hover { color: var(--color-accent); }
 .breadcrumb button.active { color: var(--color-fg); }
 .breadcrumb .sep { opacity: 0.6; }
-.breadcrumb .subslide { margin-left: auto; font-variant-numeric: tabular-nums; }
 
 .status {
   position: absolute; left: 80px; right: 80px; bottom: 22px;
   display: flex; align-items: center; gap: 16px; font-size: 16px; color: var(--color-muted);
 }
 .status .progress { margin-left: auto; font-variant-numeric: tabular-nums; }
+/* dünner Fortschrittsbalken über die Breite der Folie: Position im Deck auf einen Blick */
+.progress-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--color-surface); }
+.progress-bar b { display: block; height: 100%; background: var(--color-accent); opacity: 0.7; }
 .children-hint { display: flex; align-items: center; gap: 10px; color: var(--color-accent); }
 .children-hint .dots { display: flex; gap: 5px; }
 .children-hint .dots i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
@@ -409,9 +411,6 @@ svg [data-fx] { transform-box: fill-box; transform-origin: center; }
 .excalidraw-block { background: #fff; border-radius: 8px; padding: 12px; } /* Excalidraw zeichnet dunkel auf transparent */
 .drawio-block svg, .excalidraw-block svg { display: block; margin: 0 auto; max-width: 100%; height: auto; max-height: 460px; }
 
-.step-dots { display: inline-flex; gap: 5px; margin-right: 10px; vertical-align: middle; }
-.step-dots i { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--color-muted); }
-.step-dots i.done { background: var(--color-accent); border-color: var(--color-accent); }
 
 /* ---------- Druck direkt aus der Präsentation (Ctrl+P / Menü) ----------
  * Die Präsentation enthält unsichtbar die Druckseiten aller Folien (.print-only, siehe print.css).
@@ -419,16 +418,17 @@ svg [data-fx] { transform-box: fill-box; transform-origin: center; }
  */
 @page { size: 1280px 720px; margin: 0; }
 
-/* ---------- Steuerkreuz (in der Bühne, unterer Randstreifen rechts) ---------- */
+/* ---------- Navigationskarte (in der Bühne, unten rechts, nur bei Mausbewegung) ---------- */
 
 .nav-controls {
-  position: absolute; right: 24px; bottom: 6px; z-index: 6;
-  display: flex; align-items: center; gap: 14px;
+  position: absolute; right: 24px; bottom: 56px; z-index: 6;
+  display: flex; align-items: center; gap: 16px; padding: 8px 14px; border-radius: 12px;
   font-family: var(--font-body); color: var(--color-muted);
-  transition: opacity 0.4s;
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  transition: opacity 0.35s, transform 0.35s;
 }
-.nav-controls.dimmed:not(:hover):not(:focus-within) { opacity: 0.4; }
-.nc-info { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.nav-controls.gone:not(:hover):not(:focus-within) { opacity: 0; transform: translateY(6px); pointer-events: none; }
+.nc-info { display: flex; align-items: center; }
 .nc-next { display: flex; align-items: center; gap: 8px; max-width: 320px; font-size: 16px; color: var(--color-fg); }
 button.nc-next:hover { color: var(--color-accent); }
 .nc-next-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -437,9 +437,6 @@ button.nc-next:hover { color: var(--color-accent); }
   font-family: var(--font-code); font-size: 12px; padding: 1px 6px; border-radius: 4px;
   border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-fg);
 }
-.nc-progress { font-size: 14px; font-variant-numeric: tabular-nums; }
-.nc-chapter { margin-left: 8px; opacity: 0.8; }
-.nc-chapter::before { content: "· "; }
 
 /* 3 × 21 px: passt in den 76 px hohen Randstreifen der Folie */
 .nc-pad { display: grid; grid-template: ". up ." 21px "left center right" 21px ". down ." 21px / 21px 21px 21px; }
@@ -456,7 +453,8 @@ button.nc-next:hover { color: var(--color-accent); }
 
 /* Touchscreen: Steuerkreuz fingergroß (die Bühne ist auf dem Telefon stark verkleinert), ohne Infozeile */
 @media (pointer: coarse) {
-  .nav-controls { transform-origin: right bottom; transform: scale(min(3, calc(0.9 / var(--scale, 1)))); bottom: 10px; }
+  .nav-controls { transform-origin: right bottom; transform: scale(min(3, calc(0.9 / var(--scale, 1)))); bottom: 10px; padding: 0; border: 0; background: none; }
+  .nav-controls.gone:not(:hover):not(:focus-within) { opacity: 1; transform: none; pointer-events: auto; }
   .nc-info { display: none; }
 }
 
