@@ -17,7 +17,7 @@ export const BUILTIN_LAYOUTS = [
   'title', 'section', 'default', 'two-col', 'three-col', 'statement', 'quote', 'image-left', 'image-right', 'agenda', 'comparison', 'code-focus', 'banner', 'image-full', 'split', 'diagram', 'two-col-wide', 'contact', 'kpi', 'big-number', 'gallery', 'timeline', 'blank',
 ]
 /** Attribute einer Überschrift `{…}`, die Hashmark kennt */
-export const KNOWN_ATTRS = ['layout', 'id', 'class', 'transition', 'duration', 'bg', 'bgdim', 'steps', 'fit', 'optional', 'appendix', 'plan', 'banner', 'bannerpos', 'bannerh', 'footer', 'speed', 'effect']
+export const KNOWN_ATTRS = ['layout', 'id', 'class', 'transition', 'duration', 'bg', 'bgdim', 'steps', 'fit', 'optional', 'appendix', 'plan', 'banner', 'bannerpos', 'bannerh', 'footer', 'speed', 'effect', 'morph']
 /** Übergang zu einer Folie (`transition=…`, deck.yaml `motion: transition:`); ohne Angabe schiebt → ←, ↓ ↑ zeigt Tiefe (`depth`) */
 export const TRANSITIONS = ['slide', 'zoom', 'fade', 'none', 'push', 'cover', 'reveal', 'blur', 'iris', 'curtain', 'diagonal', 'mosaic', 'blinds', 'depth']
 /** Tempo der Übergänge und Schritt-Einblendungen (`{speed=…}`, deck.yaml `motion: speed:`) */
@@ -47,6 +47,8 @@ export function staticChecks(result: LoadResult): Finding[] {
     }
     const sp = node.attrs.speed
     if (sp && !SPEEDS.includes(sp)) findings.push({ level: 'warning', ...at, message: `${where}: speed „${sp}“ ist unbekannt (${SPEEDS.join(' | ')})` })
+    const mo = node.attrs.morph
+    if (mo && !/^[\w-]+$/.test(mo)) findings.push({ level: 'warning', ...at, message: `${where}: morph „${mo}“ ist ungültig (ein Name aus Buchstaben, Ziffern, _ und -, oder off)` })
     const fx = node.attrs.effect
     if (fx && !EFFECTS.includes(fx)) findings.push({ level: 'warning', ...at, message: `${where}: effect „${fx}“ ist unbekannt (${EFFECTS.join(' | ')})` })
     const t = node.attrs.transition

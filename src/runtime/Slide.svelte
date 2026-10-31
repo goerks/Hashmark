@@ -31,6 +31,8 @@
   const showOverflow = import.meta.env.DEV || window.parent !== window
   let overflow = $state(false)
   let zoom = $state(1)
+  /** `morph=name` an der Überschrift: der Titel trägt diesen Namen (Auto-Animate); `morph=off`: der Titel wandert nicht von selbst */
+  const morphName = $derived(node.attrs.morph && /^[\w-]+$/.test(node.attrs.morph) && node.attrs.morph !== 'off' ? node.attrs.morph : undefined)
   const showTiles = $derived(layout === 'section' && node.children.length > 0 && !html.includes('data-children'))
 
   const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
@@ -171,6 +173,7 @@
   class="slide layout-{layout} {node.attrs.class ?? ''}"
   class:has-bg={!!node.attrs.bg}
   data-depth={node.depth}
+  data-morph-off={node.attrs.morph === 'off' ? '' : undefined}
   style:background={node.attrs.bg}
   style:--bg-dim={node.attrs.bgdim}
   style:--banner-h={node.attrs.bannerh ? (/^[\d.]+$/.test(node.attrs.bannerh) ? node.attrs.bannerh + 'px' : node.attrs.bannerh) : undefined}
@@ -187,11 +190,11 @@
   {/if}
   {#if layout === 'title' || layout === 'statement'}
     <div class="title-wrap">
-      <svelte:element this={titleTag} class="slide-title">{node.title}</svelte:element>
+      <svelte:element this={titleTag} class="slide-title" data-morph={morphName}>{node.title}</svelte:element>
       <div class="content">{@html html}</div>
     </div>
   {:else}
-    <header><svelte:element this={titleTag} class="slide-title">{node.title}</svelte:element></header>
+    <header><svelte:element this={titleTag} class="slide-title" data-morph={morphName}>{node.title}</svelte:element></header>
     <div class="content">{@html html}</div>
     {#if showTiles}
       <div class="d-children">{@html tiles(node.children)}</div>
