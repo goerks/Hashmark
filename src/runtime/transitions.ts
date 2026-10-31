@@ -4,6 +4,7 @@
 
 import { cubicOut } from 'svelte/easing'
 import type { Direction } from '../core/navigator.ts'
+import { playMorph } from './morph.ts'
 
 export interface TransitionParams {
   dir: Direction
@@ -172,10 +173,43 @@ function run(dir: Direction, kind: string | undefined, speed: string | undefined
   return css ? { duration: plan.duration, easing: cubicOut, css } : { duration: 0 }
 }
 
-export function enter(_node: Element, { dir, kind, speed }: TransitionParams) {
-  return run(dir, kind, speed, 'in')
+/** Entscheidung je Wechsel (Schlüssel: die neue Folie): wandert etwas? Wird vom Ein- oder Ausblenden berechnet, wer zuerst dran ist. */
+const morphed = new WeakMap<Element, boolean>()
+
+function slideSibling(node: Element, step: 'previousElementSibling' | 'nextElementSibling'): HTMLElement | null {
+  let n = node[step]
+  while (n && !n.classList.contains('stage-slide')) n = n[step]
+  return n as HTMLElement | null
 }
 
-export function leave(_node: Element, { dir, kind, speed }: TransitionParams) {
-  return run(dir, kind, speed, 'out')
+/** Schlägt eine Zuordnung vor und startet die Bewegung einmal je Wechsel; true = Auto-Animate übernimmt (der Rest blendet kurz um) */
+function decideMorph(oldSlide: HTMLElement | null, newSlide: HTMLElement | null, kind: string | undefined, speed: string | undefined): boolean {
+  if (!oldSlide || !newSlide || kind === 'none') return false
+  const known = morphed.get(newSlide)
+  if (known !== undefined) return known
+  // Bei reduzierter Bewegung wandert nichts, es bleibt beim Überblenden
+  const active = prefersReducedMotion() ? false : playMorph(oldSlide, newSlide, motionDuration(speed))
+  morphed.set(newSlide, active)
+  return active
+}
+
+/** Beim Wandern blenden die Folien nur im ersten Drittel um, die Elemente brauchen die ganze Zeit */
+const fadeIn: Css = (t) => `opacity:${num(clamp01(t * 3))}`
+const fadeOut: Css = (t) => `opacity:${num(clamp01((t - 0.67) * 3))}`
+
+// Die Konfiguration wird verzögert geliefert (Svelte ruft sie nach dem Aktualisieren des DOM auf): dann stehen alte und neue Folie beide da
+export function enter(node: Element, { dir, kind, speed }: TransitionParams) {
+  return () => {
+    const old = slideSibling(node, 'previousElementSibling')
+    if (decideMorph(old, node as HTMLElement, kind, speed)) return { duration: motionDuration(speed), easing: cubicOut, css: fadeIn }
+    return run(dir, kind, speed, 'in')
+  }
+}
+
+export function leave(node: Element, { dir, kind, speed }: TransitionParams) {
+  return () => {
+    const neu = slideSibling(node, 'nextElementSibling')
+    if (decideMorph(node as HTMLElement, neu, kind, speed)) return { duration: motionDuration(speed), easing: cubicOut, css: fadeOut }
+    return run(dir, kind, speed, 'out')
+  }
 }

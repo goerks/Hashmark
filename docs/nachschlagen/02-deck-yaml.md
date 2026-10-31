@@ -16,7 +16,7 @@
 | `footer` | Fußzeile auf jeder Folie |
 | `slideNumber` | Folienzahl: `true` oder Vorlage `"{n} / {total}"` |
 | `mount` | Dateien und Reihenfolge, `under:` hängt unter einen Knoten |
-| `motion` | Bewegung: `speed: fast \| normal \| slow` für alle Übergänge, `effect: up` (u. a., auch `wipe`) für den Auftritt der Schritte, `transition: push` (u. a.) als Übergang für alle Folien ohne eigene Angabe für den Auftritt der Schritte |
+| `motion` | Bewegung: `speed: fast \| normal \| slow` für alle Übergänge, `effect: up` (u. a., auch `wipe`) für den Auftritt der Schritte, `transition: push` (u. a.) als Übergang für alle Folien ohne eigene Angabe, `morph: off` lässt Titel nicht von selbst zur nächsten Folie wandern |
 | `zoom` | alle Bilder mit Z vergrößerbar |
 | `embedImages` | alle Bilder einbetten |
 | `embedMedia` | Videos in die HTML-Datei einbetten (bis 25 MB) |
