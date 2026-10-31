@@ -65,6 +65,46 @@ function prepare(src: string, look: string | undefined): string {
   return out
 }
 
+/** Diagrammarten, bei denen alle Versionen das Layout der letzten teilen (Knoten und Kanten haben stabile `id`s) */
+const STABLE_TYPES = ['flowchart', 'graph']
+const PARTS = 'g.node[id], g.cluster[id], .edgePaths path[id], path.flowchart-link[id]'
+
+function typeOf(src: string): string {
+  return src.split(/\r?\n/).find((l) => l.trim() && !l.trim().startsWith('%%') && !l.trim().startsWith('---'))?.trim().split(/[\s;]/)[0] ?? ''
+}
+
+/** Die `id`s von Knoten, Gruppen und Kanten einer gerenderten Version */
+function partIds(svg: string): Set<string> {
+  const t = document.createElement('template')
+  t.innerHTML = svg
+  return new Set([...t.content.querySelectorAll(PARTS)].map((e) => e.id))
+}
+
+/**
+ * Version `ids` im Layout der letzten Version zeigen: was es in dieser Version noch nicht gibt, ist ausgeblendet.
+ * Dadurch verschiebt sich beim Weiterschalten nichts. Was gegenüber der vorigen Version neu ist, bekommt `data-new`
+ * (Aufwachsen bzw. Zeichnen, siehe base.css).
+ */
+function showVersion(state: HTMLElement, ids: Set<string>, before: Set<string> | undefined) {
+  const parts = [...state.querySelectorAll<SVGElement>(PARTS)]
+  for (const el of parts) {
+    const edge = el.tagName.toLowerCase() === 'path'
+    if (!ids.has(el.id)) el.style.display = 'none'
+    else if (before && !before.has(el.id)) {
+      el.dataset.new = edge ? 'edge' : 'node'
+      if (edge) el.setAttribute('pathLength', '1')
+    }
+  }
+  // Kantenbeschriftungen gehören zur Kante gleicher Reihenfolge (oder zur `data-id` im Label)
+  const edges = parts.filter((e) => e.tagName.toLowerCase() === 'path')
+  state.querySelectorAll<SVGElement>('.edgeLabels > g').forEach((label, i) => {
+    const id = label.querySelector('[data-id]')?.getAttribute('data-id') ?? edges[i]?.id
+    if (!id) return
+    if (!ids.has(id)) label.style.display = 'none'
+    else if (before && !before.has(id)) label.dataset.new = 'node'
+  })
+}
+
 /** Rendert alle noch offenen Mermaid-Blöcke unterhalb von `root`. */
 export async function renderMermaid(root: HTMLElement) {
   const blocks = [...root.querySelectorAll<HTMLElement>('.mermaid-block:not([data-rendered])')]
@@ -89,6 +129,7 @@ export async function renderMermaid(root: HTMLElement) {
     // mehrere Quellen = eine Version je Schritt (`%% step`), übereinander im selben Rasterfeld
     const sources = [...block.querySelectorAll<HTMLElement>('.mermaid-src')]
     const stepped = sources.length > 1
+    const rendered: { pre: HTMLElement; src: string; svg: string }[] = []
     for (const pre of sources) {
       const src = prepare(pre.textContent ?? '', block.dataset.look)
       let svg = cache.get(src)
@@ -101,12 +142,24 @@ export async function renderMermaid(root: HTMLElement) {
         }
         cache.set(src, svg)
       }
+      rendered.push({ pre, src, svg })
+    }
+    // Flussdiagramme mit Schritten: jede Version im Layout der letzten, damit nichts springt
+    const last = [...rendered].reverse().find((r) => r.svg && !r.svg.includes('mermaid-error'))
+    const stable = stepped && !!last && STABLE_TYPES.includes(typeOf(last.src)) && partIds(last.svg).size > 0
+    let before: Set<string> | undefined
+    for (const { pre, svg } of rendered) {
       if (!pre.isConnected) continue
       const state = document.createElement('div')
       state.className = 'mermaid-state'
       if (pre.dataset.step) state.dataset.step = pre.dataset.step
       if (pre.dataset.until) state.dataset.until = pre.dataset.until
-      state.innerHTML = svg
+      if (stable) {
+        const ids = svg ? partIds(svg) : new Set<string>()
+        state.innerHTML = last!.svg
+        showVersion(state, ids, before)
+        before = ids
+      } else state.innerHTML = svg
       pre.replaceWith(state)
     }
     block.dataset.rendered = ''

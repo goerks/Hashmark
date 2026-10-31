@@ -52,7 +52,7 @@ flowchart LR
 ````
 
 ::: notes
-Eine Zeile `%% step` im Mermaid-Code teilt das Diagramm in Versionen: Bis zur ersten Marke ist es sofort da, mit jedem Schritt kommt der nächste Teil dazu. Hashmark zeichnet jede Version vollständig, deshalb bleiben Anordnung und Farben stabil.
+Eine Zeile `%% step` im Mermaid-Code teilt das Diagramm in Versionen: Bis zur ersten Marke ist es sofort da, mit jedem Schritt kommt der nächste Teil dazu. Bei Flussdiagrammen (`flowchart`, `graph`) teilen sich alle Versionen das Layout der letzten: Beim Weiterschalten verschiebt sich nichts, Neues erscheint an seinem Platz (Knoten wachsen auf, Kanten zeichnen sich). Andere Diagrammarten zeichnet Hashmark je Version vollständig neu, dort kann sich die Anordnung ändern.
 :::
 
 ## Blöcke, Bilder und Tabellen {id=reveal}

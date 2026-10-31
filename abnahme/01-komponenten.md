@@ -120,7 +120,7 @@ flowchart LR
 ```
 
 ::: notes
-Prüfen: Mit → wächst das Diagramm. Der neue Knoten wächst auf, die neue Kante zeichnet sich von Anfang bis Ziel. Bleibt das Layout in der neuen Version nicht gleich, sieht man nur ein Überblenden (bekannte Grenze).
+Prüfen: Mit → wächst das Diagramm. Die schon sichtbaren Knoten bleiben genau an ihrem Platz und verschieben sich nicht. Der neue Knoten blendet ein und wächst leicht auf, die neue Kante zeichnet sich von Anfang bis Ziel. Mit ← geht es genauso zurück.
 :::
 
 # Zeichnung {id=zeichnung}
@@ -146,7 +146,7 @@ Prüfen: Mit `effect=fade` an der Folie wird der Standard abgeschaltet: Die Phas
 # Nicht geprüft {id=nicht-geprueft}
 
 - Wirkung im PowerPoint-Export und im PDF: bleibt Einblenden bzw. Endzustand
-- Mermaid-Diagramme, die ihr Layout bei einer neuen Version stark ändern
+- Mermaid-Diagramme außer Flussdiagrammen (Sequenz-, Zustands-, Klassendiagramme): dort kann sich die Anordnung bei neuen Versionen weiterhin ändern
 - Eigene Komponenten aus Themes: bekommen keinen Standard-Auftritt
 - Touch-Gesten am Tablet
 

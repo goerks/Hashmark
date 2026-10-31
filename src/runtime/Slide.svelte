@@ -66,8 +66,13 @@
   /** Auftritt eines Schritt-Elements: Container (`effect=…`) vor Folie vor Deck; leer = Standard der Komponente bzw. Zeichnung */
   function effectOf(item: HTMLElement): string {
     const explicit = item.closest<HTMLElement>('[data-effect]')?.dataset.effect ?? defaultEffect
+    if (item.closest('svg')) {
+      // SVG-Elemente tragen ihre Lage oft als `transform`-Attribut: ein CSS-`transform` würde sie verschieben, darum nur Zeichnen, Abdunkeln oder Einblenden
+      if (explicit === 'dim') return 'dim'
+      if (explicit === 'fade') return ''
+      return item.matches('.node, .cluster, .edgeLabel') ? '' : 'draw'
+    }
     if (explicit) return explicit === 'fade' ? '' : explicit
-    if (item.closest('svg')) return 'draw'
     const comp = componentOf(item)
     return comp ? COMPONENT_EFFECTS[comp] : ''
   }
@@ -115,29 +120,6 @@
     }
   }
 
-  const defaultExplicitFade = () => defaultEffect === 'fade'
-
-  /** Mermaid-Versionen (`%% step`): Knoten und Kanten, die gegenüber der vorigen Version neu sind, bekommen `data-new` (Aufwachsen bzw. Zeichnen, siehe base.css) */
-  function markFresh(root: HTMLElement) {
-    for (const block of root.querySelectorAll<HTMLElement>('.mermaid-block')) {
-      const states = [...block.querySelectorAll<HTMLElement>('.mermaid-state')]
-      if (states.length < 2) continue
-      let before = new Set<string>()
-      for (const state of states) {
-        const ids = new Set<string>()
-        for (const el of state.querySelectorAll<SVGElement>('g.node[id], g.cluster[id], .edgePaths path[id], path.flowchart-link[id]')) {
-          ids.add(el.id)
-          const edge = el.tagName.toLowerCase() === 'path'
-          if (before.size && !before.has(el.id)) {
-            el.dataset.new = edge ? 'edge' : 'node'
-            if (edge) el.setAttribute('pathLength', '1')
-          } else delete el.dataset.new
-        }
-        if (ids.size) before = ids
-      }
-    }
-  }
-
   function measure() {
     const r = fitSlide(el, fit)
     overflow = r.overflow
@@ -152,11 +134,13 @@
     for (const slot of el.querySelectorAll<HTMLElement>('[data-children]')) slot.innerHTML = tiles(node.children)
     untrack(() => { applySteps(el, step); measure() })
     // Diagramme und Schriften ändern die Größe erst nach dem Laden: danach neu messen
-    renderMermaid(el).then(() => untrack(() => { if (effects && !defaultExplicitFade()) markFresh(el); applySteps(el, step); measure() }))
+    renderMermaid(el).then(() => untrack(() => { applySteps(el, step); measure() }))
     void document.fonts?.ready.then(() => untrack(measure))
   })
 
   $effect(() => {
+    // Mermaid: `data-new` animiert nur in der Präsentation und nicht bei `effect=fade`
+    el.toggleAttribute('data-nofx', !effects || defaultEffect === 'fade')
     applySteps(el, step)
   })
 
