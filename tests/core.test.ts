@@ -1111,3 +1111,80 @@ describe('Bewegung: Auftritt der Bausteine', () => {
     expect(parseCount('kein Wert')).toBeNull()
   })
 })
+
+describe('Übergangsfamilie', () => {
+  it('jeder Übergang liefert für jede Taste und Phase gültiges CSS, am Ende ohne Verdeckung', async () => {
+    const { TRANSITIONS } = await import('../src/core/check.ts')
+    const { transitionCss } = await import('../src/runtime/transitions.ts')
+    for (const kind of TRANSITIONS) {
+      for (const dir of ['right', 'left', 'down', 'up', 'jump'] as const) {
+        for (const phase of ['in', 'out'] as const) {
+          const css = transitionCss(dir, kind, phase)
+          if (kind === 'none') { expect(css).toBeNull(); continue }
+          expect(css, `${kind} ${dir} ${phase}`).not.toBeNull()
+          for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+            const text = css!(t, 1 - t)
+            expect(text, `${kind} ${dir} ${phase} t=${t}`).not.toMatch(/NaN|undefined|Infinity/)
+            expect(text.length).toBeGreaterThan(0)
+          }
+        }
+      }
+    }
+  })
+
+  it('ohne Angabe schieben → ←, ↓ ↑ zeigen Tiefe, Sprünge überblenden', async () => {
+    const { kindFor } = await import('../src/runtime/transitions.ts')
+    expect([kindFor('right', undefined), kindFor('left', undefined), kindFor('down', undefined), kindFor('up', undefined), kindFor('jump', undefined)]).toEqual(['slide', 'slide', 'depth', 'depth', 'fade'])
+    expect(kindFor('down', 'zoom')).toBe('zoom')
+    expect(kindFor('right', 'auto')).toBe('slide')
+  })
+
+  it('Tiefe: beim Abtauchen tritt der Elternknoten zurück, das Detail liegt oben; bei ↑ umgekehrt', async () => {
+    const { transitionCss } = await import('../src/runtime/transitions.ts')
+    const downIn = transitionCss('down', undefined, 'in')!(0.5, 0.5)
+    const downOut = transitionCss('down', undefined, 'out')!(0.5, 0.5)
+    expect(downIn).toContain('z-index:2')
+    expect(downIn).toContain('translateY(50%)')
+    expect(downOut).toContain('scale(0.96)')
+    expect(downOut).toContain('brightness(0.75)')
+    const upIn = transitionCss('up', undefined, 'in')!(0.5, 0.5)
+    const upOut = transitionCss('up', undefined, 'out')!(0.5, 0.5)
+    expect(upIn).toContain('scale(0.96)')
+    expect(upOut).toContain('z-index:2')
+  })
+
+  it('Kachelmaske: am Anfang nichts, am Ende jede Kachel voll, Zahl der Ebenen passt', async () => {
+    const { tileMask } = await import('../src/runtime/transitions.ts')
+    const start = tileMask(8, 5, () => 0, 0)
+    const end = tileMask(8, 5, () => 0, 1)
+    expect(start.match(/linear-gradient/g)).toHaveLength(40)
+    expect(start).toContain('mask-size:0% 0%')
+    expect(start).toContain('-webkit-mask-image')
+    expect(start).toContain('mask-size:0% 0%,0% 0%')
+    // jede Kachel ist am Ende mindestens 12,5 % × 20 % groß
+    expect(end).toContain('12.9% 20.4%')
+    // Jalousie: nur eine Achse wächst, die andere ist von Anfang an voll
+    const strips = tileMask(10, 1, (x) => x / 9, 0.1, 'x')
+    expect(strips).toContain('% 100.4%')
+  })
+
+  it('Deck-Standard: motion.transition gilt für Folien ohne eigene Angabe', async () => {
+    const dir = await tempDeck({ 'deck.yaml': 'motion:\n  transition: push\n', 'a.md': '# A\n\n# B {transition=blur}\n\n# C' })
+    const { deck, warnings } = await loadDeck(dir)
+    expect(warnings).toEqual([])
+    expect(deck.motion).toEqual({ transition: 'push' })
+    expect(deck.nodes.map((n) => n.attrs.transition)).toEqual(['push', 'blur', 'push'])
+    const bad = await loadDeck(await tempDeck({ 'deck.yaml': 'motion:\n  transition: wirbel\n', 'a.md': '# A' }))
+    expect(bad.warnings.join('\n')).toContain('motion.transition „wirbel“')
+    expect(bad.deck.nodes[0].attrs.transition).toBeUndefined()
+  })
+
+  it('check und Linter kennen die neuen Übergänge', async () => {
+    const { TRANSITIONS } = await import('../src/core/check.ts')
+    for (const t of ['push', 'cover', 'reveal', 'blur', 'iris', 'curtain', 'diagonal', 'mosaic', 'blinds', 'depth']) {
+      expect(TRANSITIONS).toContain(t)
+      expect(lintText(`## A {transition=${t}}`)).toEqual([])
+    }
+    expect(lintText('## A {transition=pusch}').map((p) => p.message).join('\n')).toContain('Meinst du „push“?')
+  })
+})

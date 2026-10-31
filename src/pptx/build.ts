@@ -211,7 +211,16 @@ async function finish(file: Buffer, pages: PageData[], anims: AnimItem[][], tran
       const t = pages[i].transition
       if (t === 'fade') extra = '<p:transition spd="med"><p:fade/></p:transition>'
       else if (t === 'zoom') extra = '<p:transition spd="med"><p:zoom dir="in"/></p:transition>'
-      else if (t === 'slide') extra = '<p:transition spd="med"><p:push dir="l"/></p:transition>'
+      else if (t === 'slide' || t === 'push') extra = '<p:transition spd="med"><p:push dir="l"/></p:transition>'
+      else if (t === 'depth') extra = '<p:transition spd="med"><p:push dir="u"/></p:transition>'
+      else if (t === 'blur') extra = '<p:transition spd="med"><p:fade/></p:transition>'
+      else if (t === 'cover') extra = '<p:transition spd="med"><p:cover dir="l"/></p:transition>'
+      else if (t === 'reveal') extra = '<p:transition spd="med"><p:pull dir="l"/></p:transition>'
+      else if (t === 'iris') extra = '<p:transition spd="med"><p:circle/></p:transition>'
+      else if (t === 'curtain') extra = '<p:transition spd="med"><p:split orient="vert" dir="out"/></p:transition>'
+      else if (t === 'diagonal') extra = '<p:transition spd="med"><p:strips dir="rd"/></p:transition>'
+      else if (t === 'mosaic') extra = '<p:transition spd="med"><p:randomBar dir="vert"/></p:transition>'
+      else if (t === 'blinds') extra = '<p:transition spd="med"><p:blinds dir="vert"/></p:transition>'
     }
     // Animationen: Schritte als „bei Klick“-Effekte (Namen → Form-IDs aus dem XML)
     if (anims[i]?.length) {

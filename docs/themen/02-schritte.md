@@ -115,7 +115,14 @@ Mit `stagger` an einem Container (z. B. `::: cards stagger` mit `step=1` an jede
 ```
 
 ::: notes
-Ohne Angabe sind die Übergänge **räumlich**, passend zum Baum: → und ← schieben die Folie seitlich, ↓ kommt das Detail aus der Tiefe, ↑ fliegt es nach vorn weg, ein Sprung (Suche, Übersicht) blendet über. Mit `transition=` legst du den Wechsel **zu** dieser Folie fest: `slide` schiebt, `zoom` fährt hinein, `fade` blendet über, `none` springt ohne Bewegung. Beim PowerPoint-Export werden Übergänge übernommen.
+Ohne Angabe sind die Übergänge **räumlich**, passend zum Baum: → und ← schieben die Folie seitlich, ein Sprung (Suche, Übersicht) blendet über. Bei ↓ und ↑ spürst du die **Tiefe**: Beim Abtauchen tritt der Elternknoten leicht zurück und dunkelt ab, das Detail kommt von unten darüber; mit ↑ kehrt sich das um. Mit `transition=` legst du den Wechsel **zu** dieser Folie fest:
+
+- `slide` schiebt seitlich, `zoom` fährt hinein (der frühere Standard bei ↓ ↑), `fade` blendet über, `none` springt ohne Bewegung.
+- `push` schiebt die alte Folie in Richtung der Taste hinaus, `depth` ist das Tiefengefühl von oben.
+- `cover` legt die neue Folie über die alte, `reveal` zieht die alte weg, `blur` verschwimmt weich.
+- `iris` öffnet einen Kreis von der Seite der Taste, `curtain` öffnet die alte Folie von der Mitte, `diagonal` baut die neue Folie als Welle aus Kacheln auf, `mosaic` setzt sie aus zufälligen Kacheln zusammen, `blinds` öffnet Streifen nacheinander.
+
+Die auffälligen Übergänge (`iris`, `curtain`, `diagonal`, `mosaic`, `blinds`) sind für einzelne Folien gedacht, etwa einen Kapitelstart. Für das ganze Deck schreibst du in die `deck.yaml`: `motion: { transition: push }`; `transition=` an der Folie hat Vorrang. Beim PowerPoint-Export wird jeder Übergang durch den nächstliegenden von PowerPoint ersetzt.
 
 **Tempo:** `{speed=slow}` macht den Wechsel zu dieser Folie ruhiger (760 ms, gut für den Auftritt eines Kapitels), `{speed=fast}` huscht in 190 ms vorbei, `normal` (380 ms) ist der Standard. Für das ganze Deck schreibst du in die `deck.yaml`: `motion: { speed: slow }`; `speed=` an der Folie hat Vorrang. Die Einblendungen der Schritte laufen im selben Tempo.
 

@@ -40,7 +40,7 @@ maxDepth: 3                      # wie tief Überschriften Knoten sind (Code-Sta
 layout: default                  # Standard-Layout aller Folien
 layouts: { 1: section, 2: default }   # Layout je Ebene
 duration: 25m                    # geplante Gesamtdauer (90s, 5m, 1h30m, 1:30, Zahl = Minuten)
-motion: { speed: normal, effect: fade }   # Tempo der Übergänge (fast | normal | slow) und Auftritt der Schritte (fade | up | left | scale | wipe | highlight | dim); die Folie überschreibt mit {speed=…} bzw. {effect=…}
+motion: { speed: normal, effect: fade, transition: push }   # Tempo (fast | normal | slow), Auftritt der Schritte (fade | up | left | scale | wipe | highlight | dim) und Übergang für alle Folien; die Folie überschreibt mit {speed=…}, {effect=…} bzw. {transition=…}
 footer: Firma · Vortrag          # Fußzeile auf jeder Folie
 slideNumber: "{n} / {total}"     # true = nur Zahl, sonst Vorlage mit {n} und {total}
 zoom: true                       # alle Bilder mit Z vergrößerbar
@@ -136,7 +136,7 @@ Formate: `key=wert`, `key="wert mit Leerzeichen"`, `.klasse` (CSS-Klasse), `#id`
 | `layout=…` | Layout der Folie (siehe 6) |
 | `id=…` | eigene Sprungmarke |
 | `.klasse` | CSS-Klasse an der Folie |
-| `transition=slide\|zoom\|fade\|none` | Übergang **zu** dieser Folie |
+| `transition=slide\|zoom\|fade\|none\|push\|depth\|cover\|reveal\|blur\|iris\|curtain\|diagonal\|mosaic\|blinds` | Übergang **zu** dieser Folie. Ohne Angabe schieben → ←, ↓ ↑ zeigen Tiefe (`depth`), Sprünge überblenden. `push` schiebt in Tastenrichtung, `cover`/`reveal` legen über bzw. ziehen weg, `blur` verschwimmt, `iris` Kreis von der Seite, `curtain` öffnet von der Mitte, `diagonal`/`mosaic`/`blinds` bauen aus Kacheln bzw. Streifen auf (für einzelne Folien, z. B. Kapitelstart). Fürs ganze Deck `motion: { transition: push }` in der `deck.yaml` |
 | `effect=fade\|up\|left\|scale\|wipe\|highlight\|dim` | Auftritt aller Schritte dieser Folie (Standard `fade`); gilt auch als Container-Attribut (`::: steps effect=up`), fürs Deck `motion: { effect: up }` |
 | `speed=fast\|normal\|slow` | Tempo dieses Übergangs (190 / 380 / 760 ms); fürs ganze Deck `motion: { speed: slow }` in der `deck.yaml`. Schritt-Einblendungen laufen im selben Tempo. Bei „Bewegung reduzieren“ im System wird automatisch nur kurz überblendet |
 | `duration=5m` | geplante Redezeit (`90s`, `5m`, `1h`) |
