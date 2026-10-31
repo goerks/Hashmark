@@ -84,8 +84,10 @@ function mosaicDelay(x: number, y: number): number {
   return n - Math.floor(n)
 }
 
-/** Vorhang: Spalt in der Mitte der alten Folie; `gap` ist die halbe Breite in Prozent */
+/** Vorhang: Spalt in der Mitte der alten Folie; `gap` ist die halbe Breite in Prozent. Bei → ← ein senkrechter Spalt, bei ↓ ↑ ein waagerechter (`vertical` = die Taste geht senkrecht) */
 function curtainMask(vertical: boolean, gap: number): string {
+  // ohne Spalt gar keine Maske, sonst kann an der Naht eine Haarlinie aufblitzen
+  if (gap < 0.05) return 'mask-image:none;-webkit-mask-image:none'
   const axis = vertical ? 'to bottom' : 'to right'
   const a = num(50 - gap)
   const b = num(50 + gap)
@@ -139,7 +141,7 @@ export function transitionCss(dir: Direction, kindIn: string | undefined, phase:
     case 'curtain':
       return inP
         ? (_t, u) => `z-index:1;transform:scale(${num(1 - 0.06 * u)});filter:brightness(${num(1 - 0.45 * u)})`
-        : (_t, u) => `z-index:2;${curtainMask(!vertical, u * 50)}`
+        : (_t, u) => `z-index:2;${curtainMask(vertical, u * 50)}`
     case 'diagonal':
       return inP ? (t) => `z-index:2;${tileMask(8, 5, diagonalDelay(dir, 8, 5), t)}` : () => 'z-index:1'
     case 'mosaic':

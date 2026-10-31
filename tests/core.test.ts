@@ -1153,11 +1153,21 @@ describe('Übergangsfamilie', () => {
     expect(upOut).toContain('z-index:2')
   })
 
+  it('Vorhang: bei → ← ein senkrechter Spalt (Verlauf nach rechts), bei ↓ ↑ ein waagerechter', async () => {
+    const { transitionCss } = await import('../src/runtime/transitions.ts')
+    expect(transitionCss('right', 'curtain', 'out')!(0.5, 0.5)).toContain('linear-gradient(to right,')
+    expect(transitionCss('left', 'curtain', 'out')!(0.5, 0.5)).toContain('linear-gradient(to right,')
+    expect(transitionCss('down', 'curtain', 'out')!(0.5, 0.5)).toContain('linear-gradient(to bottom,')
+    // zu Beginn noch kein Spalt: keine Maske
+    expect(transitionCss('up', 'curtain', 'out')!(1, 0)).toContain('mask-image:none')
+  })
+
   it('Kachelmaske: am Anfang nichts, am Ende jede Kachel voll, Zahl der Ebenen passt', async () => {
     const { tileMask } = await import('../src/runtime/transitions.ts')
     const start = tileMask(8, 5, () => 0, 0)
     const end = tileMask(8, 5, () => 0, 1)
-    expect(start.match(/linear-gradient/g)).toHaveLength(40)
+    // 40 Kacheln, jede einmal mit und einmal ohne `-webkit-`-Präfix
+    expect(start.match(/linear-gradient/g)).toHaveLength(80)
     expect(start).toContain('mask-size:0% 0%')
     expect(start).toContain('-webkit-mask-image')
     expect(start).toContain('mask-size:0% 0%,0% 0%')
