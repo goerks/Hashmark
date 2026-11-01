@@ -1111,3 +1111,166 @@ describe('Bewegung: Auftritt der Bausteine', () => {
     expect(parseCount('kein Wert')).toBeNull()
   })
 })
+
+describe('Übergangsfamilie', () => {
+  it('jeder Übergang liefert für jede Taste und Phase gültiges CSS, am Ende ohne Verdeckung', async () => {
+    const { TRANSITIONS } = await import('../src/core/check.ts')
+    const { transitionCss } = await import('../src/runtime/transitions.ts')
+    for (const kind of TRANSITIONS) {
+      for (const dir of ['right', 'left', 'down', 'up', 'jump'] as const) {
+        for (const phase of ['in', 'out'] as const) {
+          const css = transitionCss(dir, kind, phase)
+          if (kind === 'none') { expect(css).toBeNull(); continue }
+          expect(css, `${kind} ${dir} ${phase}`).not.toBeNull()
+          for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+            const text = css!(t, 1 - t)
+            expect(text, `${kind} ${dir} ${phase} t=${t}`).not.toMatch(/NaN|undefined|Infinity/)
+            expect(text.length).toBeGreaterThan(0)
+          }
+        }
+      }
+    }
+  })
+
+  it('ohne Angabe schieben → ←, ↓ ↑ zeigen Tiefe, Sprünge überblenden', async () => {
+    const { kindFor } = await import('../src/runtime/transitions.ts')
+    expect([kindFor('right', undefined), kindFor('left', undefined), kindFor('down', undefined), kindFor('up', undefined), kindFor('jump', undefined)]).toEqual(['slide', 'slide', 'depth', 'depth', 'fade'])
+    expect(kindFor('down', 'zoom')).toBe('zoom')
+    expect(kindFor('right', 'auto')).toBe('slide')
+  })
+
+  it('Tiefe: beim Abtauchen tritt der Elternknoten zurück, das Detail liegt oben; bei ↑ umgekehrt', async () => {
+    const { transitionCss } = await import('../src/runtime/transitions.ts')
+    const downIn = transitionCss('down', undefined, 'in')!(0.5, 0.5)
+    const downOut = transitionCss('down', undefined, 'out')!(0.5, 0.5)
+    expect(downIn).toContain('z-index:2')
+    expect(downIn).toContain('translateY(50%)')
+    expect(downOut).toContain('scale(0.96)')
+    expect(downOut).toContain('brightness(0.75)')
+    const upIn = transitionCss('up', undefined, 'in')!(0.5, 0.5)
+    const upOut = transitionCss('up', undefined, 'out')!(0.5, 0.5)
+    expect(upIn).toContain('scale(0.96)')
+    expect(upOut).toContain('z-index:2')
+  })
+
+  it('Vorhang: bei → ← ein senkrechter Spalt (Verlauf nach rechts), bei ↓ ↑ ein waagerechter', async () => {
+    const { transitionCss } = await import('../src/runtime/transitions.ts')
+    expect(transitionCss('right', 'curtain', 'out')!(0.5, 0.5)).toContain('linear-gradient(to right,')
+    expect(transitionCss('left', 'curtain', 'out')!(0.5, 0.5)).toContain('linear-gradient(to right,')
+    expect(transitionCss('down', 'curtain', 'out')!(0.5, 0.5)).toContain('linear-gradient(to bottom,')
+    // zu Beginn noch kein Spalt: keine Maske
+    expect(transitionCss('up', 'curtain', 'out')!(1, 0)).toContain('mask-image:none')
+  })
+
+  it('Kachelmaske: am Anfang nichts, am Ende jede Kachel voll, Zahl der Ebenen passt', async () => {
+    const { tileMask } = await import('../src/runtime/transitions.ts')
+    const start = tileMask(8, 5, () => 0, 0)
+    const end = tileMask(8, 5, () => 0, 1)
+    // 40 Kacheln, jede einmal mit und einmal ohne `-webkit-`-Präfix
+    expect(start.match(/linear-gradient/g)).toHaveLength(80)
+    expect(start).toContain('mask-size:0% 0%')
+    expect(start).toContain('-webkit-mask-image')
+    expect(start).toContain('mask-size:0% 0%,0% 0%')
+    // jede Kachel ist am Ende mindestens 12,5 % × 20 % groß
+    expect(end).toContain('12.9% 20.4%')
+    // Jalousie: nur eine Achse wächst, die andere ist von Anfang an voll
+    const strips = tileMask(10, 1, (x) => x / 9, 0.1, 'x')
+    expect(strips).toContain('% 100.4%')
+  })
+
+  it('Deck-Standard: motion.transition gilt für Folien ohne eigene Angabe', async () => {
+    const dir = await tempDeck({ 'deck.yaml': 'motion:\n  transition: push\n', 'a.md': '# A\n\n# B {transition=blur}\n\n# C' })
+    const { deck, warnings } = await loadDeck(dir)
+    expect(warnings).toEqual([])
+    expect(deck.motion).toEqual({ transition: 'push' })
+    expect(deck.nodes.map((n) => n.attrs.transition)).toEqual(['push', 'blur', 'push'])
+    const bad = await loadDeck(await tempDeck({ 'deck.yaml': 'motion:\n  transition: wirbel\n', 'a.md': '# A' }))
+    expect(bad.warnings.join('\n')).toContain('motion.transition „wirbel“')
+    expect(bad.deck.nodes[0].attrs.transition).toBeUndefined()
+  })
+
+  it('check und Linter kennen die neuen Übergänge', async () => {
+    const { TRANSITIONS } = await import('../src/core/check.ts')
+    for (const t of ['push', 'cover', 'reveal', 'blur', 'iris', 'curtain', 'diagonal', 'mosaic', 'blinds', 'depth']) {
+      expect(TRANSITIONS).toContain(t)
+      expect(lintText(`## A {transition=${t}}`)).toEqual([])
+    }
+    expect(lintText('## A {transition=pusch}').map((p) => p.message).join('\n')).toContain('Meinst du „push“?')
+  })
+})
+
+describe('Auto-Animate', () => {
+  const box = (left: number, top: number, width: number, height: number) => ({ left, top, width, height })
+
+  it('Bewegung lohnt nur bei merklicher Änderung von Lage oder Größe', async () => {
+    const { moves } = await import('../src/runtime/morph.ts')
+    expect(moves(box(10, 10, 100, 50), box(12, 11, 100, 50))).toBe(false)
+    expect(moves(box(10, 10, 100, 50), box(10, 30, 100, 50))).toBe(true)
+    expect(moves(box(10, 10, 100, 50), box(10, 10, 150, 50))).toBe(true)
+    expect(moves(box(10, 10, 100, 50), box(10, 10, 101, 51))).toBe(false)
+  })
+
+  it('Zuordnung: gleicher Name wandert, der Titel nur ohne morph=off, jedes Element nur einmal', async () => {
+    const { pairItems } = await import('../src/runtime/morph.ts')
+    const item = (over: object) => ({ kind: 'box' as const, text: '', box: box(0, 0, 10, 10), el: null, ...over })
+    const a = [item({ name: 'logo' }), item({ role: 'title', kind: 'text', text: 'Hashmark' }), item({ name: 'karte' })]
+    const b = [item({ name: 'karte' }), item({ role: 'title', kind: 'text', text: 'Architektur' }), item({ name: 'logo' }), item({ name: 'neu' })]
+    const withTitle = pairItems(a, b, true)
+    expect(withTitle).toHaveLength(3)
+    expect(withTitle.map((p) => p.to.name ?? p.to.role).sort()).toEqual(['karte', 'logo', 'title'])
+    const without = pairItems(a, b, false)
+    expect(without.map((p) => p.to.name).sort()).toEqual(['karte', 'logo'])
+    // doppelter Name: das alte Element wird nur einmal vergeben
+    const twice = pairItems([item({ name: 'x' })], [item({ name: 'x' }), item({ name: 'x' })], true)
+    expect(twice).toHaveLength(1)
+  })
+
+  it('Code: gleiche Zeilen bleiben zugeordnet, neue und geänderte nicht, die Reihenfolge bleibt', async () => {
+    const { matchLines } = await import('../src/runtime/morph.ts')
+    const a = ['function bauen(deck) {', '  const baum = lesen(deck)', '  return rendern(baum)', '}']
+    const b = ['function bauen(deck) {', '  const baum = lesen(deck)', '  const plan = planen(baum)', '  return rendern(baum, plan)', '}']
+    expect(matchLines(a, b)).toEqual([0, 1, -1, -1, 3])
+    // Einrückung zählt nicht, Leerzeilen werden nie zugeordnet
+    expect(matchLines(['  a', '', 'b'], ['a', '', '  b'])).toEqual([0, -1, 2])
+    expect(matchLines([], ['x'])).toEqual([-1])
+    expect(matchLines(['x'], [])).toEqual([])
+  })
+
+  it('FLIP: vom alten zum neuen Platz, Text gleichmäßig skaliert', async () => {
+    const { flipFrom } = await import('../src/runtime/morph.ts')
+    expect(flipFrom(box(100, 200, 400, 100), box(40, 50, 200, 50), 1, false)).toBe('translate(60px, 150px) scale(2, 2)')
+    expect(flipFrom(box(100, 200, 400, 100), box(40, 50, 100, 50), 1, true)).toBe('translate(60px, 150px) scale(2, 2)')
+    expect(flipFrom(box(100, 200, 400, 100), box(40, 50, 200, 50), 2, false)).toBe('translate(30px, 75px) scale(2, 2)')
+  })
+
+  it('morph=name steht als data-morph an Container, Bild, Code und Überschrift; ungültige Namen werden gemeldet', async () => {
+    const dir = await tempDeck({
+      'a.md': '# A {morph=titel}\n\n::: card morph=quote title=X\ntext\n:::\n\n![Logo](logo.svg){morph=logo}\n\n```ts {morph=code}\nconst a = 1\n```\n',
+      'logo.svg': '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"/>',
+    })
+    const { deck, warnings } = await loadDeck(dir)
+    expect(warnings).toEqual([])
+    expect(deck.nodes[0].attrs.morph).toBe('titel')
+    const html = deck.nodes[0].slides[0].html
+    expect(html).toMatch(/data-morph="quote"/)
+    expect(html).toMatch(/data-morph="logo"/)
+    expect(html).toMatch(/<figure class="code-block" data-morph="code">/)
+    const bad = await loadDeck(await tempDeck({ 'a.md': '# A\n\n::: card morph="a b"\nx\n:::\n' }))
+    expect(bad.warnings.join('\n')).toContain('morph="a b" ist ungültig')
+  })
+
+  it('check und Linter prüfen den Morph-Namen; deck.yaml morph: off wirkt auf Folien ohne eigene Angabe', async () => {
+    const { staticChecks } = await import('../src/core/check.ts')
+    const r = await loadDeck(await tempDeck({ 'a.md': '# A {morph=logo}\n\n# B {morph="a b"}\n\n# C {morph=off}' }))
+    const text = staticChecks(r).map((f) => f.message).join('\n')
+    expect(text).not.toContain('Attribut „morph“')
+    expect(text).toContain('morph „a b“ ist ungültig')
+    expect(lintText('## A {morph=logo}')).toEqual([])
+    expect(lintText('## A {morph=off}')).toEqual([])
+    const off = await loadDeck(await tempDeck({ 'deck.yaml': 'motion:\n  morph: off\n', 'a.md': '# A\n\n# B {morph=titel}' }))
+    expect(off.warnings).toEqual([])
+    expect(off.deck.nodes.map((n) => n.attrs.morph)).toEqual(['off', 'titel'])
+    const bad = await loadDeck(await tempDeck({ 'deck.yaml': 'motion:\n  morph: an\n', 'a.md': '# A' }))
+    expect(bad.warnings.join('\n')).toContain('motion.morph „an“')
+  })
+})

@@ -8,7 +8,7 @@ import { buildNodes, parseMarkdown, type RawNode } from './parse.ts'
 import { renderNodeContent, resolveImage, type RenderContext } from './render.ts'
 import { resolveTheme } from './theme.ts'
 import { authorPlan } from './plan.ts'
-import { EFFECTS, SPEEDS } from './check.ts'
+import { EFFECTS, SPEEDS, TRANSITIONS } from './check.ts'
 import { parseDuration } from './timing.ts'
 import type { Deck, DeckNode, Manifest, MountEntry } from './types.ts'
 
@@ -116,6 +116,10 @@ async function finalize(raw: RawNode[], parentId: string, ctx: FinalizeContext):
       depth: n.depth,
       attrs: {
         ...n.attrs,
+        // Deck-Standard `motion: morph: off` schaltet das Wandern der Titel für alle Folien ohne eigene Angabe ab
+        ...(!n.attrs.morph && ctx.manifest.motion?.morph === 'off' ? { morph: 'off' } : {}),
+        // Deck-Standard `motion: transition:` für Folien ohne eigene Angabe (gilt so auch im Export)
+        ...(!n.attrs.transition && deckTransition(ctx.manifest) ? { transition: deckTransition(ctx.manifest) } : {}),
         ...(n.attrs.bg ? { bg: background(n.attrs.bg, nodeCtx) } : {}),
         ...(n.attrs.banner ? { banner: `url("${resolveImage(n.attrs.banner.trim(), nodeCtx)}")` } : {}),
       },
@@ -193,16 +197,22 @@ function applyFooter(nodes: DeckNode[], manifest: Manifest, warnings: string[]) 
   walk(nodes)
 }
 
+/** Gültiger Deck-Standard-Übergang aus `motion: transition:` (Ungültiges meldet `manifestMotion`) */
+function deckTransition(manifest: Manifest): string | undefined {
+  const t = manifest.motion?.transition
+  return typeof t === 'string' && TRANSITIONS.includes(t) ? t : undefined
+}
+
 /** `motion:` aus der deck.yaml; unbekannte Werte werden gemeldet und ignoriert */
-function manifestMotion(manifest: Manifest, warnings: string[]): { speed?: string; effect?: string } | undefined {
+function manifestMotion(manifest: Manifest, warnings: string[]): { speed?: string; effect?: string; transition?: string; morph?: string } | undefined {
   const m = manifest.motion
   if (m === undefined) return undefined
   if (!m || typeof m !== 'object' || Array.isArray(m)) {
-    warnings.push('deck.yaml: motion muss ein Block sein, z. B. motion: { speed: slow, effect: up }')
+    warnings.push('deck.yaml: motion muss ein Block sein, z. B. motion: { speed: slow, effect: up, transition: push }')
     return undefined
   }
-  const out: { speed?: string; effect?: string } = {}
-  for (const [key, allowed] of [['speed', SPEEDS], ['effect', EFFECTS]] as const) {
+  const out: { speed?: string; effect?: string; transition?: string; morph?: string } = {}
+  for (const [key, allowed] of [['speed', SPEEDS], ['effect', EFFECTS], ['transition', TRANSITIONS], ['morph', ['off'] as string[]]] as const) {
     const value = m[key]
     if (value === undefined) continue
     if (typeof value !== 'string' || !allowed.includes(value)) warnings.push(`deck.yaml: motion.${key} „${value}“ ist unbekannt (${allowed.join(' | ')})`)

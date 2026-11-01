@@ -54,7 +54,7 @@ export interface Deck {
   /** geplante Gesamtdauer in Sekunden (deck.yaml: `duration: 30m`) */
   duration?: number
   /** Bewegung (deck.yaml `motion:`): Tempo der Übergänge; `effect` = Auftritt der Schritte. Eine Folie überschreibt beides mit `{speed=…}` bzw. `{effect=…}` */
-  motion?: { speed?: string; effect?: string }
+  motion?: { speed?: string; effect?: string; transition?: string; morph?: string }
   nodes: DeckNode[]
   /** alle eingelesenen Dateien (für den File-Watcher) */
   files: string[]
@@ -80,8 +80,8 @@ export interface Manifest {
   embedImages?: boolean
   /** Videos im Einzel-HTML-Export einbetten (bis 25 MB je Datei); sonst liegen sie in einem Ordner neben der Datei */
   embedMedia?: boolean
-  /** Bewegung: `speed: fast | normal | slow`, `effect: fade | up | left | scale | wipe | highlight | dim` */
-  motion?: { speed?: string; effect?: string }
+  /** Bewegung: `speed: fast | normal | slow`, `effect: fade | up | left | scale | wipe | highlight | dim`, `transition: push | blur | …`, `morph: off` (Titel wandern nicht von selbst) */
+  motion?: { speed?: string; effect?: string; transition?: string; morph?: string }
   /** alle Bilder lassen sich in der Präsentation mit Z vergrößern (einzeln abwählen mit `{zoom=off}`) */
   zoom?: boolean
   layout?: string

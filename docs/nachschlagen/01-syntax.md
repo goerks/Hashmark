@@ -23,9 +23,10 @@ Die oberste Überschriftenebene jeder Datei wird auf Tiefe 1 gelegt, `maxDepth` 
 | `layout=…` | Layout der Folie, siehe „Layouts“ |
 | `id=…` | eigene Sprungmarke (sonst aus dem Titel) |
 | `.klasse` | CSS-Klasse an der Folie |
-| `transition=…` | Übergang zu dieser Folie, siehe „Übergänge“ |
+| `transition=…` | Übergang zu dieser Folie (`push`, `blur`, `iris` …), siehe „Übergänge“ |
 | `effect=…` | Auftritt der Schritte dieser Folie: `fade`, `up`, `left`, `scale`, `wipe`, `highlight`, `dim` (siehe „Effekte für Schritte“) |
 | `speed=…` | Tempo des Übergangs zu dieser Folie: `fast`, `normal`, `slow` |
+| `morph=…` | Auto-Animate: Name des Titels (wandert zur gleichnamigen Stelle der nächsten Folie) oder `off` (Titel wandert nicht), siehe „Elemente wandern“ |
 | `duration=5m` | geplante Redezeit (`90s`, `5m`, `1h`) |
 | `bg=…` | Hintergrund: Farbe, Verlauf oder Bild |
 | `bgdim=0.5` | Hintergrundbild abdunkeln (0 bis 1) |
@@ -142,8 +143,23 @@ Layouts setzt du mit `{layout=…}` an der Überschrift, je Ebene in der `deck.y
 | `fade` | blendet über |
 | `none` | ohne Bewegung |
 
+---
+
+| Übergang | Wirkung |
+| --- | --- |
+| `push` | die neue Folie schiebt die alte weg, in Richtung der Taste |
+| `depth` | ↓ ↑: der Elternknoten tritt zurück, das Detail kommt von unten darüber (Standard bei ↓ ↑) |
+| `cover` | die neue Folie legt sich über die alte, die abdunkelt |
+| `reveal` | die alte Folie zieht weg, die neue liegt schon darunter |
+| `blur` | weiches Verschwimmen |
+| `iris` | ein Kreis öffnet sich von der Seite der Taste |
+| `curtain` | die alte Folie öffnet sich von der Mitte |
+| `diagonal` | die neue Folie baut sich als Welle aus Kacheln auf |
+| `mosaic` | Kacheln setzen die neue Folie in zufälliger Reihenfolge zusammen |
+| `blinds` | Streifen öffnen sich nacheinander |
+
 ::: notes
-Ohne `transition=` richtet sich der Übergang nach der Richtung: seitlich schieben bei → und ←, zoomen bei ↓ und ↑, überblenden bei Sprüngen. Der Übergang gilt für den Wechsel zu der Folie, an der er steht. Das Tempo stellst du mit `speed=` ein (`fast` 190 ms, `normal` 380 ms, `slow` 760 ms), fürs ganze Deck mit `motion: speed:` in der `deck.yaml`.
+Ohne `transition=` richtet sich der Übergang nach der Richtung: seitlich schieben bei → und ←, ↓ und ↑ zeigen Tiefe (`depth`), Sprünge überblenden. Fürs ganze Deck legst du einen Übergang mit `motion: { transition: push }` in der `deck.yaml` fest; `transition=` an einer Folie hat Vorrang. Der Übergang gilt für den Wechsel zu der Folie, an der er steht. Das Tempo stellst du mit `speed=` ein (`fast` 190 ms, `normal` 380 ms, `slow` 760 ms), fürs ganze Deck mit `motion: speed:` in der `deck.yaml`.
 :::
 
 ## Bilder und Video {id=bild-attribute}

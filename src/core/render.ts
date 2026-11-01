@@ -171,7 +171,9 @@ export const shikiPlugin: CodeBlockPlugin = {
       html = html.replace('<pre ', `<pre data-lines="${escape(attrs.lines)}" data-hl-count="${highlights.length}" data-hl-all=" ${all.join(' ')} " `)
     }
     const title = attrs.title ? `<figcaption>${escape(attrs.title)}</figcaption>` : ''
-    return { html: `<figure class="code-block">${title}${html}</figure>`, steps: [] }
+    // `morph=name`: Block und seine Zeilen wandern zum gleichnamigen Block der nächsten Folie
+    const morph = attrs.morph && MORPH_NAME.test(attrs.morph) && attrs.morph !== 'off' ? ` data-morph="${escape(attrs.morph)}"` : ''
+    return { html: `<figure class="code-block"${morph}>${title}${html}</figure>`, steps: [] }
   },
 }
 
@@ -299,7 +301,7 @@ function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn, v
   }
   if (m) next!.value = next!.value.slice(m[0].length)
   const attrs = m ? parseAttrs(m[1]) : {}
-  const known = ['width', 'height', 'fit', 'pos', 'ratio', 'step', 'until', 'style', 'class', 'id', ...(video ? VIDEO_ATTRS : ['zoom', 'zoomstep', 'zoomuntil'])]
+  const known = ['width', 'height', 'fit', 'pos', 'ratio', 'step', 'until', 'style', 'class', 'id', 'morph', ...(video ? VIDEO_ATTRS : ['zoom', 'zoomstep', 'zoomuntil'])]
   const what = video ? 'Video' : 'Bild'
   for (const key of Object.keys(attrs)) {
     if (!known.includes(key)) warn(`${what}-Attribut „${key}“ ist unbekannt (bekannt: ${known.join(', ')})`)
@@ -322,6 +324,10 @@ function imageAttrs(node: AnyNode, index: number, parent: AnyNode, warn: Warn, v
   if (/^\d+$/.test(attrs.until ?? '')) props.dataUntil = attrs.until
   if (attrs.class) props.className = attrs.class.split(/\s+/)
   if (attrs.id) props.id = attrs.id
+  if (attrs.morph !== undefined) {
+    if (MORPH_NAME.test(attrs.morph) && attrs.morph !== 'off') props.dataMorph = attrs.morph
+    else warn(`${what}: morph="${attrs.morph}" ist ungültig (ein Name aus Buchstaben, Ziffern, _ und -)`)
+  }
   if (!video) {
     // `{zoom}`: in der Präsentation mit Z (oder Klick) vergrößern; `{zoom=off}` nimmt ein Bild von `zoom: true` im Deck aus
     if (attrs.zoom !== undefined && attrs.zoom !== 'true' && !ZOOM_OFF.includes(attrs.zoom.toLowerCase())) warn(`Bild: zoom="${attrs.zoom}" ist ungültig (zoom oder zoom=off)`)
@@ -447,7 +453,9 @@ export const DESIGN_ATTRS: Record<string, string[]> = {
   reveal: ['step', 'until'],
 }
 /** Bewegungs-Attribute, die jeder Container mit Schritten versteht */
-const MOTION_ATTRS = ['effect', 'stagger', 'delay']
+const MOTION_ATTRS = ['effect', 'stagger', 'delay', 'morph']
+/** Name für Auto-Animate (`morph=logo`): Buchstaben, Ziffern, `_` und `-` */
+export const MORPH_NAME = /^[\w-]+$/
 const TAILS = ['none', 'left', 'right', 'up', 'down']
 const ALIGNS = ['left', 'center', 'right']
 
@@ -615,6 +623,11 @@ function applyDirectives(root: Root, ctx: RenderContext) {
       if (node.name !== 'note-step') {
         if (/^\d+$/.test(attrs.step ?? '')) props.dataStep = attrs.step
         if (/^\d+$/.test(attrs.until ?? '')) props.dataUntil = attrs.until
+      }
+      // `morph=name`: dieses Element wandert zur nächsten Folie, auf der es denselben Namen trägt (Auto-Animate)
+      if (node.name !== 'note-step' && attrs.morph !== undefined) {
+        if (MORPH_NAME.test(attrs.morph) && attrs.morph !== 'off') props.dataMorph = attrs.morph
+        else warn(`::: ${node.name}: morph="${attrs.morph}" ist ungültig (ein Name aus Buchstaben, Ziffern, _ und -)`)
       }
       // `effect=up` (Auftritt der Schritte darunter), `stagger` (gleiche Schrittnummer leicht versetzt), `delay=300ms`
       if (node.name !== 'note-step') {
