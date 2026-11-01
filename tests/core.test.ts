@@ -1328,8 +1328,8 @@ describe('Kapitelnummern und Inhaltsverzeichnis', () => {
     const r = await loadDeck(await tempDeck({ 'deck.yaml': 'numbering: { from: 1, to: 2 }\n', 'a.md': DECK }))
     const html = r.deck.nodes[1].slides[0].html
     expect(html).toContain('agenda-numbered')
-    expect(html).toContain('<span class="agenda-num">1.2</span><a href="#wettbewerb">Wettbewerb</a>')
-    expect(html).toContain('<span class="agenda-num"></span><a href="#roadmap">Roadmap</a>')
+    expect(html).toContain('<span class="agenda-num">1.2</span><a href="#markt/wettbewerb">Wettbewerb</a>')
+    expect(html).toContain('<span class="agenda-num"></span><a href="#strategie/roadmap">Roadmap</a>')
     expect(html).not.toContain('Umsetzung')
     expect(html).not.toContain('Tech')
     expect(html).toContain('href="#anhang"')
