@@ -16,6 +16,7 @@
   import { FORWARDED_KEYS, openLink, usesChannel, type PresenterLink, type PresenterMessage } from './presenter-link.ts'
   import './presenter.css'
   import { onDeckUpdate } from './deck-source.ts'
+  import { labelOf } from '../core/numbering.ts'
 
   // Presenter-View: zweites Fenster (Taste S in der Präsentation). Zeigt aktuelle und nächste Folie,
   // Notizen, Uhr, Timer mit Zeitplan und den Baum mit den Ästen, in die man abtauchen kann.
@@ -76,7 +77,7 @@
     if (!next || !nextNode || !pos) return 'Ende'
     if (next.pos.id === pos.id && next.pos.slide === pos.slide) return `Schritt ${next.pos.step ?? 0} / ${stepCount}`
     if (next.pos.id === pos.id) return `Folie ${next.pos.slide + 1} / ${nextNode.slides.length}`
-    return `${next.dir === 'down' ? '↓ ' : trip.length && next.dir === 'up' ? '↩ ' : ''}${nextNode.title}`
+    return `${next.dir === 'down' ? '↓ ' : trip.length && next.dir === 'up' ? '↩ ' : ''}${labelOf(nextNode)}`
   })
   const right = $derived(pos ? nav.next(pos) : null)
   const progress = $derived(pos ? nav.progress(pos) : { index: 0, total: 0 })
@@ -262,7 +263,7 @@
         <button class="pv-tree-item" class:current={n.id === pos?.id} class:trail={inTrail && n.id !== pos?.id}
           class:optional={nav.state(n.id) === 'optional'} class:appendix={nav.state(n.id) === 'appendix'}
           style:padding-left="{8 + (n.depth - 1) * 14}px" onclick={() => goto(n.id)}>
-          <span class="pv-tree-title">{n.title}</span>
+          <span class="pv-tree-title">{labelOf(n)}</span>
           {#if nav.state(n.id) !== 'path'}<span class="pv-tree-role">{PLAN_LABEL[nav.state(n.id)]}</span>{/if}
           {#if n.duration}<span class="pv-tree-time">{formatClock(n.duration)}</span>{/if}
           {#if n.children.length && !inTrail}<span class="pv-tree-count">↓{n.children.length}</span>{/if}
@@ -312,7 +313,7 @@
   <section class="pv-current">
     <div class="pv-label">
       <span>Aktuell</span>
-      {#if node}<span class="pv-crumb">{trail.map((t) => t.title).join(' › ')}</span>{/if}
+      {#if node}<span class="pv-crumb">{trail.map(labelOf).join(' › ')}</span>{/if}
       <span class="pv-pos">{stepCount ? `Schritt ${step}/${stepCount} · ` : ''}{progress.index} / {progress.total}</span>
     </div>
     {#if node && pos}
@@ -323,11 +324,11 @@
     <div class="pv-moves">
       {#if node?.children.length}
         <span class="pv-dive"><kbd>↓</kbd> {node.children.length} {node.children.length === 1 ? 'Detail' : 'Details'}:
-          {#each node.children as c, i (c.id)}{#if i}, {/if}<button class:off={!nav.onPath(c.id)} onclick={() => goto(c.id)}>{c.title}</button>{/each}
+          {#each node.children as c, i (c.id)}{#if i}, {/if}<button class:off={!nav.onPath(c.id)} onclick={() => goto(c.id)}>{labelOf(c)}</button>{/each}
         </span>
       {/if}
       {#if right && right.pos.id !== pos?.id}
-        <span class="pv-right"><kbd>→</kbd> {nav.node(right.pos.id)?.title}</span>
+        <span class="pv-right"><kbd>→</kbd> {labelOf(nav.node(right.pos.id)!)}</span>
       {/if}
       {#if zoom?.available}
         <span class="pv-video" class:playing={zoom.active}>Zoom: {zoom.active ? 'vergrößert' : 'normal'} · <kbd>Z</kbd> {zoom.active ? 'zurück, + / − tiefer' : 'vergrößern'}</span>

@@ -15,6 +15,7 @@
 | --- | --- |
 | `footer` | Fußzeile auf jeder Folie |
 | `slideNumber` | Folienzahl: `true` oder Vorlage `"{n} / {total}"` |
+| `numbering` | Kapitelnummern: `{ from: 1, to: 2 }` zählt die Ebenen 1 bis 2, dazu `appendix: true` (Anhang mitzählen) und `titles: false` (Nummer nur im Verzeichnis) |
 | `mount` | Dateien und Reihenfolge, `under:` hängt unter einen Knoten |
 | `motion` | Bewegung: `speed: fast \| normal \| slow` für alle Übergänge, `effect: up` (u. a., auch `wipe`) für den Auftritt der Schritte, `transition: push` (u. a.) als Übergang für alle Folien ohne eigene Angabe, `morph: off` lässt Titel nicht von selbst zur nächsten Folie wandern |
 | `zoom` | alle Bilder mit Z vergrößerbar |

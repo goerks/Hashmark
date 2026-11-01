@@ -43,6 +43,7 @@ duration: 25m                    # geplante Gesamtdauer (90s, 5m, 1h30m, 1:30, Z
 motion: { speed: normal, effect: fade, transition: push, morph: off }   # Tempo (fast | normal | slow), Auftritt der Schritte (fade | up | left | scale | wipe | highlight | dim) und Übergang für alle Folien; die Folie überschreibt mit {speed=…}, {effect=…} bzw. {transition=…}
 footer: Firma · Vortrag          # Fußzeile auf jeder Folie
 slideNumber: "{n} / {total}"     # true = nur Zahl, sonst Vorlage mit {n} und {total}
+numbering: { from: 1, to: 2 }    # Kapitelnummern 1, 1.1 … für die Ebenen von..bis (ohne Eintrag keine Nummern); appendix: true zählt den Anhang mit, titles: false zeigt die Nummer nur im Verzeichnis
 zoom: true                       # alle Bilder mit Z vergrößerbar
 embedImages: true                # alle lokalen Bilder in die Ausgabe einbetten
 embedMedia: true                 # Videos in Einzel-HTML einbetten (bis 25 MB)
@@ -151,6 +152,9 @@ Formate: `key=wert`, `key="wert mit Leerzeichen"`, `.klasse` (CSS-Klasse), `#id`
 | `banner=bild.jpg` | Bildband (nur mit `layout=banner`) |
 | `bannerh=210` | Höhe des Bildbands (px) |
 | `bannerpos="50% 30%"` | Ausschnitt des Bildbands |
+| `number=off\|on` | Kapitelnummer (nur mit `numbering:`): `off` nimmt den Knoten samt Unterbaum heraus (keine Lücke, nächstes Kapitel rückt nach), `on` holt ihn zurück (auch den Anhang) |
+| `toc=off` | im Inhaltsverzeichnis weglassen, samt Unterbaum (die Nummer bleibt) |
+| `levels=1-2` | nur an `layout=agenda`: macht die Agenda zum Inhaltsverzeichnis aller Knoten dieser Ebenen, eingerückt, mit Nummer |
 | `footer=off` | Fußzeile auf dieser Folie ausblenden |
 
 Unbekannte Attribute erzeugen eine Warnung, unbekannte Layouts einen Fehler (`hashmark check`).
@@ -166,7 +170,7 @@ Setzen mit `{layout=name}`. Standard ist `default`.
 | `default` | Überschrift und Inhalt |
 | `statement` | Kernaussage, groß und mittig |
 | `quote` | Zitat (`> Text` und Quelle) |
-| `agenda` | Agenda aus den Kapiteln (Tiefe-1-Knoten, ohne `title`/`agenda`), aktuelles markiert; wird automatisch erzeugt |
+| `agenda` | Agenda aus den Kapiteln (Tiefe-1-Knoten, ohne `title`/`agenda`), aktuelles markiert; wird automatisch erzeugt; mit `levels=1-2` ein Inhaltsverzeichnis mit Unterkapiteln und Nummern |
 | `two-col` | zwei Spalten (Inhalt in `::: columns`/`::: col` oder Layout-Aufteilung) |
 | `three-col` | drei Spalten |
 | `two-col-wide` | Text links, schmale Randspalte rechts (`::: aside title="…"`) |
@@ -238,6 +242,16 @@ Quelle: interne Erhebung, Q3
 Eigene Layouts: CSS mit Selektor `.layout-<name>` im Theme (`theme.layouts`), dann `{layout=<name>}`.
 
 Typischer Aufbau: Titelfolie `{layout=title}`, danach Agenda `{layout=agenda}`, Kapitel als Tiefe-1-Knoten (`layouts: { 1: section }` in der `deck.yaml` macht sie zu Kapitelfolien), Inhalt als Tiefe 2.
+
+**Kapitelnummern und Inhaltsverzeichnis:** Nie Nummern in Überschriften schreiben (`# 1. Markt` ist falsch). Hashmark zählt selbst, wenn die `deck.yaml` `numbering: { from: 1, to: 2 }` enthält: Ebene 1 wird `1`, `2`, `3`, Ebene 2 `1.1`, `1.2`. Ohne `to` zählt es bis Ebene 2. Beginnt die Zählung bei `from: 2`, läuft diese Ebene durchlaufend über das ganze Deck. Titel- und Agenda-Folien und der Anhang (`{appendix}`) bekommen keine Nummer; `appendix: true` zählt ihn mit. Einzelne Kapitel nimmt `{number=off}` samt Unterkapiteln heraus (ohne Lücke), `{number=on}` holt eines zurück. Die Nummer steht im Folientitel, im Verzeichnis, im Lesemodus, in Übersicht, Suche und Presenter-Baum, im PDF und in PowerPoint; `titles: false` zeigt sie nur in Listen und im Verzeichnis. Das Verzeichnis ist die Agenda mit Ebenen: `# Inhalt {layout=agenda levels=1-2}` (`{toc=off}` lässt einen Knoten samt Unterbaum weg, über etwa 16 Einträge warnt `hashmark check`).
+
+```md
+# Inhalt {layout=agenda levels=1-2}
+
+# Markt
+## Trends
+## Wettbewerb {number=off}
+```
 
 ## 7. Container (`:::`)
 

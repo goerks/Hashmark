@@ -257,6 +257,28 @@ slideNumber: "{n} / {total}"
 In der `deck.yaml` setzt `footer` eine Fußzeile auf jede Folie, `slideNumber` die Folienzahl (`true` = nur die Zahl, sonst eine Vorlage mit `{n}` und `{total}`). Nummeriert wird in Baumreihenfolge. `{footer=off}` an der Überschrift blendet die Fußzeile auf einer Folie aus; Titel-, Kapitel- und Statement-Folien zeigen sie ohnehin nicht.
 :::
 
+## Kapitelnummern und Inhaltsverzeichnis {id=kapitelnummern}
+
+```yaml
+numbering: { from: 1, to: 2 }
+```
+
+```md
+# Inhalt {layout=agenda levels=1-2}
+
+# Markt
+## Trends
+## Wettbewerb {number=off}
+```
+
+::: notes
+Du schreibst keine Nummern in die Überschriften. Mit `numbering:` in der `deck.yaml` zählt Hashmark die Kapitel selbst: `from` und `to` legen fest, von welcher bis zu welcher Ebene gezählt wird (Standard 1 bis 2). Ebene 1 wird `1`, `2`, `3`, Ebene 2 `1.1`, `1.2`. Beginnst du bei `from: 2`, zählt diese Ebene durchlaufend über das ganze Deck. Die Nummer steht im Folientitel, im Verzeichnis, im Lesemodus, in Übersicht, Suche und Presenter-Baum, im PDF und in PowerPoint. Sie wird beim Laden berechnet: Verschiebst du ein Kapitel, zählt Hashmark neu, die Sprungadressen bleiben gleich.
+
+Titelfolie, Agenda und Anhang bekommen keine Nummer (`appendix: true` zählt den Anhang mit). Einzelne Kapitel nimmst du mit `{number=off}` samt Unterkapiteln heraus, es entsteht keine Lücke. `{number=on}` holt ein Kapitel zurück. `titles: false` zeigt die Nummern nur im Verzeichnis und in den Listen, der Folientitel bleibt unverändert.
+
+Das Inhaltsverzeichnis ist die Agenda-Folie mit `levels=1-2`: Sie zeigt alle Kapitel dieser Ebenen, eingerückt und mit Nummer. `{toc=off}` lässt ein Kapitel samt Unterkapiteln weg. Ab etwa 16 Einträgen wird die Folie sehr voll, `hashmark check` warnt dann.
+:::
+
 ## Volle Folien einpassen {id=fit}
 
 ```md

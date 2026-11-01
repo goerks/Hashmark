@@ -1274,3 +1274,90 @@ describe('Auto-Animate', () => {
     expect(bad.warnings.join('\n')).toContain('motion.morph „an“')
   })
 })
+
+describe('Kapitelnummern und Inhaltsverzeichnis', () => {
+  const DECK = [
+    '# Titel {layout=title}', '', '# Inhalt {layout=agenda levels=1-2}', '',
+    '# Markt', '', '## Trends', '', '### Tech', '', '## Wettbewerb', '',
+    '# Strategie', '', '## Hebel', '', '## Roadmap {number=off}', '', '## Pilot', '',
+    '# Umsetzung {toc=off}', '', '## Team', '',
+    '# Anhang {appendix}', '', '## Quellen',
+  ].join('\n')
+  const nums = (nodes: DeckNode[]): Record<string, string | undefined> => Object.fromEntries(nodes.flatMap((n) => [[n.title, n.num], ...Object.entries(nums(n.children))]))
+
+  it('zählt Ebene 1 bis 2 lückenlos, ohne Titel, Agenda, Anhang und number=off', async () => {
+    const r = await loadDeck(await tempDeck({ 'deck.yaml': 'numbering: { from: 1, to: 2 }\n', 'a.md': DECK }))
+    expect(nums(r.deck.nodes)).toEqual({
+      Titel: undefined, Inhalt: undefined, Markt: '1', Trends: '1.1', Tech: undefined, Wettbewerb: '1.2',
+      Strategie: '2', Hebel: '2.1', Roadmap: undefined, Pilot: '2.2', Umsetzung: '3', Team: '3.1', Anhang: undefined, Quellen: undefined,
+    })
+    expect(r.deck.nodes[2].numTitle).toBe(true)
+    expect(r.deck.nodes[2].id).toBe('markt')
+    expect(r.warnings).toEqual([])
+  })
+
+  it('ohne numbering: keine Nummern und keine Zählerspalte', async () => {
+    const r = await loadDeck(await tempDeck({ 'a.md': DECK.replace(' levels=1-2', '') }))
+    expect(Object.values(nums(r.deck.nodes)).every((v) => v === undefined)).toBe(true)
+    expect(r.deck.nodes[1].slides[0].html).toContain('class="agenda"')
+    expect(r.deck.nodes[1].slides[0].html).not.toContain('agenda-num')
+  })
+
+  it('from: 2 zählt die zweite Ebene durchlaufend, to schneidet ab', async () => {
+    const r = await loadDeck(await tempDeck({ 'deck.yaml': 'numbering: { from: 2, to: 3 }\n', 'a.md': DECK }))
+    const n = nums(r.deck.nodes)
+    expect(n.Markt).toBeUndefined()
+    expect([n.Trends, n.Tech, n.Wettbewerb, n.Hebel, n.Pilot, n.Team]).toEqual(['1', '1.1', '2', '3', '4', '5'])
+  })
+
+  it('appendix: true zählt den Anhang mit, number=on holt Knoten zurück, titles: false', async () => {
+    const r = await loadDeck(await tempDeck({ 'deck.yaml': 'numbering: { appendix: true, titles: false }\n', 'a.md': DECK.replace('## Quellen', '## Quellen {number=off}') }))
+    const n = nums(r.deck.nodes)
+    expect([n.Umsetzung, n.Anhang, n.Quellen]).toEqual(['3', '4', undefined])
+    expect(r.deck.nodes[2].numTitle).toBeUndefined()
+    const on = await loadDeck(await tempDeck({ 'deck.yaml': 'numbering: { to: 2 }\n', 'a.md': DECK.replace('# Anhang {appendix}', '# Anhang {appendix number=on}') }))
+    expect(nums(on.deck.nodes).Anhang).toBe('4')
+  })
+
+  it('number=off gilt für den Unterbaum, number=on darunter holt zurück, ohne Lücke', async () => {
+    const r = await loadDeck(await tempDeck({ 'deck.yaml': 'numbering: { from: 1, to: 3 }\n', 'a.md': '# A\n\n## B {number=off}\n\n### C\n\n### D {number=on}\n\n# E' }))
+    expect(nums(r.deck.nodes)).toEqual({ A: '1', B: undefined, C: undefined, D: '1.1', E: '2' })
+  })
+
+  it('das Verzeichnis zeigt die Ebenen mit Nummern, ohne toc=off, Anhang ohne Nummer', async () => {
+    const r = await loadDeck(await tempDeck({ 'deck.yaml': 'numbering: { from: 1, to: 2 }\n', 'a.md': DECK }))
+    const html = r.deck.nodes[1].slides[0].html
+    expect(html).toContain('agenda-numbered')
+    expect(html).toContain('<span class="agenda-num">1.2</span><a href="#wettbewerb">Wettbewerb</a>')
+    expect(html).toContain('<span class="agenda-num"></span><a href="#roadmap">Roadmap</a>')
+    expect(html).not.toContain('Umsetzung')
+    expect(html).not.toContain('Tech')
+    expect(html).toContain('href="#anhang"')
+  })
+
+  it('meldet ungültige Angaben', async () => {
+    const r = await loadDeck(await tempDeck({ 'deck.yaml': 'numbering: { from: 3, to: 1, tiefe: 2 }\n', 'a.md': '# A {number=vielleicht toc=nie}\n\n# B {layout=agenda levels=7}\n\n# C {levels=1-2}' }))
+    const w = r.warnings.join('\n')
+    expect(w).toContain('numbering.from (3) liegt unter numbering.to (1)')
+    expect(w).toContain('numbering.tiefe ist unbekannt')
+    expect(w).toContain('number „vielleicht“')
+    expect(w).toContain('toc „nie“')
+    expect(w).toContain('levels „7“ ist ungültig')
+    expect(w).toContain('levels= wirkt nur mit layout=agenda')
+    const none = await loadDeck(await tempDeck({ 'a.md': '# A {number=off}' }))
+    expect(none.warnings.join('\n')).toContain('number=off wirkt nur mit numbering:')
+  })
+
+  it('warnt bei einem zu langen Verzeichnis', async () => {
+    const md = '# Inhalt {layout=agenda levels=1}\n\n' + Array.from({ length: 18 }, (_, i) => `# K${i}`).join('\n\n')
+    const r = await loadDeck(await tempDeck({ 'a.md': md }))
+    expect(r.warnings.join('\n')).toContain('18 Einträge')
+  })
+
+  it('die Suche kennt die Nummer', async () => {
+    const { buildSearchIndex } = await import('../src/core/search.ts')
+    const r = await loadDeck(await tempDeck({ 'deck.yaml': 'numbering: { to: 2 }\n', 'a.md': '# A\n\n## B' }))
+    const idx = buildSearchIndex(r.deck.nodes)
+    expect(idx.map((e) => [e.title, e.num, e.trail])).toEqual([['A', '1', []], ['B', '1.1', ['1 A']]])
+  })
+})
