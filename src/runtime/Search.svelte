@@ -68,7 +68,7 @@
             onclick={() => choose(i)} onmouseenter={() => (selected = i)}>
             <span class="sr-title">
               {#if !query.trim()}<span class="sr-indent" style:width="{hit.trail.length * 18}px"></span>{/if}
-              {hit.title}{#if hit.slide > 0}<span class="sr-sub"> · Folie {hit.slide + 1}</span>{/if}
+              {#if hit.num}<span class="sr-num">{hit.num}</span> {/if}{hit.title}{#if hit.slide > 0}<span class="sr-sub"> · Folie {hit.slide + 1}</span>{/if}
             </span>
             {#if hit.trail.length && query.trim()}<span class="sr-trail">{hit.trail.join(' › ')}</span>{/if}
             {#if hit.snippet}<span class="sr-snippet">{hit.snippet}</span>{/if}

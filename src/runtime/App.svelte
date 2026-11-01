@@ -20,6 +20,7 @@
   import { escapeZoom, onSwipe, onZoomChange, panZoom, resetZoom, toggleZoom, zoomBy, zoomInfo, type ZoomInfo } from './zoom.ts'
   import { onDeckUpdate } from './deck-source.ts'
   import { desktopAction, isDesktop } from './desktop.ts'
+  import { labelOf } from '../core/numbering.ts'
 
   type Payload = { deck: Deck } | { error: string }
 
@@ -76,7 +77,7 @@
       if (move.pos.slide === pos.slide) return `Schritt ${move.pos.step ?? 0} / ${stepsOf(target, move.pos.slide)}`
       return `Folie ${move.pos.slide + 1} / ${target.slides.length}`
     }
-    return key === 'up' ? `zurück zu ${target.title}` : target.title
+    return key === 'up' ? `zurück zu ${labelOf(target)}` : labelOf(target)
   }
 
   /** Mögliche Bewegungen von hier aus (nur Vorschau – merkt nichts) */
@@ -406,7 +407,7 @@
       <nav class="breadcrumb" aria-label="Position">
         {#each trail as crumb, i (crumb.id)}
           {#if i > 0}<span class="sep">›</span>{/if}
-          <button class:active={crumb.id === node.id} onclick={() => jump(crumb.id)}>{crumb.title}</button>
+          <button class:active={crumb.id === node.id} onclick={() => jump(crumb.id)}>{labelOf(crumb)}</button>
         {/each}
         {#if withPresenter}
           <!-- Presenter-View verbunden: Rolle, Schritte und Position stehen dort -->
@@ -439,7 +440,7 @@
 
       {#if tripBack && !withPresenter}
         <div class="trip-bar" role="status">
-          <span>↩ Ausflug · zurück zu „{tripBack.title}“</span>
+          <span>↩ Ausflug · zurück zu „{labelOf(tripBack)}“</span>
           <span class="trip-hint">Space führt von selbst zurück · Esc bricht ab</span>
         </div>
       {/if}

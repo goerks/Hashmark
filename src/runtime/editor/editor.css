@@ -196,6 +196,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .ed-files button.active { background: color-mix(in srgb, var(--ed-accent) 14%, transparent); color: var(--ed-fg); font-weight: 600; }
 .ed-outline ul ul { padding-left: 14px; }
 .ol-glyph { color: var(--ed-accent); font-weight: 700; width: 12px; flex: none; }
+.ol-num { flex: none; opacity: 0.55; font-variant-numeric: tabular-nums; font-size: 0.9em; margin-right: 6px; }
 .ol-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ol-item[data-depth="1"] { font-weight: 600; }
 .ol-item:not(.here) { color: var(--ed-muted); }

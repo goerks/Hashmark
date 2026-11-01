@@ -10,6 +10,7 @@ import { resolveTheme } from './theme.ts'
 import { authorPlan } from './plan.ts'
 import { EFFECTS, SPEEDS, TRANSITIONS } from './check.ts'
 import { parseDuration } from './timing.ts'
+import { applyNumbering, injectAgendas, numberingConfig } from './numbering.ts'
 import type { Deck, DeckNode, Manifest, MountEntry } from './types.ts'
 
 const MANIFEST = 'deck.yaml'
@@ -137,38 +138,6 @@ async function finalize(raw: RawNode[], parentId: string, ctx: FinalizeContext):
 
 const escapeHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-/** Kapitel für die Agenda: Hauptpfad ohne Titel- und Agenda-Folien */
-const isChapter = (n: DeckNode) => n.layout !== 'title' && n.layout !== 'agenda'
-
-/**
- * `layout=agenda`: listet die Kapitel des Hauptpfads. Steht die Agenda zwischen den Kapiteln,
- * sind die vorherigen erledigt und das folgende ist „als Nächstes“; unter einem Kapitel ist dieses „aktuell“.
- */
-function injectAgendas(nodes: DeckNode[]) {
-  const chapters = nodes.filter(isChapter)
-  const visit = (list: DeckNode[], top: DeckNode | undefined) => {
-    for (const node of list) {
-      const chapter = top ?? node
-      if (node.layout === 'agenda') {
-        const topIndex = nodes.indexOf(chapter)
-        // Index des Kapitels, das gerade dran ist bzw. als Nächstes kommt
-        const pivot = chapters.findIndex((c) => nodes.indexOf(c) >= topIndex)
-        const inside = top !== undefined && isChapter(chapter)
-        const items = chapters.map((c, i) => {
-          const state = i < pivot || pivot < 0 ? 'done' : i === pivot ? (inside ? 'current' : 'next') : 'todo'
-          const count = c.children.length ? `<span class="agenda-count">${c.children.length} Details</span>` : ''
-          return `<li class="agenda-${state}"><a href="#${encodeURI(c.id)}">${escapeHtml(c.title)}</a>${count}</li>`
-        })
-        // Zeilen für die zweispaltige Darstellung ab 10 Kapiteln (siehe base.css)
-        const html = `<ol class="agenda" style="--agenda-rows:${Math.ceil(items.length / 2)}">${items.join('')}</ol>`
-        node.slides[0].html = node.slides[0].html ? `${node.slides[0].html}\n${html}` : html
-      }
-      visit(node.children, chapter)
-    }
-  }
-  visit(nodes, undefined)
-}
-
 /** Folienzahl und Fußzeile: nummeriert in Baumreihenfolge (wie die PDF-Ansicht „Baum“) und hängt die Vorlage an jeden Knoten */
 function applyFooter(nodes: DeckNode[], manifest: Manifest, warnings: string[]) {
   if (manifest.footer !== undefined && typeof manifest.footer !== 'string') warnings.push('deck.yaml: footer muss ein Text sein')
@@ -254,7 +223,9 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
   const warnings: string[] = []
   const theme = resolveTheme(deckDir, manifest.theme)
   const nodes = await finalize(top, '', { deckDir, assets, warnings, embedImages: manifest.embedImages === true, zoomImages: manifest.zoom === true, manifest, components: theme.components })
-  injectAgendas(nodes)
+  const numbering = numberingConfig(manifest, maxDepth, warnings)
+  applyNumbering(nodes, numbering, warnings)
+  injectAgendas(nodes, !!numbering, maxDepth, warnings)
   applyFooter(nodes, manifest, warnings)
   const duration = parseDuration(manifest.duration)
   if (manifest.duration !== undefined && duration === undefined) warnings.push(`deck.yaml: ungültige Dauer "${manifest.duration}" (z. B. 30m, 1h)`)

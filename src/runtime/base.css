@@ -219,6 +219,20 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .agenda li::before {
   content: counter(agenda); flex: none; width: 1.6em; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-accent);
 }
+/* Kapitelnummern (deck.yaml `numbering:`): echte Nummer statt Zähler; Inhaltsverzeichnis mit `levels=` rückt Unterebenen ein */
+.agenda-numbered li::before { content: none; }
+.agenda-num { flex: none; min-width: 2.4em; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--color-accent); }
+.agenda li[data-depth="2"] { padding-left: 38px; font-size: 0.9em; }
+.agenda li[data-depth="3"] { padding-left: 60px; font-size: 0.82em; }
+.agenda li[data-depth="2"] a, .agenda li[data-depth="3"] a { font-weight: 500; }
+.agenda li[data-depth="2"], .agenda li[data-depth="3"] { background: none; outline: none; }
+/* sehr viele Einträge: noch etwas kleiner, damit das Verzeichnis auf eine Folie passt */
+.agenda:has(li:nth-child(13)) li { font-size: 21px; padding: 2px 12px; gap: 12px; }
+.agenda:has(li:nth-child(13)) li[data-depth="2"] { font-size: 19px; }
+.agenda:has(li:nth-child(13)) li[data-depth="3"] { font-size: 17px; }
+/* Nummer im Folientitel und in Kacheln */
+.slide-title .num, .tile-title .num { display: inline-block; color: var(--color-accent); font-variant-numeric: tabular-nums; margin-right: 0.5em; }
+.sr-num { color: var(--color-accent); font-variant-numeric: tabular-nums; margin-right: 6px; }
 .agenda a { color: var(--color-fg) !important; text-decoration: none; font-weight: 600; }
 .agenda a:hover { color: var(--color-accent) !important; }
 .agenda-count { margin-left: auto; font-size: 18px; color: var(--color-muted); }

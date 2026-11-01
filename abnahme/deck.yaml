@@ -1,2 +1,5 @@
-title: Abnahme – keine offene Abnahme
-theme: minimal
+title: Abnahme – Kapitelnummern und Inhaltsverzeichnis (#51)
+theme: dark-tech
+maxDepth: 3
+# Diese Präsentation führt die Neuerung selbst vor: Im Markdown steht keine einzige Nummer.
+numbering: { from: 1, to: 2 }
