@@ -231,7 +231,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 .agenda:has(li:nth-child(13)) li[data-depth="2"] { font-size: 19px; }
 .agenda:has(li:nth-child(13)) li[data-depth="3"] { font-size: 17px; }
 /* Nummer im Folientitel und in Kacheln */
-.slide-title .num, .tile-title .num { color: var(--color-accent); font-variant-numeric: tabular-nums; margin-right: 0.15em; }
+.slide-title .num, .tile-title .num { display: inline-block; color: var(--color-accent); font-variant-numeric: tabular-nums; margin-right: 0.5em; }
 .sr-num { color: var(--color-accent); font-variant-numeric: tabular-nums; margin-right: 6px; }
 .agenda a { color: var(--color-fg) !important; text-decoration: none; font-weight: 600; }
 .agenda a:hover { color: var(--color-accent) !important; }
