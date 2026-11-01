@@ -421,7 +421,7 @@
         <button class="end-show" onclick={() => void desktopAction({ action: 'close' })} title="Präsentation beenden (Strg+W)">✕ Beenden</button>
       {/if}
 
-      <!-- Ruhezustand unten: Details links, Position rechts, dünner Fortschrittsbalken. Alles Weitere steht in der Karte (NavControls). -->
+      <!-- Ruhezustand unten: Details links, Position rechts, dünner Fortschrittsbalken. Die Pfeil-Reihe (NavControls) sitzt in derselben Zeile, links neben der Position. -->
       {#if !withPresenter && !controlsHidden}
         {@const p = nav.progress(pos)}
         <footer class="status">
@@ -431,6 +431,7 @@
               ↓ {node.children.length} {node.children.length === 1 ? 'Detail' : 'Details'}
             </button>
           {/if}
+          {#if controls}<NavControls {controls} awake={!dimmed} onmove={moveBy} />{/if}
           <span class="progress" title="Folie {p.index} von {p.total} · Kapitel {topIndex + 1} von {nav.nodes.length}">{p.index} / {p.total}</span>
         </footer>
         <div class="progress-bar" aria-hidden="true"><b style="width:{(p.index / p.total) * 100}%"></b></div>
@@ -441,11 +442,6 @@
           <span>↩ Ausflug · zurück zu „{tripBack.title}“</span>
           <span class="trip-hint">Space führt von selbst zurück · Esc bricht ab</span>
         </div>
-      {/if}
-
-      <!-- Karte unten rechts: Space-Ziel und Steuerkreuz, nur bei Mausbewegung oder Taste (3 s) -->
-      {#if controls && !controlsHidden && !withPresenter}
-        <NavControls {controls} awake={!dimmed} onmove={moveBy} />
       {/if}
     </div>
   {:else if !error}

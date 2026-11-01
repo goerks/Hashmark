@@ -6,8 +6,8 @@
 </script>
 
 <script lang="ts">
-  // Karte mit Steuerkreuz: zeigt, wohin es von hier aus geht, und ist klickbar.
-  // Erscheint bei Mausbewegung oder Taste und zieht sich nach 3 s zurück (awake); Position und Details stehen dauerhaft in der Fußzeile.
+  // Pfeil-Reihe in der Fußzeile (neben der Position): zeigt, wohin es von hier aus geht, und ist klickbar.
+  // Dezent in Ruhe, hell bei Mausbewegung oder Taste (awake, 3 s); der Hinweis zu Space erscheint nur dann.
 
   let { controls, awake, onmove }: {
     controls: Record<ControlKey, Control>
@@ -20,15 +20,15 @@
   let hover = $state<ControlKey | null>(null)
 
   const pad: { key: ControlKey; area: string; keyHint: string; path: string }[] = [
-    { key: 'up', area: 'up', keyHint: '↑', path: 'M6 15l6-6 6 6' },
     { key: 'left', area: 'left', keyHint: '←', path: 'M15 6l-6 6 6 6' },
-    { key: 'right', area: 'right', keyHint: '→', path: 'M9 6l6 6-6 6' },
+    { key: 'up', area: 'up', keyHint: '↑', path: 'M6 15l6-6 6 6' },
     { key: 'down', area: 'down', keyHint: '↓', path: 'M6 9l6 6 6-6' },
+    { key: 'right', area: 'right', keyHint: '→', path: 'M9 6l6 6-6 6' },
   ]
 </script>
 
-<nav class="nav-controls" class:gone={!awake} aria-label="Navigation">
-  <div class="nc-info">
+<nav class="nav-controls" class:awake aria-label="Navigation">
+  <div class="nc-info" class:show={hover}>
     {#if hover && hover !== 'forward'}
       <span class="nc-next nc-hover"><kbd>{pad.find((p) => p.key === hover)?.keyHint}</kbd><span class="nc-next-label">{controls[hover].label}</span></span>
     {:else if controls.forward.move}
@@ -40,7 +40,7 @@
     {/if}
   </div>
 
-  <div class="nc-pad">
+  <div class="nc-pill">
     {#each pad as p (p.key)}
       {@const c = controls[p.key]}
       <button
@@ -56,6 +56,5 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d={p.path} /></svg>
       </button>
     {/each}
-    <span class="nc-center" aria-hidden="true"></span>
   </div>
 </nav>
