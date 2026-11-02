@@ -120,10 +120,31 @@ registerPlugin({ name: 'Falsch', api: 99 })
 Prüfen: Die erste Zeile ist hervorgehoben, mit dem Schritt die Zeilen 2 bis 4. So meldet sich ein Plugin an und so lehnt Hashmark ein ungültiges ab.
 :::
 
+## Eigene Plugins und Freigabe {layout=default}
+
+```yaml {title="deck.yaml"}
+plugins: [./plugins/meins]
+```
+
+```bash {title="Terminal"}
+hashmark trust mein-deck
+# meins: NICHT freigegeben (Prüfsumme 3f9a…)
+# „meins“ kann beliebigen Code ausführen. Gelesen und vertraut? [j/N]
+```
+
+- Ohne Freigabe läuft das Plugin nicht, `hashmark check` meldet es
+- Ändert sich eine Datei, gilt die Freigabe nicht mehr
+- Im Webdienst laufen Plugins aus dem Deck nie
+
+::: notes
+Prüfen: Das ist die zweite Stufe. Hier lässt sich nur lesen und im Terminal ausprobieren (`hashmark trust` mit einem Deck, das `plugins:` nennt). Das Handbuch beschreibt es im Abschnitt „Mindmap“ am Ende. Die Vorschau im Webdienst führt bewusst keine Plugins aus dem Deck aus.
+:::
+
 # Nicht geprüft {layout=default}
 
 - Markmap in PowerPoint (nur automatisch getestet, nicht in PowerPoint geöffnet)
-- Plugins aus dem Deck-Ordner und die Vertrauensabfrage (folgt in Stufe 2)
+- Plugins aus dem Deck-Ordner: Laden und Freigabe sind nur automatisch getestet, nicht von Hand
+- Ein Freigabe-Dialog im Fenster der Desktop-App (gibt es noch nicht, die Freigabe geht im Terminal)
 - Linux und macOS
 
 ::: notes
