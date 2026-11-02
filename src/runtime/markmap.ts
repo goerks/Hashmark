@@ -19,12 +19,38 @@ function palette(): string[] {
 }
 
 /**
- * Wie stark die Bühne verkleinert ist (die Folie hat feste 1280 × 720 und wird per `transform` ans Fenster angepasst).
- * markmap-view misst mit `getBoundingClientRect`, also in Bildschirmpunkten: ohne Ausgleich passt es die Karte auf die
- * verkleinerte Fläche an und die Bühne verkleinert sie ein zweites Mal. Das Verhältnis aus beiden Maßen ist der Faktor.
+ * Die Folie hat feste 1280 × 720 Punkte und wird per `transform` ans Fenster angepasst. markmap-view misst mit
+ * `getBoundingClientRect`, also in Bildschirmpunkten, und setzt die Karte falsch ein (zu klein, nach oben und links
+ * verschoben, abgeschnitten). Darum passen wir die Karte selbst ein, mit den unverkleinerten Maßen aus dem Layout
+ * (berechnete Breite und Höhe des SVG) und dem Rechteck, das markmap-view für den Baum meldet.
  */
-const stageScale = (el: HTMLElement) => (el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1) || 1
 const FIT = 0.97
+const MAX_SCALE = 3
+
+type Mm = {
+  state: { rect: { x1: number; y1: number; x2: number; y2: number } }
+  svg: { node(): (SVGSVGElement & { __zoom?: { constructor: new (k: number, x: number, y: number) => { scale(k: number): { translate(x: number, y: number): unknown } } } }) | null }
+  zoom: { transform(selection: unknown, transform: unknown): unknown }
+  fit(): Promise<unknown>
+}
+
+function fitMap(mm: Mm, svg: SVGSVGElement) {
+  try {
+    const style = getComputedStyle(svg)
+    const width = parseFloat(style.width)
+    const height = parseFloat(style.height)
+    const { x1, y1, x2, y2 } = mm.state.rect
+    const naturalWidth = x2 - x1
+    const naturalHeight = y2 - y1
+    const identity = (svg as unknown as { __zoom?: { constructor: new (k: number, x: number, y: number) => { scale(k: number): { translate(x: number, y: number): unknown } } } }).__zoom
+    if (!(width > 0 && height > 0 && naturalWidth > 0 && naturalHeight > 0) || !identity) throw new Error('keine Maße')
+    const k = Math.min(width / naturalWidth * FIT, height / naturalHeight * FIT, MAX_SCALE)
+    const transform = new identity.constructor(1, 0, 0).scale(k).translate((width / k - naturalWidth) / 2 - x1, (height / k - naturalHeight) / 2 - y1)
+    mm.zoom.transform(mm.svg, transform)
+  } catch {
+    void mm.fit()
+  }
+}
 
 /** Rendert alle noch offenen Markmap-Blöcke unterhalb von `root`. */
 export async function renderMarkmap(root: HTMLElement) {
@@ -47,7 +73,7 @@ export async function renderMarkmap(root: HTMLElement) {
       block.querySelector('.markmap-src')?.replaceWith(svg)
       const fold = Number(block.dataset.fold)
       const mm = mod.Markmap.create(svg, {
-        autoFit: true, duration: 0, zoom: false, pan: false, fitRatio: FIT / stageScale(block), maxInitialScale: 3,
+        autoFit: false, duration: 0, zoom: false, pan: false,
         spacingVertical: 10, spacingHorizontal: 90, paddingX: 14,
         initialExpandLevel: fold >= 1 ? fold : -1,
         color: (node: { state?: { path?: string } }) => {
@@ -57,8 +83,11 @@ export async function renderMarkmap(root: HTMLElement) {
         },
       }, tree)
       // Größe ändert sich erst nach dem Layout (Schritte, Schriften, Fenster): neu einpassen
-      if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => { mm.setOptions({ fitRatio: FIT / stageScale(block) }); void mm.fit() }).observe(block)
-      void document.fonts?.ready.then(() => mm.fit())
+      const refit = () => fitMap(mm as unknown as Mm, svg)
+      refit()
+      requestAnimationFrame(refit)
+      if (typeof ResizeObserver !== 'undefined') new ResizeObserver(refit).observe(block)
+      void document.fonts?.ready.then(refit)
       block.dataset.rendered = ''
     } catch (e) {
       fail(block, (e as Error).message)

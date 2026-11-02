@@ -54,12 +54,12 @@ async function run(cdp: Cdp) {
   check('nichts wird von fremden Adressen geladen', info.external.length === 0, info.external.join(' '))
   // Größe: Die Karte füllt ihre Fläche (Breite oder Höhe zu mindestens 80 %), die Schrift ist auf der Bühne lesbar groß,
   // und kein Knoten liegt über einem anderen (markmap-view misst in Bildschirmpunkten, die Bühne ist skaliert).
-  const size = await evalJs<{ fill: number; font: number; overlaps: number; stage: number }>(cdp, `(() => {
+  const size = await evalJs<{ fill: number; font: number; overlaps: number; stage: number; inside: boolean; gap: string }>(cdp, `(() => {
     const svg = document.querySelector('.stage .markmap-svg')
     const g = svg.querySelector(':scope > g')
     const s = svg.getBoundingClientRect(), r = g.getBoundingClientRect()
     // Verkleinerung der Bühne = Bildschirmbreite des SVG durch seine Layoutbreite
-    const scale = svg.clientWidth ? s.width / svg.clientWidth : 1
+    const scale = parseFloat(getComputedStyle(svg).width) ? s.width / parseFloat(getComputedStyle(svg).width) : 1
     const boxes = [...svg.querySelectorAll('.markmap-foreign')].map((e) => e.getBoundingClientRect())
     let overlaps = 0
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
@@ -68,11 +68,26 @@ async function run(cdp: Cdp) {
       if (w > 2 && h > 2) overlaps++
     }
     const leaf = svg.querySelector('.markmap-foreign')
-    return { fill: Math.max(r.width / s.width, r.height / s.height), font: parseFloat(getComputedStyle(leaf).fontSize) * scale, overlaps, stage: scale }
+    const inside = r.left >= s.left - 2 && r.top >= s.top - 2 && r.right <= s.right + 2 && r.bottom <= s.bottom + 2
+    const gap = `links ${(r.left - s.left).toFixed(0)}, oben ${(r.top - s.top).toFixed(0)}, rechts ${(s.right - r.right).toFixed(0)}, unten ${(s.bottom - r.bottom).toFixed(0)}`
+    return { inside, gap, fill: Math.max(r.width / s.width, r.height / s.height), font: parseFloat(getComputedStyle(leaf).fontSize) * scale, overlaps, stage: scale }
   })()`)
   check('die Karte füllt ihre Fläche', size.fill >= 0.8, `Füllung=${size.fill.toFixed(2)}`)
+  check('die Karte liegt vollständig im Bild (nichts abgeschnitten)', size.inside, size.gap)
+  console.log(`       Ränder: ${size.gap}`)
   check('kein Knoten liegt über einem anderen', size.overlaps === 0, `Überlappungen=${size.overlaps}`)
   console.log(`       Größe: Füllung ${size.fill.toFixed(2)}, Bühnenfaktor ${size.stage.toFixed(2)}, Schrift ${size.font.toFixed(1)} px am Bildschirm`)
+  // Bedienung: ein Klick auf den Kreis eines Astes klappt ihn zu
+  const folded = await evalJs<{ before: number; after: number }>(cdp, `(async () => {
+    const count = () => document.querySelector('.stage .markmap-svg').querySelectorAll('.markmap-node').length
+    const before = count()
+    const circle = document.querySelector('.stage .markmap-svg g.markmap-node[data-depth="1"] circle')
+    if (!circle) return { before, after: before }
+    circle.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await new Promise((r) => setTimeout(r, 400))
+    return { before, after: count() }
+  })()`)
+  check('ein Klick auf einen Ast klappt ihn zu', folded.after < folded.before, `${folded.before} → ${folded.after}`)
   const box = await evalJs<{ w: number; h: number }>(cdp, `(() => { const r = document.querySelector('.stage .markmap-svg').getBoundingClientRect(); return { w: r.width, h: r.height } })()`)
   check('die Karte hat eine Größe', box.w > 200 && box.h > 100, `${box.w} × ${box.h}`)
 }

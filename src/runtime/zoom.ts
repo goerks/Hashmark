@@ -17,7 +17,7 @@ const NUDGE = 'transform 0.35s cubic-bezier(.35,.1,.15,1)'
 const MAX_SCALE = 8
 const STEP = 1.5
 /** Was sich vergrößern lässt: Bilder nur mit `zoom`, Code, Diagramme und Tabellen immer */
-const ZOOMABLE = 'img[data-zoom], .mermaid-block, figure.code-block, table.d-table-el'
+const ZOOMABLE = 'img[data-zoom], .mermaid-block, .markmap-block, figure.code-block, table.d-table-el'
 
 let root: HTMLElement | null = null
 let active = false
@@ -387,5 +387,7 @@ export function zoomClick(e: MouseEvent) {
   if (gesture) { gesture = false; return }
   if (active) return resetZoom()
   const target = (e.target as Element | null)?.closest?.(ZOOMABLE) as HTMLElement | null
+  // Mindmap: ein Klick klappt einen Ast auf oder zu (markmap-view), vergrößert wird mit Z
+  if (target?.matches('.markmap-block')) return
   if (target && root?.contains(target) && !target.closest('.step-hidden')) zoomTo(target)
 }
