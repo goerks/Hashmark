@@ -39,6 +39,10 @@ export interface DeckNode {
   layout?: string
   /** geplante Redezeit in Sekunden (`{duration=5m}`) */
   duration?: number
+  /** Kapitelnummer wie `2` oder `2.1` (deck.yaml `numbering:`), berechnet aus der Baumreihenfolge, nie Teil der Id */
+  num?: string
+  /** Die Nummer steht auch im Folientitel (deck.yaml `numbering: { titles: false }` zeigt sie nur im Verzeichnis und in den Listen) */
+  numTitle?: boolean
   /** Standard des Autors (`{optional}`, `{appendix}`, `{plan=path}`); die Wahl des Vortragenden überschreibt ihn */
   plan?: PlanState
   children: DeckNode[]
@@ -89,6 +93,8 @@ export interface Manifest {
   layouts?: Record<string, string>
   /** geplante Gesamtdauer, z. B. `30m` */
   duration?: string | number
+  /** Kapitelnummern: `from`/`to` = erste/letzte Ebene (Standard 1 bis 2), `appendix: true` zählt den Anhang mit, `titles: false` zeigt die Nummer nur im Verzeichnis und in den Listen */
+  numbering?: { from?: number; to?: number; appendix?: boolean; titles?: boolean }
   /** Fußzeile auf jeder Folie (außer mit `{footer=off}`), z. B. `Acme Academy` */
   footer?: string
   /** Folienzahl: `true` = nur die Zahl, sonst Vorlage wie `Seite {n} / {total}` */

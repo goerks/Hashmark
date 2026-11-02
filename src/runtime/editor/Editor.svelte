@@ -506,7 +506,7 @@
           data-depth={node.depth}
           title="{node.source.file}:{node.source.line}"
           onclick={() => jumpToNode(node)}
-        ><span class="ol-glyph" aria-hidden="true">{node.depth === 1 ? '→' : '↓'}</span><span class="ol-title">{node.title}</span>{#if node.slides.length > 1}<span class="ol-meta">{node.slides.length}</span>{/if}</button>
+        ><span class="ol-glyph" aria-hidden="true">{node.depth === 1 ? '→' : '↓'}</span>{#if node.num}<span class="ol-num" title="Kapitelnummer (berechnet, steht nicht im Text)">{node.num}</span>{/if}<span class="ol-title">{node.title}</span>{#if node.slides.length > 1}<span class="ol-meta">{node.slides.length}</span>{/if}</button>
         {#if node.children.length}{@render outline(node.children)}{/if}
       </li>
     {/each}

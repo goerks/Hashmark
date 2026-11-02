@@ -38,7 +38,7 @@
   const escape = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
   const tiles = (children: DeckNode[]) =>
     children
-      .map((c) => `<a class="tile" href="#${encodeURI(c.id)}"><span class="tile-title">${escape(c.title)}</span>${
+      .map((c) => `<a class="tile" href="#${encodeURI(c.id)}"><span class="tile-title">${c.numTitle && c.num ? `<span class="num">${escape(c.num)}</span> ` : ''}${escape(c.title)}</span>${
         c.children.length ? `<span class="tile-count">${c.children.length} Details</span>` : ''}</a>`)
       .join('')
 
@@ -190,11 +190,11 @@
   {/if}
   {#if layout === 'title' || layout === 'statement'}
     <div class="title-wrap">
-      <svelte:element this={titleTag} class="slide-title" data-morph={morphName}>{node.title}</svelte:element>
+      <svelte:element this={titleTag} class="slide-title" data-morph={morphName}>{#if node.numTitle && node.num}<span class="num">{node.num}</span> {/if}{node.title}</svelte:element>
       <div class="content">{@html html}</div>
     </div>
   {:else}
-    <header><svelte:element this={titleTag} class="slide-title" data-morph={morphName}>{node.title}</svelte:element></header>
+    <header><svelte:element this={titleTag} class="slide-title" data-morph={morphName}>{#if node.numTitle && node.num}<span class="num">{node.num}</span> {/if}{node.title}</svelte:element></header>
     <div class="content">{@html html}</div>
     {#if showTiles}
       <div class="d-children">{@html tiles(node.children)}</div>

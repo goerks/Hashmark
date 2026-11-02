@@ -66,6 +66,9 @@ export const ATTR_INFO: { label: string; detail: string; insert: string; chain?:
   { label: 'transition=', detail: 'Übergang zu dieser Folie: push, blur, iris, curtain, diagonal …', insert: 'transition=', chain: true },
   { label: 'speed=', detail: 'Tempo des Übergangs: fast, normal oder slow', insert: 'speed=', chain: true },
   { label: 'effect=', detail: 'Auftritt der Schritte: fade, up, left, scale, wipe, highlight oder dim', insert: 'effect=', chain: true },
+  { label: 'number=off', detail: 'Kapitelnummer: diesen Knoten samt Unterbaum nicht nummerieren (number=on holt ihn zurück)', insert: 'number=off' },
+  { label: 'toc=off', detail: 'Im Inhaltsverzeichnis (Agenda mit levels=) weglassen, samt Unterbaum', insert: 'toc=off' },
+  { label: 'levels=', detail: 'Agenda als Inhaltsverzeichnis: Ebenen, z. B. levels=1-2', insert: 'levels=1-2' },
   { label: 'morph=', detail: 'Auto-Animate: Name des Elements, das zur nächsten Folie wandert (off = Titel bleibt)', insert: 'morph=' },
   { label: '.klasse', detail: 'CSS-Klasse anhängen', insert: '.klasse' },
 ]

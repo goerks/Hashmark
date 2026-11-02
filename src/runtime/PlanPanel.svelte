@@ -6,6 +6,7 @@
   } from '../core/plan.ts'
   import { formatClock } from '../core/timing.ts'
   import type { DeckNode } from '../core/types.ts'
+  import { labelOf } from '../core/numbering.ts'
 
   // Vortragsplan bearbeiten (Presenter-View, Taste P): jeder Knoten ist Pfad, Optional oder Anhang.
   // Space läuft nur den Pfad. Optionales erreicht man per ↓, den Anhang über Suche oder Übersicht.
@@ -110,7 +111,7 @@
       {#each nodes as n (n.id)}
         {@const st = view.state(n.id)}
         <li class="pp-row st-{st}" class:current={n.id === currentId}>
-          <span class="pp-name" style:padding-left="{(n.depth - 1) * 16}px" title={n.id}>{n.title}</span>
+          <span class="pp-name" style:padding-left="{(n.depth - 1) * 16}px" title={n.id}>{labelOf(n)}</span>
           {#if !(n.id in states) && n.plan}<span class="pp-author" title="Standard des Autors">Autor: {authorOf(n)}</span>{/if}
           <span class="pp-time">{minutesOf(n)} min</span>
           <span class="pp-seg" role="group" aria-label="Rolle von {n.title}">
