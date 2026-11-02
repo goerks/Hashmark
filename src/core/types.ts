@@ -99,6 +99,8 @@ export interface Manifest {
   footer?: string
   /** Folienzahl: `true` = nur die Zahl, sonst Vorlage wie `Seite {n} / {total}` */
   slideNumber?: boolean | string
+  /** Plugins aus dem Deck (Pfade zu Datei oder Ordner mit index.js); laufen nur nach Freigabe mit `hashmark trust`, nie im Webdienst */
+  plugins?: string[]
   mount?: MountEntry[]
 }
 
