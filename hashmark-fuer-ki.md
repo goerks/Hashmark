@@ -488,6 +488,21 @@ flowchart LR
 
 Klassen für Flussdiagramme/Zustände: `accent ok warn bad important muted actor`. Farben kommen aus dem Theme. `.drawio.svg` und `.excalidraw.svg` bindet man wie Bilder ein.
 
+### Mindmap (Markmap)
+
+Eine Gliederung als Mindmap: Überschriften und eingerückte Listen werden zu einem Baum, die Äste bekommen Theme-Farben. Offline, nichts wird nachgeladen. Bei mehreren obersten Einträgen ist `title` die Wurzel (sonst „Übersicht“). `height` in Pixeln, `fold=2` klappt alles ab Ebene 2 zu. In PDF und Handout ist die Karte ein Bild, in PowerPoint auch.
+
+````md
+```markmap {height=420}
+# Hashmark
+- **Kern**
+  - Parser
+  - Plan
+- Runtime
+  - Presenter
+```
+````
+
 ### QR-Code
 
 ````md

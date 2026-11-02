@@ -1,7 +1,7 @@
 # Diagramme, Formeln, Medien {id=medien}
 
 - **Formeln** in LaTeX, gesetzt mit KaTeX
-- **Diagramme** in Mermaid, draw.io und Excalidraw
+- **Diagramme** in Mermaid, draw.io und Excalidraw, **Mindmaps** aus einer Gliederung
 - **Code** mit Farben, **Video** und **QR-Codes**
 
 ::: notes
@@ -35,6 +35,29 @@ flowchart LR
 Diagramme schreibst du als Mermaid-Code: Flussdiagramme, Sequenzen, Zustände, Klassen, Zeitachsen und mehr. Die Farben kommen aus dem Theme. Flussdiagramme und Zustände kennen die Klassen `accent`, `ok`, `warn`, `bad`, `important`, `muted` und `actor`.
 
 Attribute: `look=hand` zeichnet im Skizzenstil, `height=520` setzt die größte Höhe in Pixel (Standard 460), `align=left` richtet links aus. Mit `%% step` wächst das Diagramm schrittweise, siehe Thema „Schritte und Animationen“.
+:::
+
+## Mindmap {id=markmap}
+
+````md
+```markmap {height=420}
+# Hashmark
+- **Kern**
+  - Parser
+  - Plan
+- Runtime
+  - Presenter
+  - Editor
+- Export
+  - PDF
+  - PPTX
+```
+````
+
+::: notes
+Aus einer Gliederung wird eine Mindmap: Überschriften und eingerückte Listenpunkte bilden den Baum, jeder Ast bekommt eine Farbe aus dem Theme. Mit mehreren obersten Einträgen ist `title="…"` die Mitte, sonst steht dort „Übersicht“. `height=420` setzt die Höhe in Pixel, `fold=2` klappt alles ab der zweiten Ebene zu.
+
+Die Karte wird beim Laden gezeichnet, ohne etwas aus dem Netz zu holen. Im PDF, im Handout und in PowerPoint ist sie ein Bild. Markmap ist das erste Plugin, das sich über die neue Plugin-Schnittstelle anmeldet; Mermaid, QR-Codes, Formeln und Code laufen auf demselben Weg.
 :::
 
 ## draw.io und Excalidraw {id=zeichnungen}
