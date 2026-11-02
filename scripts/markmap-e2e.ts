@@ -21,7 +21,7 @@ const evalJs = async <T>(cdp: Cdp, expression: string): Promise<T> => {
   return r.result.value as T
 }
 
-const MD = '# Mindmap\n\n```markmap\n# Hashmark\n- **Kern**\n  - Parser\n  - Plan\n- Runtime\n  - Presenter\n  - Editor\n- Export\n  - PDF\n  - PPTX\n```\n'
+const MD = '# Mindmap\n\n```markmap\n# Hashmark\n- **Kern**\n  - Parser\n  - Plan\n- Runtime\n  - Presenter\n  - Editor\n- Export\n  - PDF\n  - PPTX\n```\n\n```markmap {fold=2 height=200}\n# P\n- A\n  - a1\n- B\n  - b1\n- C\n  - c1\n```\n'
 
 async function makeDeck() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'hashmark-markmap-e2e-'))
@@ -88,6 +88,9 @@ async function run(cdp: Cdp) {
     return { before, after: count() }
   })()`)
   check('ein Klick auf einen Ast klappt ihn zu', folded.after < folded.before, `${folded.before} → ${folded.after}`)
+  // fold=2: zugeklappt ab der zweiten Ebene, sichtbar sind die Mitte und die drei Äste
+  const fold = await evalJs<number>(cdp, `document.querySelectorAll('.stage .markmap-block')[1]?.querySelectorAll('.markmap-node').length ?? -1`)
+  check('fold=2 zeigt nur die Mitte und die drei Äste', fold === 4, `Knoten=${fold}`)
   const box = await evalJs<{ w: number; h: number }>(cdp, `(() => { const r = document.querySelector('.stage .markmap-svg').getBoundingClientRect(); return { w: r.width, h: r.height } })()`)
   check('die Karte hat eine Größe', box.w > 200 && box.h > 100, `${box.w} × ${box.h}`)
 }

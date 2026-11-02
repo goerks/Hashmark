@@ -58,6 +58,42 @@ export function markmapTree(src: string, title?: string): MarkmapNode {
   return { content: escape(title ?? 'Übersicht'), children: top }
 }
 
+/** Grenzen: sehr große oder sehr tiefe Bäume werden gekürzt (Lesbarkeit, und damit sich niemand mit einer riesigen Gliederung den Server vornimmt) */
+export const MAX_NODES = 500
+export const MAX_DEPTH = 12
+
+/** Kürzt breitenweise auf höchstens `maxNodes` Knoten und `maxDepth` Ebenen. Gibt zurück, wie viele Knoten wegfielen. */
+export function limitTree(root: MarkmapNode, maxNodes = MAX_NODES, maxDepth = MAX_DEPTH): number {
+  let kept = 1
+  let dropped = 0
+  let level: MarkmapNode[] = [root]
+  for (let depth = 1; level.length; depth++) {
+    const next: MarkmapNode[] = []
+    for (const node of level) {
+      const keep: MarkmapNode[] = []
+      for (const child of node.children) {
+        if (depth <= maxDepth && kept < maxNodes) { keep.push(child); kept++ } else dropped += 1 + countBelow(child)
+      }
+      node.children = keep
+      next.push(...keep)
+    }
+    level = next
+  }
+  return dropped
+}
+
+function countBelow(node: MarkmapNode): number {
+  let n = 0
+  const stack = [...node.children]
+  while (stack.length) { const c = stack.pop()!; n++; stack.push(...c.children) }
+  return n
+}
+
+/** Zeilen, die weder Überschrift noch Listenpunkt sind (werden nicht gezeichnet) */
+export function ignoredLines(src: string): number {
+  return src.split(/\r?\n/).filter((l) => l.trim() && !HEADING.test(l) && !ITEM.test(l)).length
+}
+
 function listHtml(nodes: MarkmapNode[]): string {
   if (!nodes.length) return ''
   return `<ul>${nodes.map((n) => `<li>${n.content}${listHtml(n.children)}</li>`).join('')}</ul>`
@@ -77,7 +113,11 @@ export const markmapPlugin: CodeBlockPlugin = {
     if (attrs.height !== undefined && !/^\d+$/.test(attrs.height)) warn(`height="${attrs.height}" ist ungültig (Pixel, z. B. height=420)`)
     if (attrs.fold !== undefined && !/^[1-6]$/.test(attrs.fold)) warn(`fold="${attrs.fold}" ist ungültig (Ebene 1 bis 6)`)
     const tree = markmapTree(node.value, attrs.title)
-    if (!tree.children.length && !tree.content) warn('der Block ist leer (Überschriften und Listenpunkte gehören hinein)')
+    if (!node.value.split(/\r?\n/).some((l) => HEADING.test(l) || ITEM.test(l))) warn('der Block enthält keine Überschriften oder Listenpunkte (daraus entsteht die Mindmap)')
+    const ignored = ignoredLines(node.value)
+    if (ignored) warn(`${ignored} Zeile(n) ohne #, -, * oder Nummer am Anfang werden nicht gezeichnet (nur Überschriften und Listenpunkte)`)
+    const dropped = limitTree(tree)
+    if (dropped) warn(`die Mindmap ist zu groß, ${dropped} Knoten fielen weg (höchstens ${MAX_NODES} Knoten und ${MAX_DEPTH} Ebenen)`)
     const data = [`data-tree="${escape(JSON.stringify(tree))}"`]
     if (/^[1-6]$/.test(attrs.fold ?? '')) data.push(`data-fold="${attrs.fold}"`)
     if (/^\d+$/.test(attrs.height ?? '')) data.push(`style="--markmap-height:${attrs.height}px"`)

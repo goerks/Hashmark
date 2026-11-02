@@ -3,7 +3,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { loadDeck } from '../src/core/deck.ts'
-import { inlineHtml, markmapTree } from '../src/core/markmap.ts'
+import { MAX_DEPTH, MAX_NODES, ignoredLines, inlineHtml, limitTree, markmapTree } from '../src/core/markmap.ts'
 import { findCodeBlockPlugin, listPlugins } from '../src/core/plugins.ts'
 
 async function tempDeck(files: Record<string, string>) {
@@ -76,5 +76,28 @@ describe('Markmap: Plugin', () => {
     const { html } = await render('markmap\n- sagt "hallo" <script>')
     expect(html).not.toContain('<script>')
     expect(html).toMatch(/data-tree="[^"]*&quot;/)
+  })
+
+  it('meldet einen Block ohne Überschriften und Listenpunkte und ignorierte Zeilen', async () => {
+    const empty = await render('markmap\nnur Text\n')
+    expect(empty.warnings.join('\n')).toMatch(/keine Überschriften oder Listenpunkte/)
+    const some = await render('markmap\nein Satz\n- a\n')
+    expect(some.warnings.join('\n')).toMatch(/1 Zeile\(n\) ohne #/)
+    expect(ignoredLines('x\n\n- a\n# b')).toBe(1)
+  })
+
+  it('kürzt zu große und zu tiefe Bäume und meldet es', async () => {
+    const wide = '# R\n' + Array.from({ length: MAX_NODES + 50 }, (_, i) => `- n${i}`).join('\n')
+    const tree = markmapTree(wide)
+    expect(limitTree(tree)).toBe(51) // 550 Einträge, 499 plus die Wurzel bleiben
+    const deep = Array.from({ length: 200 }, (_, i) => `${' '.repeat(i)}- x${i}`).join('\n')
+    const t = markmapTree(deep)
+    expect(limitTree(t)).toBeGreaterThan(150)
+    let depth = 0
+    for (let n = t; n.children.length; n = n.children[0]) depth++
+    expect(depth).toBeLessThanOrEqual(MAX_DEPTH)
+    const { warnings, html } = await render('markmap\n' + wide)
+    expect(warnings.join('\n')).toMatch(/zu groß/)
+    expect(html).toContain('class="markmap-block"')
   })
 })

@@ -43,7 +43,9 @@ function fitMap(mm: Mm, svg: SVGSVGElement) {
     const naturalWidth = x2 - x1
     const naturalHeight = y2 - y1
     const identity = (svg as unknown as { __zoom?: { constructor: new (k: number, x: number, y: number) => { scale(k: number): { translate(x: number, y: number): unknown } } } }).__zoom
-    if (!(width > 0 && height > 0 && naturalWidth > 0 && naturalHeight > 0) || !identity) throw new Error('keine Maße')
+    // Folie gerade nicht sichtbar (Übergang, Schritt): nichts tun, der ResizeObserver passt neu ein, sobald sie Maße hat
+    if (!(width > 0 && height > 0 && naturalWidth > 0 && naturalHeight > 0)) return
+    if (!identity) throw new Error('keine Kamera')
     const k = Math.min(width / naturalWidth * FIT, height / naturalHeight * FIT, MAX_SCALE)
     const transform = new identity.constructor(1, 0, 0).scale(k).translate((width / k - naturalWidth) / 2 - x1, (height / k - naturalHeight) / 2 - y1)
     mm.zoom.transform(mm.svg, transform)

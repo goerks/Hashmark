@@ -784,7 +784,14 @@ async function blocksToHtml(blocks: AnyNode[], ctx: RenderContext): Promise<{ ht
   const codes: { node: Code; parent: AnyNode; index: number }[] = []
   visit(root, 'code', (node, index, parent) => { codes.push({ node, parent: parent as AnyNode, index: index! }) })
   for (const { node, parent, index } of codes) {
-    const result = await findPlugin(node.lang).render(node, codeAttrs(node.meta), ctx)
+    let result: BlockResult
+    try {
+      result = await findPlugin(node.lang).render(node, codeAttrs(node.meta), ctx)
+    } catch (e) {
+      // ein abgestürztes Plugin darf nicht das ganze Deck unladbar machen: der Block bleibt Code
+      ctx.warnings?.push(`Codeblock „${node.lang ?? ''}“: Das Plugin ist abgestürzt (${(e as Error).message}), der Block bleibt Code (${path.relative(ctx.deckDir, ctx.file)})`)
+      result = await shikiPlugin.render(node, codeAttrs(node.meta), ctx)
+    }
     steps.push(...result.steps)
     parent.children![index] = { type: 'html', value: result.html } as AnyNode
   }

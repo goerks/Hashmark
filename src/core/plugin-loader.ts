@@ -52,8 +52,8 @@ export function trustPlugin(hash: string, label: string): void {
   const file = trustFilePath()
   const all = readTrusted()
   all[hash] = { label, at: new Date().toISOString() }
-  fs.mkdirSync(path.dirname(file), { recursive: true })
-  fs.writeFileSync(file, JSON.stringify(all, null, 2) + '\n')
+  fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 })
+  fs.writeFileSync(file, JSON.stringify(all, null, 2) + '\n', { mode: 0o600 })
 }
 
 /** Freigabe entziehen; `prefix` darf eine Kurzform der Prüfsumme sein. Gibt die entzogenen Prüfsummen zurück. */
@@ -68,28 +68,59 @@ export function revokeTrust(prefix: string): string[] {
 
 // ---------- Prüfsumme ----------
 
-function listFiles(dir: string): string[] {
+/** Alle Dateien eines Plugin-Ordners, nach Pfad mit `/` sortiert (auf jedem System gleich). Verknüpfungen sind verboten: Sie könnten auf Code außerhalb zeigen, den die Prüfsumme nicht deckt. */
+function listFiles(root: string, dir = root): string[] {
   const out: string[] = []
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) out.push(...listFiles(path.join(dir, e.name))) }
-    else if (e.isFile()) out.push(path.join(dir, e.name))
+    const p = path.join(dir, e.name)
+    if (e.isSymbolicLink()) throw new Error(`enthält eine Verknüpfung (${path.relative(root, p).split(path.sep).join('/')}), das ist nicht erlaubt`)
+    if (e.isDirectory()) { if (!SKIP_DIRS.has(e.name)) out.push(...listFiles(root, p)) }
+    else if (e.isFile()) out.push(p)
   }
-  return out.sort()
+  return out.sort((a, b) => rel(root, a).localeCompare(rel(root, b), 'en'))
+}
+
+const rel = (root: string, file: string) => path.relative(root, file).split(path.sep).join('/')
+
+const CODE_FILE = /\.(?:m?js|cjs|m?ts)$/
+const RELATIVE_IMPORT = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)['"](\.{1,2}(?:\/[^'"]*)?)['"]/g
+
+/**
+ * Relative Importe dürfen nur auf Dateien im Plugin-Ordner zeigen, sonst deckt die Prüfsumme den geladenen Code nicht.
+ * Eine Einzeldatei darf gar nichts Relatives importieren. Dynamisch berechnete Importe erkennt das nicht: Wer einem Plugin
+ * vertraut, vertraut seinem ganzen Code.
+ */
+function checkImports(root: string, single: boolean, files: string[]) {
+  for (const file of files.filter((f) => CODE_FILE.test(f))) {
+    const text = fs.readFileSync(file, 'utf8')
+    for (const m of text.matchAll(RELATIVE_IMPORT)) {
+      const target = path.resolve(path.dirname(file), m[1])
+      const outside = path.relative(root, target).startsWith('..') || path.isAbsolute(path.relative(root, target))
+      if (single || outside) {
+        throw new Error(`importiert „${m[1]}“, das die Prüfsumme nicht abdeckt${single ? ' (eine einzelne Datei darf nichts Relatives importieren: alles in die Datei oder das Plugin in einen Ordner legen)' : ' (liegt außerhalb des Plugin-Ordners)'}`)
+      }
+    }
+  }
 }
 
 /** Einstiegsdatei und Prüfsumme eines Plugins: eine Datei oder ein Ordner mit index.mjs/js/ts (dann zählen alle Dateien darin) */
 export function hashPlugin(abs: string): { entry: string; hash: string } {
-  const stat = fs.statSync(abs)
+  const stat = fs.lstatSync(abs)
   const h = crypto.createHash('sha256')
   if (stat.isFile()) {
+    if (fs.statSync(abs).size > MAX_FILE) throw new Error('Datei zu groß (über 5 MB)')
+    checkImports(abs, true, [abs])
     h.update(fs.readFileSync(abs))
     return { entry: abs, hash: h.digest('hex') }
   }
+  if (!stat.isDirectory()) throw new Error('weder Datei noch Ordner')
   const entry = ENTRIES.map((e) => path.join(abs, e)).find((p) => fs.existsSync(p))
   if (!entry) throw new Error(`Im Ordner fehlt eine Einstiegsdatei (${ENTRIES.join(', ')})`)
-  for (const file of listFiles(abs)) {
-    if (fs.statSync(file).size > MAX_FILE) throw new Error(`Datei zu groß (über 5 MB): ${path.relative(abs, file)}`)
-    h.update(path.relative(abs, file).split(path.sep).join('/') + '\0')
+  const files = listFiles(abs)
+  checkImports(abs, false, files)
+  for (const file of files) {
+    if (fs.statSync(file).size > MAX_FILE) throw new Error(`Datei zu groß (über 5 MB): ${rel(abs, file)}`)
+    h.update(rel(abs, file) + '\0')
     h.update(fs.readFileSync(file))
     h.update('\0')
   }
@@ -145,7 +176,9 @@ export async function loadDeckPlugins(deckDir: string, specs: unknown, warnings:
       continue
     }
     try {
-      const { entry } = hashPlugin(resolveInside(deckDir, status.spec)!)
+      // Der Code kann sich zwischen Prüfung und Laden geändert haben: nochmals prüfen, direkt vor dem Import
+      const { entry, hash } = hashPlugin(resolveInside(deckDir, status.spec)!)
+      if (hash !== status.hash) throw new Error('hat sich während des Ladens geändert, bitte noch einmal laden')
       // die Prüfsumme in der Adresse: geänderte Dateien werden neu gelesen statt aus dem Zwischenspeicher
       const mod = await import(/* @vite-ignore */ `${pathToFileURL(entry).href}?v=${status.hash!.slice(0, 16)}`) as { default?: unknown; plugin?: unknown }
       const plugin = (mod.default ?? mod.plugin) as HashmarkPlugin

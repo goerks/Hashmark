@@ -111,6 +111,50 @@ describe('Plugins aus dem Deck', () => {
   })
 })
 
+describe('Plugins aus dem Deck: Härtung', () => {
+  it('lehnt Verknüpfungen im Plugin-Ordner ab (sonst bliebe die Prüfsumme trotz anderem Code gleich)', async () => {
+    const dir = await tempDeck({ 'p/index.mjs': PLUGIN('demoplug') })
+    const outside = path.join(os.tmpdir(), `hashmark-link-${Date.now()}.mjs`)
+    await fs.writeFile(outside, PLUGIN('demoplug', 'außen'))
+    await fs.rm(path.join(dir, 'p/index.mjs'))
+    try { await fs.symlink(outside, path.join(dir, 'p/index.mjs')) } catch { return } // ohne Rechte für Verknüpfungen (Windows): überspringen
+    expect(() => hashPlugin(path.join(dir, 'p'))).toThrow(/Verknüpfung/)
+    await fs.rm(outside)
+  })
+
+  it('lehnt relative Importe ab, die die Prüfsumme nicht abdeckt', async () => {
+    const single = await tempDeck({ 'plug.mjs': "import { x } from './hilfe.mjs'\n" + PLUGIN('demoplug'), 'hilfe.mjs': 'export const x = 1\n' })
+    expect(() => hashPlugin(path.join(single, 'plug.mjs'))).toThrow(/Prüfsumme nicht abdeckt/)
+    const out = await tempDeck({ 'p/index.mjs': "import '../fremd.mjs'\n" + PLUGIN('demoplug'), 'fremd.mjs': 'export {}\n' })
+    expect(() => hashPlugin(path.join(out, 'p'))).toThrow(/außerhalb des Plugin-Ordners/)
+    const inside = await tempDeck({ 'p/index.mjs': "import { x } from './hilfe.mjs'\n" + PLUGIN('demoplug'), 'p/hilfe.mjs': 'export const x = 1\n' })
+    expect(hashPlugin(path.join(inside, 'p')).hash).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('meldet ein Plugin mit unzulässigem Import als ungültig, statt es zu laden', async () => {
+    const dir = await tempDeck({ ...deck(['plug.mjs']), 'plug.mjs': "import './x.mjs'\n" + PLUGIN('demoplug'), 'x.mjs': 'export {}\n' })
+    const { warnings } = await loadDeck(dir)
+    expect(warnings.join('\n')).toMatch(/„plug.mjs“ ungültig: .*Prüfsumme nicht abdeckt/)
+    expect(findCodeBlockPlugin('demoplug')?.langs).toContain('*')
+  })
+
+  it('lässt ein abgestürztes Plugin nicht das ganze Deck zerstören: Warnung, der Block bleibt Code', async () => {
+    const crash = "export default { name: 'demoplug', api: 1, codeBlocks: [{ langs: ['demoplug'], render() { throw new Error('kaputt') } }] }\n"
+    const dir = await tempDeck({ ...deck(['plug.mjs']), 'plug.mjs': crash })
+    trustPlugin(hashPlugin(path.join(dir, 'plug.mjs')).hash, 'test')
+    const { warnings, deck: d } = await loadDeck(dir)
+    expect(warnings.join('\n')).toMatch(/Das Plugin ist abgestürzt \(kaputt\)/)
+    expect(d.nodes[0].slides[0].html).toContain('code-block')
+    expect(d.nodes[0].slides[0].html).toContain('Welt')
+  })
+
+  it('schreibt die Freigabe-Datei nur für den Besitzer lesbar', async () => {
+    if (process.platform === 'win32') return
+    trustPlugin('a'.repeat(64), 'test')
+    expect((await fs.stat(trustFile)).mode & 0o777).toBe(0o600)
+  })
+})
+
 describe('hashmark trust', () => {
   it('gibt mit --yes frei, listet auf und entzieht die Freigabe', async () => {
     const dir = await tempDeck({ ...deck(['plug.mjs']), 'plug.mjs': PLUGIN('demoplug') })
