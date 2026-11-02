@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CLI: hashmark dev | edit | serve | build | preview | export | pdf | check
+// CLI: hashmark dev | edit | serve | build | preview | export | pdf | pptx | check | trust
 
 import path from 'node:path'
 import cac from 'cac'
@@ -10,6 +10,7 @@ import { checkDeck, formatFinding } from './check.ts'
 import { exportPdf } from './pdf.ts'
 import { exportPptx } from './pptx.ts'
 import { serve } from './serve.ts'
+import { runTrust } from './trust.ts'
 import { printQuery } from '../core/print.ts'
 
 /** `--host` ohne Wert = alle Netzwerk-Interfaces, sonst die angegebene Adresse */
@@ -133,6 +134,15 @@ cli
     const hints = findings.length - errors
     console.log(findings.length ? `\n${errors} Fehler, ${hints} Hinweise` : '[hashmark] Alles in Ordnung')
     if (errors || (opts.strict && hints)) process.exitCode = 1
+  })
+
+cli
+  .command('trust [deck]', 'Plugins aus dem Deck (deck.yaml: plugins) freigeben, auflisten oder die Freigabe entziehen')
+  .option('--yes', 'alle Plugins des Decks ohne Rückfrage freigeben (nur nach dem Lesen des Codes!)')
+  .option('--list', 'gespeicherte Freigaben anzeigen')
+  .option('--revoke <prüfsumme>', 'Freigabe entziehen (mindestens 6 Zeichen der Prüfsumme)')
+  .action(async (deck = '.', opts: { yes?: boolean; list?: boolean; revoke?: string }) => {
+    process.exitCode = await runTrust(deck, opts)
   })
 
 cli.help()

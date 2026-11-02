@@ -147,7 +147,7 @@ export async function loadDeckPlugins(deckDir: string, specs: unknown, warnings:
     try {
       const { entry } = hashPlugin(resolveInside(deckDir, status.spec)!)
       // die Prüfsumme in der Adresse: geänderte Dateien werden neu gelesen statt aus dem Zwischenspeicher
-      const mod = await import(`${pathToFileURL(entry).href}?v=${status.hash!.slice(0, 16)}`) as { default?: unknown; plugin?: unknown }
+      const mod = await import(/* @vite-ignore */ `${pathToFileURL(entry).href}?v=${status.hash!.slice(0, 16)}`) as { default?: unknown; plugin?: unknown }
       const plugin = (mod.default ?? mod.plugin) as HashmarkPlugin
       const problems = pluginProblems(plugin)
       if (problems.length) throw new Error(problems.join(' '))

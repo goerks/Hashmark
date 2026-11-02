@@ -58,6 +58,8 @@ Attribute: `look=hand` zeichnet im Skizzenstil, `height=520` setzt die größte 
 Aus einer Gliederung wird eine Mindmap: Überschriften und eingerückte Listenpunkte bilden den Baum, jeder Ast bekommt eine Farbe aus dem Theme. Mit mehreren obersten Einträgen ist `title="…"` die Mitte, sonst steht dort „Übersicht“. `height=420` setzt die Höhe in Pixel, `fold=2` klappt alles ab der zweiten Ebene zu.
 
 Die Karte wird beim Laden gezeichnet, ohne etwas aus dem Netz zu holen. Im PDF, im Handout und in PowerPoint ist sie ein Bild. Markmap ist das erste Plugin, das sich über die neue Plugin-Schnittstelle anmeldet; Mermaid, QR-Codes, Formeln und Code laufen auf demselben Weg.
+
+Eigene Plugins liegen im Deck (`plugins: [./plugins/meins]` in der `deck.yaml`, eine Datei oder ein Ordner mit `index.js`). Weil ein Plugin Code ist, läuft es erst, wenn du es mit `hashmark trust` freigegeben hast: Das Programm zeigt die Prüfsumme und fragt nach. Ändert sich eine Datei des Plugins, gilt die Freigabe nicht mehr. Im Webdienst laufen Plugins aus dem Deck nie. `hashmark check` meldet Plugins, die fehlen, ungültig oder nicht freigegeben sind.
 :::
 
 ## draw.io und Excalidraw {id=zeichnungen}
