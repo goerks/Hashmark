@@ -18,6 +18,14 @@ function palette(): string[] {
   ]
 }
 
+/**
+ * Wie stark die Bühne verkleinert ist (die Folie hat feste 1280 × 720 und wird per `transform` ans Fenster angepasst).
+ * markmap-view misst mit `getBoundingClientRect`, also in Bildschirmpunkten: ohne Ausgleich passt es die Karte auf die
+ * verkleinerte Fläche an und die Bühne verkleinert sie ein zweites Mal. Das Verhältnis aus beiden Maßen ist der Faktor.
+ */
+const stageScale = (el: HTMLElement) => (el.offsetWidth ? el.getBoundingClientRect().width / el.offsetWidth : 1) || 1
+const FIT = 0.97
+
 /** Rendert alle noch offenen Markmap-Blöcke unterhalb von `root`. */
 export async function renderMarkmap(root: HTMLElement) {
   const blocks = [...root.querySelectorAll<HTMLElement>('.markmap-block:not([data-rendered])')]
@@ -39,7 +47,8 @@ export async function renderMarkmap(root: HTMLElement) {
       block.querySelector('.markmap-src')?.replaceWith(svg)
       const fold = Number(block.dataset.fold)
       const mm = mod.Markmap.create(svg, {
-        autoFit: true, duration: 0, zoom: false, pan: false, fitRatio: 0.95,
+        autoFit: true, duration: 0, zoom: false, pan: false, fitRatio: FIT / stageScale(block), maxInitialScale: 3,
+        spacingVertical: 10, spacingHorizontal: 90, paddingX: 14,
         initialExpandLevel: fold >= 1 ? fold : -1,
         color: (node: { state?: { path?: string } }) => {
           // je oberstem Ast eine Farbe: der Pfad beginnt mit der Nummer des Astes (`1.2.3`)
@@ -48,7 +57,7 @@ export async function renderMarkmap(root: HTMLElement) {
         },
       }, tree)
       // Größe ändert sich erst nach dem Layout (Schritte, Schriften, Fenster): neu einpassen
-      if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => { void mm.fit() }).observe(block)
+      if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => { mm.setOptions({ fitRatio: FIT / stageScale(block) }); void mm.fit() }).observe(block)
       void document.fonts?.ready.then(() => mm.fit())
       block.dataset.rendered = ''
     } catch (e) {

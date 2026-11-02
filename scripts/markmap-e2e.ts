@@ -52,6 +52,27 @@ async function run(cdp: Cdp) {
   check('die Texte stehen in den Knoten', ['Hashmark', 'Kern', 'Parser', 'PPTX'].every((t) => info.texts.includes(t)), info.texts.join(' | '))
   check('die Äste haben verschiedene Farben', info.strokes.length >= 3, info.strokes.join(' '))
   check('nichts wird von fremden Adressen geladen', info.external.length === 0, info.external.join(' '))
+  // Größe: Die Karte füllt ihre Fläche (Breite oder Höhe zu mindestens 80 %), die Schrift ist auf der Bühne lesbar groß,
+  // und kein Knoten liegt über einem anderen (markmap-view misst in Bildschirmpunkten, die Bühne ist skaliert).
+  const size = await evalJs<{ fill: number; font: number; overlaps: number; stage: number }>(cdp, `(() => {
+    const svg = document.querySelector('.stage .markmap-svg')
+    const g = svg.querySelector(':scope > g')
+    const s = svg.getBoundingClientRect(), r = g.getBoundingClientRect()
+    // Verkleinerung der Bühne = Bildschirmbreite des SVG durch seine Layoutbreite
+    const scale = svg.clientWidth ? s.width / svg.clientWidth : 1
+    const boxes = [...svg.querySelectorAll('.markmap-foreign')].map((e) => e.getBoundingClientRect())
+    let overlaps = 0
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i], b = boxes[j]
+      const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top)
+      if (w > 2 && h > 2) overlaps++
+    }
+    const leaf = svg.querySelector('.markmap-foreign')
+    return { fill: Math.max(r.width / s.width, r.height / s.height), font: parseFloat(getComputedStyle(leaf).fontSize) * scale, overlaps, stage: scale }
+  })()`)
+  check('die Karte füllt ihre Fläche', size.fill >= 0.8, `Füllung=${size.fill.toFixed(2)}`)
+  check('kein Knoten liegt über einem anderen', size.overlaps === 0, `Überlappungen=${size.overlaps}`)
+  console.log(`       Größe: Füllung ${size.fill.toFixed(2)}, Bühnenfaktor ${size.stage.toFixed(2)}, Schrift ${size.font.toFixed(1)} px am Bildschirm`)
   const box = await evalJs<{ w: number; h: number }>(cdp, `(() => { const r = document.querySelector('.stage .markmap-svg').getBoundingClientRect(); return { w: r.width, h: r.height } })()`)
   check('die Karte hat eine Größe', box.w > 200 && box.h > 100, `${box.w} × ${box.h}`)
 }
