@@ -40,6 +40,7 @@ jobs:
       - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
       - run: node scripts/video-e2e.ts
       - run: node scripts/zoom-e2e.ts
+      - run: node scripts/markmap-e2e.ts
 
   # Rundgang durch den Editor als Bilderfolge (scripts/editor-tour.ts): echte Bilder aus der echten Oberfläche, nur für
   # Pull Requests aus diesem Repository. Die Bilder liegen als Download am Lauf (editor-tour) und auf dem Zweig

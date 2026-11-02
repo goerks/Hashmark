@@ -2,6 +2,7 @@
   import { untrack } from 'svelte'
   import type { DeckNode } from '../core/types.ts'
   import { renderMermaid } from './mermaid.ts'
+  import { renderMarkmap } from './markmap.ts'
   import { MIN_ZOOM, fitSlide } from './fit.ts'
   import { clearLiveRoot, prepareVideos, setLiveRoot, syncVideos, type MediaMode } from './video.ts'
   import { clearZoomRoot, refreshZoom, setZoomRoot, syncZoom, zoomClick } from './zoom.ts'
@@ -136,7 +137,7 @@
     for (const slot of el.querySelectorAll<HTMLElement>('[data-children]')) slot.innerHTML = tiles(node.children)
     untrack(() => { applySteps(el, step); measure() })
     // Diagramme und Schriften ändern die Größe erst nach dem Laden: danach neu messen
-    renderMermaid(el).then(() => untrack(() => { applySteps(el, step); measure() }))
+    Promise.all([renderMermaid(el), renderMarkmap(el)]).then(() => untrack(() => { applySteps(el, step); measure() }))
     void document.fonts?.ready.then(() => untrack(measure))
   })
 

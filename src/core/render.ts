@@ -16,6 +16,7 @@ import { ICON_NAMES, iconSvg } from './icons.ts'
 import { MAX_EMBED_BYTES, VIDEO_ATTRS, VIDEO_MIME, isVideoUrl, mediaName, videoProps } from './media.ts'
 import { renderMath, renderTex } from './math.ts'
 import { EFFECTS, nearest } from './vocab.ts'
+import { markmapPlugin } from './markmap.ts'
 import { findCodeBlockPlugin, PLUGIN_API, registerPlugin } from './plugins.ts'
 import { svgIdSteps } from './svg-steps.ts'
 import { parseAttrs } from './syntax.ts'
@@ -270,7 +271,7 @@ export const mathPlugin: CodeBlockPlugin = {
 }
 
 // Die mitgelieferten Codeblöcke melden sich wie jedes Plugin an (Reihenfolge: Sprachen vor dem Platzhalter `*`)
-for (const [name, block] of [['mermaid', mermaidPlugin], ['qr', qrPlugin], ['math', mathPlugin], ['code', shikiPlugin]] as const) {
+for (const [name, block] of [['mermaid', mermaidPlugin], ['markmap', markmapPlugin], ['qr', qrPlugin], ['math', mathPlugin], ['code', shikiPlugin]] as const) {
   registerPlugin({ name, api: PLUGIN_API, codeBlocks: [block] }, { builtin: true })
 }
 
