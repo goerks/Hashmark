@@ -69,7 +69,7 @@ async function run(cdp: Cdp) {
     }
     const leaf = svg.querySelector('.markmap-foreign')
     const inside = r.left >= s.left - 2 && r.top >= s.top - 2 && r.right <= s.right + 2 && r.bottom <= s.bottom + 2
-    const gap = `links ${(r.left - s.left).toFixed(0)}, oben ${(r.top - s.top).toFixed(0)}, rechts ${(s.right - r.right).toFixed(0)}, unten ${(s.bottom - r.bottom).toFixed(0)}`
+    const gap = 'links ' + (r.left - s.left).toFixed(0) + ', oben ' + (r.top - s.top).toFixed(0) + ', rechts ' + (s.right - r.right).toFixed(0) + ', unten ' + (s.bottom - r.bottom).toFixed(0)
     return { inside, gap, fill: Math.max(r.width / s.width, r.height / s.height), font: parseFloat(getComputedStyle(leaf).fontSize) * scale, overlaps, stage: scale }
   })()`)
   check('die Karte füllt ihre Fläche', size.fill >= 0.8, `Füllung=${size.fill.toFixed(2)}`)
