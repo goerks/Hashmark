@@ -48,7 +48,7 @@ async function run(cdp: Cdp) {
   })()`)
   check('die Karte ist gezeichnet', info.svg === 1, `svg=${info.svg}`)
   check('kein Markmap-Fehler', info.error === '', info.error)
-  check('alle neun Knoten sind da', info.nodes === 9, `Knoten=${info.nodes}`)
+  check('alle zehn Knoten sind da (Mitte und neun Äste)', info.nodes === 10, `Knoten=${info.nodes}`)
   check('die Texte stehen in den Knoten', ['Hashmark', 'Kern', 'Parser', 'PPTX'].every((t) => info.texts.includes(t)), info.texts.join(' | '))
   check('die Äste haben verschiedene Farben', info.strokes.length >= 3, info.strokes.join(' '))
   check('nichts wird von fremden Adressen geladen', info.external.length === 0, info.external.join(' '))

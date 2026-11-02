@@ -67,7 +67,7 @@ Pr체fen: Die Kacheln zeigen die f체nf Plugins. Ein Klick oder Pfeil nach unten �
 ```
 
 ::: notes
-Pr체fen: Neun Knoten, jeder Ast in einer anderen Farbe, nichts ragt 체ber den Rand. Der Quelltext dar체ber ist eine einfache Gliederung. Neu mit diesem Ticket. Attribute: `height`, `fold`, `title`.
+Pr체fen: Zehn Knoten (die Mitte und neun Punkte), jeder Ast in einer anderen Farbe, nichts ragt 체ber den Rand. Der Quelltext dar체ber ist eine einfache Gliederung. Neu mit diesem Ticket. Attribute: `height`, `fold`, `title`.
 :::
 
 ## Mermaid {layout=default}
