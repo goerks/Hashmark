@@ -6,6 +6,8 @@ export interface SearchEntry {
   id: string
   slide: number
   title: string
+  /** Kapitelnummer (deck.yaml `numbering:`), für die Anzeige */
+  num?: string
   /** Titel der Vorfahren, für die Anzeige */
   trail: string[]
   /** reiner Text der Sub-Slide (ohne HTML) */
@@ -42,8 +44,8 @@ export function buildSearchIndex(nodes: DeckNode[]): SearchEntry[] {
   const out: SearchEntry[] = []
   const walk = (list: DeckNode[], trail: string[]) => {
     for (const node of list) {
-      node.slides.forEach((s, slide) => out.push({ id: node.id, slide, title: node.title, trail, text: htmlToText(s.html) }))
-      walk(node.children, [...trail, node.title])
+      node.slides.forEach((s, slide) => out.push({ id: node.id, slide, title: node.title, ...(node.num ? { num: node.num } : {}), trail, text: htmlToText(s.html) }))
+      walk(node.children, [...trail, node.num ? `${node.num} ${node.title}` : node.title])
     }
   }
   walk(nodes, [])

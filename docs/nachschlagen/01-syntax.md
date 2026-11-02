@@ -44,6 +44,9 @@ Die oberste Überschriftenebene jeder Datei wird auf Tiefe 1 gelegt, `maxDepth` 
 | `bannerh=210` | Höhe des Bildbands in px |
 | `bannerpos="50% 30%"` | Ausschnitt des Bildbands |
 | `footer=off` | Fußzeile auf dieser Folie ausblenden |
+| `number=off` | Kapitelnummer: Knoten samt Unterbaum nicht nummerieren (`number=on` holt ihn zurück, nur mit `numbering:` in der `deck.yaml`) |
+| `toc=off` | im Inhaltsverzeichnis weglassen, samt Unterbaum |
+| `levels=1-2` | an der Agenda (`layout=agenda`): Ebenen des Inhaltsverzeichnisses |
 
 ::: notes
 Attribute stehen in geschweiften Klammern am Ende der Überschrift, getrennt durch Leerzeichen: `## Demo {layout=two-col transition=zoom duration=3m}`. Werte mit Leerzeichen kommen in Anführungszeichen. Flags wie `steps`, `fit`, `optional` und `appendix` haben keinen Wert. Ein Doppelpunkt in einem Wert geht nicht (er zerreißt den Text), deshalb `ratio=16/9` und `start=5s`.
@@ -96,7 +99,7 @@ Fast alle Container kennen `step=` und `until=`. Eingebaute Komponenten kommen d
 | `default` | Überschrift und Inhalt (Standard) |
 | `statement` | Kernaussage, groß und mittig |
 | `quote` | Zitat |
-| `agenda` | Agenda aus den Kapiteln, aktuelles markiert |
+| `agenda` | Agenda aus den Kapiteln, aktuelles markiert; mit `levels=1-2` ein Inhaltsverzeichnis mit Unterkapiteln |
 
 ---
 

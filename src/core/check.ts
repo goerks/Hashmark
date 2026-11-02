@@ -17,7 +17,7 @@ export const BUILTIN_LAYOUTS = [
   'title', 'section', 'default', 'two-col', 'three-col', 'statement', 'quote', 'image-left', 'image-right', 'agenda', 'comparison', 'code-focus', 'banner', 'image-full', 'split', 'diagram', 'two-col-wide', 'contact', 'kpi', 'big-number', 'gallery', 'timeline', 'blank',
 ]
 /** Attribute einer Überschrift `{…}`, die Hashmark kennt */
-export const KNOWN_ATTRS = ['layout', 'id', 'class', 'transition', 'duration', 'bg', 'bgdim', 'steps', 'fit', 'optional', 'appendix', 'plan', 'banner', 'bannerpos', 'bannerh', 'footer', 'speed', 'effect', 'morph']
+export const KNOWN_ATTRS = ['layout', 'id', 'class', 'transition', 'duration', 'bg', 'bgdim', 'steps', 'fit', 'optional', 'appendix', 'plan', 'banner', 'bannerpos', 'bannerh', 'footer', 'speed', 'effect', 'morph', 'number', 'toc', 'levels']
 /** Übergang zu einer Folie (`transition=…`, deck.yaml `motion: transition:`); ohne Angabe schiebt → ←, ↓ ↑ zeigt Tiefe (`depth`) */
 export const TRANSITIONS = ['slide', 'zoom', 'fade', 'none', 'push', 'cover', 'reveal', 'blur', 'iris', 'curtain', 'diagonal', 'mosaic', 'blinds', 'depth']
 /** Tempo der Übergänge und Schritt-Einblendungen (`{speed=…}`, deck.yaml `motion: speed:`) */

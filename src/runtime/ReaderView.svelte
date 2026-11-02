@@ -7,6 +7,7 @@
   import Lazy from './Lazy.svelte'
   import ScaledSlide from './ScaledSlide.svelte'
   import './reader.css'
+  import { labelOf } from '../core/numbering.ts'
 
   // Lesemodus (?reader): das Deck als Handbuch. Der Baum ist das Inhaltsverzeichnis, jede Überschrift ein Abschnitt,
   // die Sprechernotizen sind der Text und die Folien stehen als Karten dazwischen (Klick = Präsentation ab dort).
@@ -51,7 +52,7 @@
         <h4>Inhalt = der Baum</h4>
         {#each nodes as n (n.id)}
           <a class="rd-toc-item depth-{n.depth}" class:on={active === n.id} href="#{n.id}">
-            <span class="k">{n.depth === 1 ? '→' : '↓'}</span>{n.title}
+            <span class="k">{n.depth === 1 ? '→' : '↓'}</span>{labelOf(n)}
           </a>
         {/each}
         <p class="rd-legend"><b>→</b> Hauptpfad, <b>↓</b> Detail. Das Inhaltsverzeichnis ist der Baum der Präsentation.</p>
@@ -62,7 +63,7 @@
         {#each nodes as n (n.id)}
           <section class="rd-node depth-{n.depth}" id={n.id} data-s={n.id}>
             <svelte:element this={n.depth === 1 ? 'h2' : 'h3'}>
-              {n.title}
+              {labelOf(n)}
               {#if n.depth > 1}<span class="rd-badge">↓ Detail</span>{/if}
               {#if role(n) !== 'path'}<span class="rd-badge soft">{PLAN_LABEL[role(n)]}</span>{/if}
             </svelte:element>
