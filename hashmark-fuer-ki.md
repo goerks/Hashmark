@@ -47,6 +47,7 @@ numbering: { from: 1, to: 2 }    # Kapitelnummern 1, 1.1 … für die Ebenen von
 zoom: true                       # alle Bilder mit Z vergrößerbar
 embedImages: true                # alle lokalen Bilder in die Ausgabe einbetten
 embedMedia: true                 # Videos in Einzel-HTML einbetten (bis 25 MB)
+plugins: [./plugins/meins]       # eigene Plugins aus dem Deck (Datei oder Ordner mit index.js); laufen nur nach „hashmark trust“, im Webdienst nie; Schreiber von Decks brauchen das nicht
 mount:                           # Dateien und Reihenfolge
   - file: 01-einstieg.md
   - file: 02-thema.md
@@ -501,6 +502,21 @@ flowchart LR
 ````
 
 Klassen für Flussdiagramme/Zustände: `accent ok warn bad important muted actor`. Farben kommen aus dem Theme. `.drawio.svg` und `.excalidraw.svg` bindet man wie Bilder ein.
+
+### Mindmap (Markmap)
+
+Eine Gliederung als Mindmap: Überschriften und eingerückte Listen werden zu einem Baum, die Äste bekommen Theme-Farben. Offline, nichts wird nachgeladen. Bei mehreren obersten Einträgen ist `title` die Wurzel (sonst „Übersicht“). `height` in Pixeln, `fold=2` klappt alles ab Ebene 2 zu. In PDF und Handout ist die Karte ein Bild, in PowerPoint auch.
+
+````md
+```markmap {height=420}
+# Hashmark
+- **Kern**
+  - Parser
+  - Plan
+- Runtime
+  - Presenter
+```
+````
 
 ### QR-Code
 

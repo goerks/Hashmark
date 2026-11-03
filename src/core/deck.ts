@@ -12,6 +12,7 @@ import { EFFECTS, SPEEDS, TRANSITIONS } from './check.ts'
 import { parseDuration } from './timing.ts'
 import { applyNumbering, injectAgendas, numberingConfig } from './numbering.ts'
 import type { Deck, DeckNode, Manifest, MountEntry } from './types.ts'
+import { loadDeckPlugins } from './plugin-loader.ts'
 
 const MANIFEST = 'deck.yaml'
 
@@ -221,6 +222,8 @@ export async function loadDeck(deckDirInput: string): Promise<LoadResult> {
 
   const assets = new Set<string>()
   const warnings: string[] = []
+  // Plugins aus dem Deck (nur freigegebene, siehe plugin-loader.ts) müssen vor dem Rendern angemeldet sein
+  await loadDeckPlugins(deckDir, manifest.plugins, warnings)
   const theme = resolveTheme(deckDir, manifest.theme)
   const nodes = await finalize(top, '', { deckDir, assets, warnings, embedImages: manifest.embedImages === true, zoomImages: manifest.zoom === true, manifest, components: theme.components })
   const numbering = numberingConfig(manifest, maxDepth, warnings)

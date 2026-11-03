@@ -31,6 +31,8 @@ export function seedDeck(deckDir: string, seed: string | undefined, reseed = fal
 }
 
 export async function serve(opts: ServeOptions) {
+  // Im Webdienst darf jeder mit der Adresse Dateien ändern: Plugins aus dem Deck werden nie ausgeführt (Ticket #56)
+  process.env.HASHMARK_PLUGINS = 'off'
   const deckDir = path.resolve(opts.deck)
   if (seedDeck(deckDir, opts.seed, opts.reseed)) console.log(`[hashmark] Beispiel kopiert: ${opts.seed} → ${deckDir}${opts.reseed ? ' (ersetzt den Inhalt)' : ''}`)
   if (isEmpty(deckDir)) throw new Error(`Deck-Ordner ist leer oder fehlt: ${deckDir} (--seed <ordner> legt ein Beispiel an)`)

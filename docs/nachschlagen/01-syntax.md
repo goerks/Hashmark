@@ -197,6 +197,7 @@ Attribute stehen direkt hinter dem Bild: `![Plan](plan.png){width=60% step=1}`. 
 | --- | --- |
 | jede Sprache | `title=`, `steps="…"`, `lines="…"` |
 | `mermaid` | `look=hand`, `height=520`, `align=left` |
+| `markmap` | `height=420`, `fold=2`, `title="…"` |
 | `math` | `step=`, `until=` |
 | `qr` | `size=220`, `label="…"` |
 

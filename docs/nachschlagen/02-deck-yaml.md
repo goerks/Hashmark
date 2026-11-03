@@ -21,6 +21,7 @@
 | `zoom` | alle Bilder mit Z vergrößerbar |
 | `embedImages` | alle Bilder einbetten |
 | `embedMedia` | Videos in die HTML-Datei einbetten (bis 25 MB) |
+| `plugins` | eigene Plugins aus dem Deck (Datei oder Ordner mit `index.js`), laufen erst nach `hashmark trust`, im Webdienst nie |
 
 ::: notes
 Die `deck.yaml` liegt im Deck-Ordner und ist optional. Ohne sie nimmt Hashmark alle Markdown-Dateien in alphabetischer Reihenfolge, das Theme `minimal` und den ersten Titel. Dieses Handbuch hat zum Beispiel `title`, `theme: dark-tech`, `duration: 25m`, eine Fußzeile, die Folienzahl und eine `mount`-Liste, die die Kapitel unter die drei Teile hängt (`under: Lernen`).

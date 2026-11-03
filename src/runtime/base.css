@@ -718,3 +718,13 @@ button.nc-next:hover { color: var(--color-accent); }
 .layout-blank .content > p { flex: 1; min-height: 0; display: flex; }
 .layout-blank .content img, .layout-blank .content video { width: 100%; height: 100%; object-fit: contain; }
 .layout-blank .slide-footer { display: none; }
+
+/* Markmap (Plugin, Ticket #56): Mindmap aus einer Gliederung. Die Karte füllt den Block, Farben und Schrift kommen aus dem Theme. */
+.markmap-block { display: grid; grid-template-columns: minmax(0, 1fr); min-height: 0; flex: 1; }
+.markmap-block > * { grid-area: 1 / 1; min-width: 0; }
+.markmap-svg { display: block; width: 100%; height: var(--markmap-height, 100%); min-height: 380px; }
+.markmap-svg .markmap-foreign { color: var(--color-fg); font-family: var(--font-body); font-size: 26px; line-height: 1.25; }
+.markmap-svg .markmap-foreign code { font-family: var(--font-mono, monospace); font-size: 0.9em; }
+.markmap-svg .markmap-link { stroke-width: 2.5; }
+.markmap-error { color: var(--color-danger, #c62828); white-space: pre-wrap; }
+.markmap-src ul { margin: 0; }

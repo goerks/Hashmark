@@ -284,7 +284,7 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
 
     // ---------- Bausteine ----------
 
-        const REPLACED = 'img,svg,canvas,video,iframe,object,picture,.mermaid-block,table,pre,ul,ol'
+        const REPLACED = 'img,svg,canvas,video,iframe,object,picture,.mermaid-block,.markmap-block,table,pre,ul,ol'
 
     const isInline = (el: Element) => cs(el).display.startsWith('inline') && !el.matches(REPLACED) && !el.querySelector(REPLACED)
 
@@ -294,7 +294,7 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
       const tag = el.tagName
       if (el.classList.contains('katex-display') || el.classList.contains('katex')) return true
       if (tag === 'svg' || tag === 'CANVAS' || tag === 'VIDEO' || tag === 'IFRAME' || tag === 'OBJECT') return true
-      if (el.classList.contains('mermaid-block')) return true
+      if (el.classList.contains('mermaid-block') || el.classList.contains('markmap-block')) return true
       if (s.transform !== 'none') {
         const m = s.transform.match(/matrix\(([^)]+)\)/)
         if (!m) return true
@@ -593,7 +593,7 @@ export async function extractPages(options: { animate?: boolean } = {}): Promise
         const states = [...el.querySelectorAll<HTMLElement>('.mermaid-state')]
         if (states.length > 1) { for (const st of states) markRaster(st, 'Diagramm'); return }
       }
-      if (rasterReason(el)) { markRaster(el, el.classList.contains('mermaid-block') ? 'Diagramm' : undefined); return }
+      if (rasterReason(el)) { markRaster(el, el.classList.contains('mermaid-block') || el.classList.contains('markmap-block') ? 'Diagramm' : undefined); return }
       if (el.tagName === 'TABLE') { emitTable(el as HTMLTableElement); return }
       if (hasInlineMath(el)) { markRaster(el, 'Absatz mit Formel'); return }
       if (el.tagName === 'PRE') {

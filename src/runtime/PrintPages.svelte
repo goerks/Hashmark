@@ -26,7 +26,7 @@
   async function waitUntilRendered() {
     await tick()
     const deadline = Date.now() + 30_000
-    while (root.querySelector('.mermaid-block:not([data-rendered])') && Date.now() < deadline) {
+    while (root.querySelector('.mermaid-block:not([data-rendered]), .markmap-block:not([data-rendered])') && Date.now() < deadline) {
       await new Promise((r) => setTimeout(r, 100))
     }
     await Promise.all([...root.querySelectorAll('img')].map((img) => img.decode().catch(() => {})))
