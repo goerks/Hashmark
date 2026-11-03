@@ -75,6 +75,6 @@ Die ausführliche Anleitung steht im Teil „Lernen“ des [Handbuchs](https://g
 
 ## Lizenz
 
-[Functional Source License 1.1, Apache 2.0 Future License](LICENSE) (FSL-1.1-Apache-2.0): Du darfst Hashmark frei nutzen, ändern und weitergeben, auch in einer Firma und für Vorträge, mit denen du Geld verdienst. Nicht erlaubt ist, Hashmark oder eine kaum veränderte Fassung als Konkurrenzprodukt anzubieten. Zwei Jahre nach der Veröffentlichung einer Version wird sie automatisch zu Apache 2.0. Präsentationen, die du mit Hashmark erstellst, gehören dir.
+[Functional Source License 1.1, Apache 2.0 Future License](LICENSE) (FSL-1.1-ALv2): Du darfst Hashmark frei nutzen, ändern und weitergeben, auch in einer Firma und für Vorträge, mit denen du Geld verdienst. Nicht erlaubt ist, Hashmark oder eine kaum veränderte Fassung als Konkurrenzprodukt anzubieten. Zwei Jahre nach der Veröffentlichung einer Version wird sie automatisch zu Apache 2.0. Präsentationen, die du mit Hashmark erstellst, gehören dir.
 
 Lizenzen der enthaltenen Bibliotheken: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

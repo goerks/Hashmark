@@ -2,7 +2,7 @@
   "name": "hashmark",
   "version": "0.2.0",
   "private": true,
-  "license": "FSL-1.1-Apache-2.0",
+  "license": "FSL-1.1-ALv2",
   "description": "Mächtige Präsentationen aus reinem Markdown",
   "type": "module",
   "bin": {

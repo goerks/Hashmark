@@ -57,7 +57,7 @@ Ein Deck besteht aus Markdown-Dateien. Diff, Review und Versionsverwaltung funkt
 Frei nutzen, ändern und weitergeben, **auch kommerziell**, nur nicht als Konkurrenzprodukt.
 
 ::: notes
-Hashmark steht unter der Functional Source License 1.1 mit Apache-2.0 als spätere Lizenz (FSL-1.1-Apache-2.0). Der Volltext liegt als Datei `LICENSE` im Repository.
+Hashmark steht unter der Functional Source License 1.1 mit Apache-2.0 als spätere Lizenz (FSL-1.1-ALv2). Der Volltext liegt als Datei `LICENSE` im Repository.
 
 Du darfst Hashmark frei nutzen, ändern und weitergeben, auch in einer Firma und für Vorträge, mit denen du Geld verdienst. Nicht erlaubt ist, Hashmark oder eine kaum veränderte Fassung als Konkurrenzprodukt anzubieten, zum Beispiel als eigenes Präsentations-Programm oder als gehosteten Dienst mit denselben Funktionen. Zwei Jahre nach der Veröffentlichung einer Version wird genau diese Version automatisch zu Apache 2.0 und ist dann ohne diese Einschränkung frei.
 

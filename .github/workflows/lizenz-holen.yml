@@ -1,4 +1,4 @@
-# Einmalig (Ticket #47): holt den offiziellen Text der Functional Source License (FSL-1.1-Apache-2.0) von fsl.software,
+# Einmalig (Ticket #47): holt den offiziellen Text der Functional Source License (FSL-1.1-ALv2) von fsl.software,
 # trägt Jahr und Lizenzgeber ein und schreibt ihn als LICENSE auf den Zweig, weil die Cloud-Sitzung die Adresse nicht
 # erreicht. Wird danach entfernt.
 name: Lizenz holen
@@ -27,7 +27,7 @@ jobs:
           echo "--- Anfang ---"; head -20 "$RUNNER_TEMP/fsl.md"
           echo "--- Platzhalter ---"; grep -n '\${' "$RUNNER_TEMP/fsl.md" || echo "(keine)"
           grep -qi 'functional source license' "$RUNNER_TEMP/fsl.md"
-          grep -q 'FSL-1.1-Apache-2.0' "$RUNNER_TEMP/fsl.md"
+          grep -q 'FSL-1.1-ALv2' "$RUNNER_TEMP/fsl.md"
       - name: Eintragen
         run: |
           sed -e 's/\${year}/2026/g' -e 's/\${licensor name}/goerks (https:\/\/github.com\/goerks)/g' "$RUNNER_TEMP/fsl.md" > LICENSE
@@ -44,5 +44,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add LICENSE
-          git commit -m "Lizenz: Text der FSL-1.1-Apache-2.0 von fsl.software (#47)" || echo "keine Änderung"
+          git commit -m "Lizenz: Text der FSL-1.1-ALv2 von fsl.software (#47)" || echo "keine Änderung"
           git push origin HEAD:claude/gracious-ramanujan-n8jsof
