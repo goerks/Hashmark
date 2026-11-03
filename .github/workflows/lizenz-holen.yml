@@ -42,7 +42,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: desktop-go/go.mod
-      - name: Go: jsmin (Crockford) und woher es kommt
+      - name: Go-Teil, jsmin von Crockford und woher es kommt
         working-directory: desktop-go
         run: |
           go mod download
