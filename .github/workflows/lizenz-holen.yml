@@ -1,0 +1,39 @@
+# Einmalig (Ticket #47): holt den offiziellen Text der Functional Source License (FSL-1.1-Apache-2.0) von fsl.software,
+# trägt Jahr und Lizenzgeber ein und schreibt ihn als LICENSE auf den Zweig, weil die Cloud-Sitzung die Adresse nicht
+# erreicht. Wird danach entfernt.
+name: Lizenz holen
+
+on:
+  push:
+    branches: [claude/gracious-ramanujan-n8jsof]
+    paths: ['.github/workflows/lizenz-holen.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  holen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Text holen und prüfen
+        run: |
+          curl -fsSL https://fsl.software/FSL-1.1-Apache-2.0.template.md -o "$RUNNER_TEMP/fsl.md" \
+            || curl -fsSL https://raw.githubusercontent.com/getsentry/fsl.software/main/FSL-1.1-Apache-2.0.template.md -o "$RUNNER_TEMP/fsl.md"
+          sha256sum "$RUNNER_TEMP/fsl.md"
+          grep -q 'Functional Source License, Version 1.1, Apache 2.0 Future License' "$RUNNER_TEMP/fsl.md"
+          grep -q 'FSL-1.1-Apache-2.0' "$RUNNER_TEMP/fsl.md"
+          grep -n 'year\|licensor' "$RUNNER_TEMP/fsl.md" | head
+      - name: Eintragen
+        run: |
+          sed -e 's/\${year}/2026/g' -e 's/\${licensor name}/goerks (https:\/\/github.com\/goerks)/g' "$RUNNER_TEMP/fsl.md" > LICENSE
+          if grep -q '\${' LICENSE; then echo "Platzhalter übrig:"; grep -n '\${' LICENSE; exit 1; fi
+          wc -l LICENSE; head -12 LICENSE
+      - name: Zurückschreiben
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add LICENSE
+          git commit -m "Lizenz: Text der FSL-1.1-Apache-2.0 von fsl.software (#47)" || echo "keine Änderung"
+          git push origin HEAD:claude/gracious-ramanujan-n8jsof
