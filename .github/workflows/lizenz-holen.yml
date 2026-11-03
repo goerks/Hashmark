@@ -39,6 +39,17 @@ jobs:
           ls node_modules/khroma
           cat node_modules/khroma/license* node_modules/khroma/LICENSE* 2>/dev/null | head -8 || true
           grep -n 'repository\|license' node_modules/khroma/package.json || true
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: desktop-go/go.mod
+      - name: Go: jsmin (Crockford) und woher es kommt
+        working-directory: desktop-go
+        run: |
+          go mod download
+          d=$(go list -m -f '{{.Dir}}' github.com/dchest/jsmin)
+          echo "== Lizenz"; cat "$d"/LICENSE* "$d"/license* 2>/dev/null | head -40
+          echo "== go mod why"; go mod why -m github.com/dchest/jsmin github.com/josephspurrier/goversioninfo github.com/akavel/rsrc || true
+          echo "== im Programm?"; go list -deps ./... | grep -c 'dchest/jsmin' || true
       - name: Zurückschreiben
         run: |
           git config user.name "github-actions[bot]"
