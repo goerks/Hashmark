@@ -21,6 +21,7 @@ Stand: 03.11.2026. Grundlage sind die Lizenzfelder und Lizenzdateien der Pakete,
 | `argparse` (über `markdown-it`) | Python-2.0 | freizügig, nur der Lizenzhinweis bleibt erhalten |
 | `khroma` (über Mermaid) | MIT | das Paket hat kein Lizenzfeld, die Lizenzdatei im Paket ist die MIT-Lizenz (Fabio Spampinato, Andrew Maney) |
 | `https` 1.0.0 (über `pptxgenjs`) | ISC | ein sehr kleines Platzhalter-Paket mit diesem Namen, es bringt nach meiner Kenntnis keine eigene Funktion |
+| `github.com/dchest/jsmin` (Go, über `zenity`) | Crockford-Lizenz mit dem Zusatz „The Software shall be used for Good, not Evil“ | steht in der Modulliste, wird aber für **keines** der Zielsysteme (Linux, Windows, macOS) ins Programm einkompiliert: Es wird nur von einem Hilfsprogramm in `zenity` zum Erzeugen von Skripten benutzt (`internal/zenutil/osa_generator.go`). Der Zusatz ist keine Standardlizenz-Klausel. Sobald `jsmin` Teil des Programms würde, muss es ersetzt werden. Prüfung: `go list -deps` je Zielsystem, 03.11.2026. |
 | KaTeX-Schriften | siehe Paket `katex` | die Schriftdateien (`src/runtime/katex-fonts`) stammen aus `katex`, ihre Lizenzen liegen dort bei |
 
 ## Pflege
