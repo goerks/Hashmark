@@ -49,7 +49,8 @@ jobs:
           d=$(go list -m -f '{{.Dir}}' github.com/dchest/jsmin)
           echo "== Lizenz"; cat "$d"/LICENSE* "$d"/license* 2>/dev/null | head -40
           echo "== go mod why"; go mod why -m github.com/dchest/jsmin github.com/josephspurrier/goversioninfo github.com/akavel/rsrc || true
-          echo "== im Programm?"; go list -deps ./... | grep -c 'dchest/jsmin' || true
+          for os in linux windows darwin; do echo "== im Programm fuer $os (Anzahl Treffer)"; GOOS=$os GOARCH=amd64 go list -deps ./... | grep -c 'dchest/jsmin' || true; done
+          echo "== wer importiert jsmin im Quelltext von zenity"; grep -rn 'dchest/jsmin' "$(go list -m -f '{{.Dir}}' github.com/ncruces/zenity)" --include=*.go | head
       - name: Zurückschreiben
         run: |
           git config user.name "github-actions[bot]"
