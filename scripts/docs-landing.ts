@@ -175,7 +175,7 @@ ${siteNav('', 'start', o.liveUrl)}
     <div class="card"><h3>macOS</h3><p>Apple Silicon und Intel (noch wenig erprobt)</p><div class="dl-btns">${link('Apple Silicon', pkg('tar.gz', 'darwin-arm64'))}${link('Intel', pkg('tar.gz', 'darwin-amd64'))}</div></div>
     <div class="card"><h3>Linux</h3><p>amd64 und arm64 (noch wenig erprobt)</p><div class="dl-btns">${link('x64', pkg('tar.gz', 'linux-amd64'))}${link('ARM64', pkg('tar.gz', 'linux-arm64'))}</div></div>
   </div>
-  <p class="lead" style="margin-top:14px"><a href="${esc(o.projectUrl ? `${o.projectUrl}/releases` : '#')}">Alle Releases</a> · Frei nutzbar, nicht für kommerzielle Zwecke (PolyForm Noncommercial).</p>
+  <p class="lead" style="margin-top:14px"><a href="${esc(o.projectUrl ? `${o.projectUrl}/releases` : '#')}">Alle Releases</a> · Frei nutzbar, auch kommerziell, nur nicht als Konkurrenzprodukt (FSL-1.1-ALv2).</p>
 </section>${o.liveUrl ? `
 
 <section class="block" id="live">
