@@ -19,8 +19,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Text holen und prüfen
         run: |
-          curl -fsSL https://fsl.software/FSL-1.1-Apache-2.0.template.md -o "$RUNNER_TEMP/fsl.md" \
-            || curl -fsSL https://raw.githubusercontent.com/getsentry/fsl.software/main/FSL-1.1-Apache-2.0.template.md -o "$RUNNER_TEMP/fsl.md"
+          curl -fsSL https://fsl.software/FSL-1.1-ALv2.template.md -o "$RUNNER_TEMP/fsl.md" \
+            || curl -fsSL https://raw.githubusercontent.com/getsentry/fsl.software/main/FSL-1.1-ALv2.template.md -o "$RUNNER_TEMP/fsl.md"
+          if grep -qi '<html' "$RUNNER_TEMP/fsl.md"; then echo "Die Antwort ist HTML, kein Lizenztext"; exit 1; fi
           sha256sum "$RUNNER_TEMP/fsl.md"
           wc -l "$RUNNER_TEMP/fsl.md"
           echo "--- Anfang ---"; head -20 "$RUNNER_TEMP/fsl.md"

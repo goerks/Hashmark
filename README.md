@@ -75,4 +75,6 @@ Die ausführliche Anleitung steht im Teil „Lernen“ des [Handbuchs](https://g
 
 ## Lizenz
 
-[PolyForm Noncommercial 1.0.0](LICENSE): frei nutzen, ändern und weitergeben, nicht für kommerzielle Zwecke. Kommerzielle Nutzung bitte vorher anfragen.
+[Functional Source License 1.1, Apache 2.0 Future License](LICENSE) (FSL-1.1-Apache-2.0): Du darfst Hashmark frei nutzen, ändern und weitergeben, auch in einer Firma und für Vorträge, mit denen du Geld verdienst. Nicht erlaubt ist, Hashmark oder eine kaum veränderte Fassung als Konkurrenzprodukt anzubieten. Zwei Jahre nach der Veröffentlichung einer Version wird sie automatisch zu Apache 2.0. Präsentationen, die du mit Hashmark erstellst, gehören dir.
+
+Lizenzen der enthaltenen Bibliotheken: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
