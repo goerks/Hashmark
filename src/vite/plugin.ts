@@ -7,6 +7,7 @@ import { listExamples } from '../cli/examples.ts'
 import { realPath } from '../cli/paths.ts'
 import { componentKind } from '../core/component-edit.ts'
 import { loadDeck, type LoadResult } from '../core/deck.ts'
+import { stripNotes } from '../core/notes.ts'
 import { PLAN_PATH } from '../core/plan.ts'
 import { MAX_EMBED_BYTES, isVideoUrl, mediaName } from '../core/media.ts'
 import { ASSET_PREFIX, MEDIA_MIME, toDataUri } from '../core/render.ts'
@@ -37,6 +38,8 @@ export interface HashmarkOptions {
   media?: MediaSink
   /** Datei-API für den Editor aktivieren (nur `hashmark edit`, nur localhost) */
   editor?: boolean
+  /** `false` = Notizen nicht ausliefern (`hashmark build --no-notes`, `export --no-notes`) */
+  notes?: boolean
   /** Dev-Server: Ordner mit Beispiel-Decks, zwischen denen die Seite umschalten darf (`make dev` ohne `DECK=`) */
   examples?: string
 }
@@ -49,7 +52,8 @@ export function hashmark(options: HashmarkOptions): Plugin {
 
   const payload = async (): Promise<Payload> => {
     try {
-      return { deck: (await current).deck }
+      const { deck } = await current
+      return { deck: options.notes === false ? stripNotes(deck) : deck }
     } catch (e) {
       return { error: (e as Error).message }
     }

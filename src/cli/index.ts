@@ -11,6 +11,7 @@ import { exportPdf } from './pdf.ts'
 import { exportPptx } from './pptx.ts'
 import { serve } from './serve.ts'
 import { runTrust } from './trust.ts'
+import { countDeckNotes, notesHint } from './notes.ts'
 import { printQuery } from '../core/print.ts'
 
 /** `--host` ohne Wert = alle Netzwerk-Interfaces, sonst die angegebene Adresse */
@@ -65,8 +66,10 @@ cli
 cli
   .command('build [deck]', 'Statisches HTML bauen')
   .option('--out <dir>', 'Ausgabeordner', { default: 'dist' })
-  .action(async (deck = '.', opts: { out: string }) => {
-    await build(config(deck, { build: { outDir: path.resolve(opts.out), emptyOutDir: true, chunkSizeWarningLimit: 4000 } }))
+  .option('--no-notes', 'Sprechernotizen weglassen (zum Weitergeben)')
+  .action(async (deck = '.', opts: { out: string; notes: boolean }) => {
+    await build(config(deck, { build: { outDir: path.resolve(opts.out), emptyOutDir: true, chunkSizeWarningLimit: 4000 } }, { notes: opts.notes }))
+    if (opts.notes) { const hint = notesHint(await countDeckNotes(deck), 'build'); if (hint) console.warn(`[hashmark] ${hint}`) }
   })
 
 cli
@@ -85,10 +88,12 @@ cli
 cli
   .command('export [deck]', 'Eine einzelne HTML-Datei erzeugen (läuft offline per Doppelklick)')
   .option('--out <file>', 'Zieldatei (Standard: export/<deck>.html)')
-  .action(async (deck = '.', opts: { out?: string }) => {
+  .option('--no-notes', 'Sprechernotizen weglassen (zum Weitergeben)')
+  .action(async (deck = '.', opts: { out?: string; notes: boolean }) => {
     const out = path.resolve(opts.out ?? path.join('export', `${path.basename(path.resolve(deck))}.html`))
     const media = mediaSink(out)
-    await exportSingleFile(config(deck, {}, { inlineAssets: true, media }), out, media)
+    await exportSingleFile(config(deck, {}, { inlineAssets: true, media, notes: opts.notes }), out, media)
+    if (opts.notes) { const hint = notesHint(await countDeckNotes(deck), 'export'); if (hint) console.warn(`[hashmark] ${hint}`) }
   })
 
 cli
