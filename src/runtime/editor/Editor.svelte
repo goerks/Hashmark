@@ -18,6 +18,10 @@
   import { desktopAction, hasPresentOptions, isDesktop } from '../desktop.ts'
   import PresentOptions from './PresentOptions.svelte'
   import { onDeckUpdate } from '../deck-source.ts'
+  import type { ShareStatus } from '../../share/client.ts'
+  import ShareDialog from './ShareDialog.svelte'
+  import { shareLabel } from './share.ts'
+  import { canEdit, sessionInfo } from '../session.ts'
 
   type Payload = { deck: Deck } | { error: string }
   type Status = 'saved' | 'dirty' | 'saving' | 'error'
@@ -58,6 +62,49 @@
   const canPresentOptions = hasPresentOptions()
   let focused = $state(false)
   let startupError = $state<string | null>(null)
+
+  // ---------- Teilen (online abgleichen) ----------
+  /** Online-Sitzung (Gast im Webdienst): dort gibt es kein „Teilen“, nur die Pille */
+  const guest = sessionInfo()
+  let share = $state.raw<ShareStatus | null>(null)
+  let shareOpen = $state(false)
+  let shareBusy = $state('')
+  let shareError = $state('')
+  let shareTimer: ReturnType<typeof setTimeout> | undefined
+
+  /** Zustand holen; schläft der Dienst, fragt der Editor in kurzen Abständen erneut (aufwachen dauert bis zu einer Minute) */
+  async function loadShare() {
+    clearTimeout(shareTimer)
+    try {
+      share = await api.shareStatus()
+      if (share.state === 'asleep') shareTimer = setTimeout(loadShare, 5000)
+      else if (share.shared) shareTimer = setTimeout(loadShare, 30_000)
+    } catch {
+      share = null // Editor ohne Teilen (Webdienst, hashmark dev)
+    }
+  }
+
+  async function shareAction(action: 'start' | 'push' | 'pull' | 'stop' | 'config' | 'resolve', body: Record<string, unknown> = {}) {
+    shareBusy = action
+    shareError = ''
+    try {
+      await save()
+      share = await api.share(action, body)
+      if (action === 'start' || action === 'pull' || action === 'resolve') await refreshFiles()
+    } catch (e) {
+      shareError = (e as Error).message
+      await loadShare()
+    } finally {
+      shareBusy = ''
+      clearTimeout(shareTimer)
+      if (share?.state === 'asleep') shareTimer = setTimeout(loadShare, 5000)
+      else if (share?.shared) shareTimer = setTimeout(loadShare, 30_000)
+    }
+  }
+
+  const shareMark: Record<string, string> = { up: '↑', down: '↓', conflict: '!', gone: '○' }
+  const shareWord: Record<string, string> = { up: 'lokal neuer als online', down: 'online neuer', conflict: 'Konflikt: lokal und online geändert', gone: 'online fehlt' }
+  const copyLink = (text: string) => { try { void navigator.clipboard.writeText(text) } catch { /* nicht erlaubt */ } }
 
   let editorEl: HTMLElement
   let frame: HTMLIFrameElement
@@ -367,6 +414,13 @@
     items.push(
       { group: 'Aktionen', title: 'Präsentieren', detail: 'Ab der aktuellen Folie', run: present },
       ...(canPresentOptions ? [{ group: 'Aktionen', title: 'Präsentieren: Optionen …', detail: 'Presenter-View und Bildschirme', run: () => { presentOptions = true } }] : []),
+      ...(share ? [
+        { group: 'Aktionen', title: share.shared ? 'Online teilen: Zustand und Abgleich …' : 'Online teilen …', detail: 'Kopie unter eigener Adresse, ansehen und bearbeiten', run: () => { shareOpen = true } },
+        ...(share.shared && share.links ? [
+          { group: 'Aktionen', title: 'Link zum Ansehen kopieren', run: () => copyLink(share!.links!.view) },
+          { group: 'Aktionen', title: 'Link zum Bearbeiten kopieren', run: () => copyLink(share!.links!.edit) },
+        ] : []),
+      ] : []),
       { group: 'Aktionen', title: 'PDF / Druckansicht', run: exportPdf },
       { group: 'Aktionen', title: 'PowerPoint (PPTX) exportieren', detail: 'bearbeitbar, Schritte als Animationen', run: () => exportPptx() },
       { group: 'Aktionen', title: 'PowerPoint (PPTX): nur Hauptpfad', run: () => exportPptx({ depth: 1 }) },
@@ -407,6 +461,7 @@
   }
 
   onMount(() => {
+    if (!guest) void loadShare()
     // Menü „Präsentieren › Optionen“ der App: Ereignis bzw. Sprung auf #present-options aus einer anderen Ansicht
     const openOptions = () => { if (canPresentOptions) presentOptions = true }
     window.addEventListener('hashmark:present-options', openOptions)
@@ -535,11 +590,21 @@
       <input type="checkbox" bind:checked={follow} /> Synchron
     </label>
     <span class="ed-status" data-status={status}><i aria-hidden="true"></i>{statusText[status]}</span>
+    {#if guest}
+      <span class="sh-chip" data-tone={canEdit() ? 'info' : 'muted'} title={canEdit() ? 'Änderungen gelten online; der Besitzer holt sie in sein lokales Deck' : 'Zum Bearbeiten den Link zum Bearbeiten verwenden'}><i></i>Online-Sitzung{canEdit() ? '' : ' · nur Ansehen'}</span>
+    {:else if share?.shared}
+      <button class="sh-chip" data-tone={shareLabel(share).tone} onclick={() => (shareOpen = !shareOpen)} title="Online geteilt: Zustand und Abgleich"><i></i>{shareLabel(share).text}</button>
+    {/if}
     <button class="ed-find" onclick={() => openPalette()} title="Folien, Bausteine und Aktionen (Strg+K)">
       <span>Suchen</span><kbd>Strg K</kbd>
     </button>
     <button class="ed-pdf" onclick={exportPdf} title="Druckansicht öffnen: drucken oder als PDF speichern">PDF</button>
     <button class="ed-pdf" onclick={() => exportPptx()} disabled={pptxBusy} title="Als PowerPoint-Datei exportieren (bearbeitbar, Schritte werden zu Animationen)">{pptxBusy ? 'PPTX …' : 'PPTX'}</button>
+    {#if share}
+      <button class="ed-share" aria-expanded={shareOpen} onclick={() => (shareOpen = !shareOpen)} title="Online teilen und abgleichen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 8l5-5 5 5M5 14v5h14v-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" /></svg>Teilen
+      </button>
+    {/if}
     <span class="ed-presentgroup">
       <button class="ed-present" onclick={present} title="Präsentation öffnen">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5l12 7-12 7z" fill="currentColor" stroke="none" /></svg>Präsentieren
@@ -562,7 +627,7 @@
         <ul class="ed-files">
           {#each slideFiles as f (f.path)}
             <li>
-              <button class:active={f.path === current} data-kind={f.kind} onclick={() => { openFile(f.path, { line: 1 }); closeDrawer() }}>{f.path}</button>
+              <button class:active={f.path === current} data-kind={f.kind} onclick={() => { openFile(f.path, { line: 1 }); closeDrawer() }}>{f.path}{#if share?.files[f.path]}<span class="fb" data-state={share.files[f.path].state} title={shareWord[share.files[f.path].state]}>{shareMark[share.files[f.path].state]}</span>{/if}</button>
             </li>
           {/each}
         </ul>
@@ -573,7 +638,7 @@
         <ul class="ed-files">
           {#each componentFiles as f (f.path)}
             <li>
-              <button class:active={f.path === current} data-kind={f.kind} onclick={() => { openFile(f.path, { line: 1 }); closeDrawer() }}>{f.path}</button>
+              <button class:active={f.path === current} data-kind={f.kind} onclick={() => { openFile(f.path, { line: 1 }); closeDrawer() }}>{f.path}{#if share?.files[f.path]}<span class="fb" data-state={share.files[f.path].state} title={shareWord[share.files[f.path].state]}>{shareMark[share.files[f.path].state]}</span>{/if}</button>
             </li>
           {:else}
             <li class="ed-none">Noch keine eigenen Komponenten</li>
@@ -637,6 +702,7 @@
   </div>
 
   {#if coarse && focused && palette === null}<KeyBar {ed} onblocks={() => openPalette('Bausteine')} />{/if}
+  {#if shareOpen && share}<ShareDialog status={share} busy={shareBusy} error={shareError} onaction={shareAction} onrefresh={loadShare} onclose={() => (shareOpen = false)} />{/if}
   {#if presentOptions}<PresentOptions onclose={() => (presentOptions = false)} />{/if}
   {#if newComponentOpen}<NewComponentDialog oncreate={createComponent} onclose={() => (newComponentOpen = false)} />{/if}
   {#if palette}<Palette items={paletteItems()} only={palette.only} onclose={closePalette} />{/if}

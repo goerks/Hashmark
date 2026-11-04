@@ -2,6 +2,7 @@
 // in der Desktop-App (vorgebaute Runtime, window.__HASHMARK_LIVE__) per Server-Sent Events vom Live-Server.
 
 import type { Deck } from '../core/types.ts'
+import { apiBase } from './session.ts'
 
 export type Payload = { deck: Deck } | { error: string }
 
@@ -16,7 +17,7 @@ export function onDeckUpdate(onDeck: (payload: Payload) => void): () => void {
     return () => import.meta.hot?.off('hashmark:deck', onDeck)
   }
   if (!window.__HASHMARK_LIVE__) return () => {}
-  const events = new EventSource('/__hashmark/events')
+  const events = new EventSource(apiBase() + '/__hashmark/events')
   events.addEventListener('deck', (e) => onDeck(JSON.parse((e as MessageEvent).data)))
   events.addEventListener('reload', () => location.reload())
   return () => events.close()

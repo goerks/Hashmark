@@ -7,6 +7,9 @@
 # Umgebung:  PORT             Standard 10000 (Render setzt ihn selbst)
 #            DECK_DIR         Deck-Ordner, Standard /data/deck
 #            DECK_SEED        wird beim ersten Start in einen leeren DECK_DIR kopiert (Standard: Beispiel-Deck)
+#            SESSIONS         1 = geteilte Präsentationen unter /s/<id>/ zulassen (Render Free: flüchtig, kein Datenträger nötig)
+#            SHARE_KEY        geheimer Schlüssel zum Anlegen von Sessions (ohne ihn lässt sich nichts hochladen)
+#            SESSION_MAX_MB / SESSIONS_MAX_MB   Grenzen je Session bzw. insgesamt (Standard 20 / 200)
 #            SITE_DIR         gebaute Webseite unter /webseite/ (nur in der Vorschau eines Pull Requests gefüllt)
 # Vorschau eines Pull Requests: die fertig gebaute Webseite (make docs) unter /webseite/. Die Pipeline ersetzt diese Stufe per
 # `build-contexts: webseite=<ordner>` (der Ordner enthält site/); ohne das bleibt sie leer und der Webdienst zeigt keine Webseite.

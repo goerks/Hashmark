@@ -1,6 +1,6 @@
 # Konzept: Remote-Sessions im Webdienst (Teilen, Bearbeiten, Kommentieren)
 
-Stand: 04.11.2026 · Status: Entwurf zur Entscheidung, noch kein Ticket, kein Code. Rahmen: Render Free, keine Datenbank, Speicher nur im Arbeitsspeicher.
+Stand: 04.11.2026 · Status: Schnitt 1 und 2 umgesetzt (Ticket #87: Sessions, Abgleich, Teilen-Dialog), Kommentare und Passwort offen. Rahmen: Render Free, keine Datenbank, Speicher nur im Arbeitsspeicher.
 
 ## 1. Ziel
 
@@ -79,27 +79,24 @@ Eine Session hat zwei Geheimnisse und damit zwei Links:
 | Link | Rolle | Darf |
 | --- | --- | --- |
 | `/s/<id>/` | **Ansehen** | Präsentation, Lesemodus, Presenter, Kommentare lesen (und schreiben, siehe Frage 2) |
-| `/s/<id>/#k=<bearbeiten-token>` | **Bearbeiten** | zusätzlich Editor, Dateien ändern, Kommentare auflösen/löschen |
+| `/s/<id>/editor.html#k=<bearbeiten-token>` | **Bearbeiten** | zusätzlich Editor, Dateien ändern, Kommentare auflösen/löschen |
 | Besitzer-Token (nur bei `share`, wird in `~/.hashmark/shares.json` lokal gemerkt) | **Besitzer** | aktualisieren, Links erneuern, Session löschen |
 
 - Das Token steht im **Fragment (`#k=…`)**, wird also nie an den Server als Teil der Adresse geschickt (nicht in Logs, nicht im Referer). Die Seite legt es in `sessionStorage` und sendet es als Header `X-Hashmark-Token`. Auf dem Server liegen nur **Hashes** der Tokens.
 - **Vorbereitung Passwort:** Eine einzige Funktion `resolveRole(session, request) → none | view | edit | owner` entscheidet alles. Heute wertet sie Tokens aus; später kommt `meta.access = { mode: 'password', hash }` (scrypt aus Node, keine neue Abhängigkeit) plus Cookie dazu. Keine Route prüft Rechte selbst.
 
-### 4.3 Speicher: virtuelles Dateisystem im Arbeitsspeicher (Render Free)
+### 4.3 Speicher: flüchtiger Ordner je Session (Render Free)
 
-Auf Render Free gibt es keine Disk, der Dienst schläft nach 15 Minuten ohne Zugriff und verliert dabei alles. Deshalb **keine Datenbank und kein Dateispeicher**, sondern:
+Auf Render Free gibt es keine Disk, der Dienst schläft nach 15 Minuten ohne Zugriff und verliert dabei alles. Deshalb **keine Datenbank und kein Dauerspeicher**.
 
-```
-Map<sessionId, Session>
-  Session = { meta, files: Map<pfad, { bytes, rev }>, comments[], lastUsed }
-```
+**Umgesetzt (Ticket #87):** Jede Session ist ein Deck-Ordner unter `os.tmpdir()/hashmark-sessions/<id>/deck`. Der Ordner liegt im flüchtigen Dateisystem des Containers und verschwindet mit ihm. Das ist ein „virtuelles Dateisystem“ im Sinn der Anforderung, ohne `loadDeck` und Datei-API auf eine eigene Schnittstelle umzubauen (die frühere Idee einer `Map` im Arbeitsspeicher mit neuer FS-Schnittstelle wurde verworfen, weil sie viel Umbau ohne Vorteil brachte).
 
-- Das **virtuelle Dateisystem (VFS)** ersetzt den Deck-Ordner. `loadDeck` und `editorApi` arbeiten heute auf `fs`; sie bekommen eine kleine Dateisystem-Schnittstelle (`readFile`, `writeFile`, `list`, `stat`), die für lokale Ordner `fs` und online das VFS nutzt. Das ist der größte technische Umbau, und er deckt sich mit „FS-Abstraktion“ aus der Roadmap.
-- **Lokal ist die Wahrheit.** Die Online-Kopie ist ein Spiegel und darf jederzeit verschwinden. Jede Datei hat eine Revision (Inhalts-Hash). Der Abgleich vergleicht Revisionen je Datei (wie eine Quellcode-Verwaltung): hochladen, holen, bei Änderung auf beiden Seiten Konflikt.
-- **Wiederherstellen unter demselben Link:** Adresse (`<id>`) und Besitzer-Schlüssel entstehen **lokal** beim ersten Teilen und stehen in `~/.hashmark/shares.json`. Kennt der Dienst die Adresse nicht mehr (Neustart), nimmt er sie vom Besitzer mit Schlüssel erneut an (`PUT /api/sessions/<id>`). Die Links der Beteiligten bleiben gültig. Weil die Adressen unratbar sind, ist „wer zuerst kommt“ unkritisch.
-- **Verlustgrenze:** Was online geändert oder kommentiert wurde und noch nicht geholt ist, geht beim Neustart verloren. Gegenmaßnahmen: Die Oberfläche zeigt „Online: n Änderungen“ deutlich; offene Browser-Tabs halten eine Kopie des Decks und der eigenen Änderungen (IndexedDB) und könnten die Session später wiederherstellen (nicht im ersten Schnitt); der Besitzer kann `hashmark pull` jederzeit aufrufen.
-- **Aufwachen:** Der erste Aufruf nach dem Schlaf dauert bis zu einer Minute. CLI und Oberfläche zeigen „Dienst wird geweckt“ und wiederholen den Aufruf. Ein künstliches Wachhalten ist nicht vorgesehen.
-- **Begrenzungen im Speicher:** je Session z. B. 20 MB, insgesamt z. B. 200 MB (Render Free hat 512 MB RAM), Verdrängung der am längsten nicht benutzten Session. Videos werden online nicht gespiegelt oder nur klein erlaubt.
+- **Lokal ist die Wahrheit.** Die Online-Kopie ist ein Spiegel und darf jederzeit verschwinden. Jede Datei hat eine Revision (Inhalts-Hash). Der Abgleich vergleicht drei Stände je Datei (lokal, online, letzter Abgleich): hochladen, holen, bei Änderung auf beiden Seiten Konflikt. Konfliktlösung: „Lokal behalten“ oder „Online übernehmen“ („Beides“ aus dem Entwurf ist nicht gebaut: zwei Fassungen im Deck würden doppelte Folien erzeugen).
+- **Wiederherstellen unter demselben Link:** Adresse (`<id>`) und beide Token entstehen **lokal** beim ersten Teilen (`~/.hashmark/share.json`). Kennt der Dienst die Adresse nicht mehr, nimmt er sie mit dem Dienst-Schlüssel erneut an (`PUT /api/sessions/<id>`) und der Client lädt alles hoch. Die Links der Beteiligten bleiben gültig.
+- **Verlustgrenze:** Was online geändert und nicht geholt wurde, geht beim Neustart verloren. Die Oberfläche zeigt „Online: n Änderungen“. Offene Browser-Tabs könnten später eine Kopie halten (nicht gebaut).
+- **Aufwachen:** Der erste Aufruf nach dem Schlaf dauert bis zu einer Minute. CLI und Editor zeigen „Dienst wird geweckt“ und fragen erneut.
+- **Begrenzungen:** je Session 20 MB, insgesamt 200 MB, höchstens 50 Sessions, die am längsten ungenutzte weicht.
+- **Kommentare** (nächster Schnitt) liegen ebenfalls in der Session (außerhalb von `deck/`) und werden mit `pull` zurückgegeben.
 
 ### 4.4 Umbau des Servers
 
