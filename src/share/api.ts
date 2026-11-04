@@ -32,6 +32,8 @@ export function shareApi(deckDir: string, options: EditorApiOptions = {}): Conne
     try {
       guard(req, allowHost)
       if (route === 'status' && req.method === 'GET') return send(200, await share.status(deckDir))
+      // was gerade geschieht (Dienst wird geweckt, lädt hoch …): ohne Netzzugriff, der Editor fragt es jede Sekunde
+      if (route === 'activity' && req.method === 'GET') return send(200, share.getActivity())
       if (req.method !== 'POST') throw new HttpError(405, 'Nur POST')
       const body = await json(req)
       switch (route) {
@@ -50,7 +52,7 @@ export function shareApi(deckDir: string, options: EditorApiOptions = {}): Conne
       throw new HttpError(404, 'Unbekannte Route')
     } catch (e) {
       if (e instanceof HttpError) return send(e.status, { error: e.message })
-      if (e instanceof share.ShareError) return send(e.code === 'asleep' ? 504 : e.code === 'conflict' ? 409 : 502, { error: e.message, code: e.code })
+      if (e instanceof share.ShareError) return send(e.code === 'asleep' ? 504 : e.code === 'conflict' ? 409 : 502, { error: e.message, code: e.code, reason: e.reason })
       send(500, { error: (e as Error).message })
     }
   }

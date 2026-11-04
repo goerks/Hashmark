@@ -19,6 +19,7 @@
   import PresentOptions from './PresentOptions.svelte'
   import { onDeckUpdate } from '../deck-source.ts'
   import type { ShareStatus } from '../../share/client.ts'
+  import type { Activity } from '../../share/reasons.ts'
   import ShareDialog from './ShareDialog.svelte'
   import { shareLabel } from './share.ts'
   import { canEdit, sessionInfo } from '../session.ts'
@@ -71,12 +72,23 @@
   let shareBusy = $state('')
   let shareError = $state('')
   let shareTimer: ReturnType<typeof setTimeout> | undefined
+  /** was gerade geschieht (Verbinden, Dienst wecken, Hochladen), solange eine Aktion läuft */
+  let shareActivity = $state.raw<Activity | null>(null)
+  /** seit wann der Dienst als schlafend gemeldet wird (für den Zähler) */
+  let asleepSince = $state<number | null>(null)
+  let activityTimer: ReturnType<typeof setInterval> | undefined
+  const pollActivity = (on: boolean) => {
+    clearInterval(activityTimer)
+    shareActivity = null
+    if (on) activityTimer = setInterval(() => { api.shareActivity().then((a) => { shareActivity = a }, () => {}) }, 1000)
+  }
 
   /** Zustand holen; schläft der Dienst, fragt der Editor in kurzen Abständen erneut (aufwachen dauert bis zu einer Minute) */
   async function loadShare() {
     clearTimeout(shareTimer)
     try {
       share = await api.shareStatus()
+      asleepSince = share.state === 'asleep' ? (asleepSince ?? Date.now()) : null
       if (share.state === 'asleep') shareTimer = setTimeout(loadShare, 5000)
       else if (share.shared) shareTimer = setTimeout(loadShare, 30_000)
     } catch {
@@ -87,6 +99,7 @@
   async function shareAction(action: 'start' | 'push' | 'pull' | 'stop' | 'config' | 'resolve', body: Record<string, unknown> = {}) {
     shareBusy = action
     shareError = ''
+    pollActivity(true)
     try {
       await save()
       share = await api.share(action, body)
@@ -95,6 +108,7 @@
       shareError = (e as Error).message
       await loadShare()
     } finally {
+      pollActivity(false)
       shareBusy = ''
       clearTimeout(shareTimer)
       if (share?.state === 'asleep') shareTimer = setTimeout(loadShare, 5000)
@@ -593,7 +607,8 @@
     {#if guest}
       <span class="sh-chip" data-tone={canEdit() ? 'info' : 'muted'} title={canEdit() ? 'Änderungen gelten online; der Besitzer holt sie in sein lokales Deck' : 'Zum Bearbeiten den Link zum Bearbeiten verwenden'}><i></i>Online-Sitzung{canEdit() ? '' : ' · nur Ansehen'}</span>
     {:else if share?.shared}
-      <button class="sh-chip" data-tone={shareLabel(share).tone} onclick={() => (shareOpen = !shareOpen)} title="Online geteilt: Zustand und Abgleich"><i></i>{shareLabel(share).text}</button>
+      {@const live = shareBusy !== '' && shareActivity && shareActivity.phase !== 'idle' && shareActivity.phase !== 'failed' ? shareActivity : null}
+      <button class="sh-chip" class:sh-pulse={!!live || share.state === 'asleep'} data-tone={live ? 'muted' : shareLabel(share).tone} onclick={() => (shareOpen = !shareOpen)} title="Online geteilt: Zustand und Abgleich"><i></i>{live ? live.label : shareLabel(share).text}</button>
     {/if}
     <button class="ed-find" onclick={() => openPalette()} title="Folien, Bausteine und Aktionen (Strg+K)">
       <span>Suchen</span><kbd>Strg K</kbd>
@@ -702,7 +717,7 @@
   </div>
 
   {#if coarse && focused && palette === null}<KeyBar {ed} onblocks={() => openPalette('Bausteine')} />{/if}
-  {#if shareOpen && share}<ShareDialog status={share} busy={shareBusy} error={shareError} onaction={shareAction} onrefresh={loadShare} onclose={() => (shareOpen = false)} />{/if}
+  {#if shareOpen && share}<ShareDialog status={share} busy={shareBusy} error={shareError} activity={shareActivity} {asleepSince} onaction={shareAction} onrefresh={loadShare} onclose={() => (shareOpen = false)} />{/if}
   {#if presentOptions}<PresentOptions onclose={() => (presentOptions = false)} />{/if}
   {#if newComponentOpen}<NewComponentDialog oncreate={createComponent} onclose={() => (newComponentOpen = false)} />{/if}
   {#if palette}<Palette items={paletteItems()} only={palette.only} onclose={closePalette} />{/if}

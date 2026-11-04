@@ -421,3 +421,15 @@ button.sh-chip { cursor: pointer; }
 .sh-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--ed-muted); }
 .sh-field input { padding: 7px 10px; border: 1px solid var(--ed-border); border-radius: 8px; background: var(--ed-surface); color: var(--ed-fg); font: 13px var(--ed-font); text-transform: none; letter-spacing: 0; font-weight: 400; }
 .sh-chip[data-tone="muted"] { color: var(--ed-muted); }
+
+/* Warten auf den Dienst (Render Free startet ihn erst beim ersten Aufruf) */
+.sh-live { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--ed-border); border-radius: 8px; background: color-mix(in srgb, var(--ed-accent) 7%, var(--ed-bg)); }
+.sh-live-head { display: flex; align-items: center; gap: 8px; }
+.sh-live-head b { flex: 1; min-width: 0; }
+.sh-time { font-variant-numeric: tabular-nums; color: var(--ed-muted); }
+.sh-spin { width: 14px; height: 14px; flex: none; border: 2px solid var(--ed-border); border-top-color: var(--ed-accent); border-radius: 50%; animation: sh-spin 0.9s linear infinite; }
+@keyframes sh-spin { to { transform: rotate(360deg); } }
+.sh-warn { color: var(--ed-warn); font-weight: 600; }
+.sh-chip.sh-pulse i { animation: sh-pulse 1.2s ease-in-out infinite; }
+@keyframes sh-pulse { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .sh-spin, .sh-chip.sh-pulse i { animation: none; } }

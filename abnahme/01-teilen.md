@@ -42,6 +42,16 @@ Prüfen: Auf der Befehlszeile geht dasselbe mit `hashmark share`, `hashmark pull
 Prüfen: Ändere dieselbe Datei lokal und online, dann zeigt der Chip „Konflikt“, und die Datei in der Dateiliste trägt ein „!“. Nichts wird überschrieben, bevor du wählst.
 :::
 
+# Der Dienst wird erst gestartet
+
+- Render startet den schlafenden Dienst **beim ersten Aufruf** (30 bis 60 s)
+- Der Dialog zeigt: **Verbinde …**, **Dienst schläft und wird gestartet …** mit Sekundenzähler, dann **Lade hoch …**
+- Geht es nicht, steht der **Grund** da (Adresse, Zertifikat, Dienst ohne Teilen, Schlüssel, startet nicht)
+
+::: notes
+Prüfen: Dienst eine Viertelstunde nicht benutzen, dann im Editor **Teilen** öffnen oder `hashmark share` aufrufen. Du siehst den Zähler und die Erklärung, warum es dauert. Gegenprobe: falsche Adresse eintragen, dann kommt sofort „Adresse nicht gefunden“.
+:::
+
 # Der Dienst vergisst {layout=statement}
 
 Nach einem Neustart ist die Online-Kopie weg. **Hole Online-Änderungen regelmäßig.**

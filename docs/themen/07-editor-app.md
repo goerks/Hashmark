@@ -86,5 +86,7 @@ Teilen stellt eine **Kopie** deiner Präsentation unter einer eigenen, nicht err
 
 **Der Dienst vergisst:** Auf dem kostenlosen Render-Tarif gibt es keinen dauerhaften Speicher. Nach 15 Minuten ohne Zugriff schläft der Dienst (der erste Aufruf danach dauert bis zu einer Minute), und beim Neustart ist die Online-Kopie weg. Der Chip zeigt „Online-Kopie fehlt“, „Online wiederherstellen“ stellt sie unter **demselben Link** wieder her. Was online geändert und noch nicht geholt wurde, geht dabei verloren: **hole Online-Änderungen regelmäßig.**
 
+**Der Dienst wird erst gestartet:** Render startet den schlafenden Dienst erst beim ersten Aufruf. Beim Teilen und Abgleichen fragt Hashmark deshalb zuerst, ob der Dienst wach ist, und zeigt im Dialog (und im Chip) mit Sekundenzähler, was gerade geschieht: „Verbinde …“, „Der Dienst schläft und wird gestartet …“, dann „Lade Änderungen hoch …“. Das dauert meist 30 bis 60 Sekunden, Hashmark wartet bis etwa 100 Sekunden. Geht es nicht, steht der Grund da: Adresse nicht gefunden, Verbindung abgelehnt, Zertifikat, kein Hashmark-Dienst, Teilen am Dienst ausgeschaltet, Schlüssel abgelehnt oder „Dienst startet nicht“ (dann im Render-Dashboard Ereignisse und Logs prüfen). Dasselbe zeigt die Befehlszeile.
+
 **Einrichten (einmalig):** Der Betreiber setzt im Webdienst `SESSIONS=1` und einen geheimen `SHARE_KEY`. Du trägst im Dialog (oder mit `hashmark share --server <adresse> --key <schlüssel>`) Adresse und Schlüssel ein. Der Schlüssel erlaubt nur das Anlegen. Kommentieren und Passwortschutz sind noch nicht dabei.
 :::

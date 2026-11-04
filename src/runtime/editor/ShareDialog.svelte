@@ -1,14 +1,18 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import type { ShareStatus } from '../../share/client.ts'
+  import { WAKING_SLOW_TEXT, WAKING_TEXT, type Activity } from '../../share/reasons.ts'
   import { shareCounts, shareLabel } from './share.ts'
 
   // Dialog „Teilen“ unter dem Knopf in der Kopfzeile (Variante A der Entwürfe): Links, Zustand, Abgleich.
   // Lokal ist das Original, online eine Kopie im Arbeitsspeicher des Dienstes (kann nach einem Neustart fehlen).
 
-  let { status, busy, error, onaction, onrefresh, onclose }: {
+  let { status, busy, error, activity, asleepSince, onaction, onrefresh, onclose }: {
     status: ShareStatus
     busy: string
     error: string
+    activity: Activity | null
+    asleepSince: number | null
     onaction: (action: 'start' | 'push' | 'pull' | 'stop' | 'config' | 'resolve', body?: Record<string, unknown>) => void
     onrefresh: () => void
     onclose: () => void
@@ -22,13 +26,27 @@
 
   $effect(() => { if (!server) server = status.server })
 
+  // Laufende Zeit für den Zähler beim Warten auf den Dienst
+  let now = $state(Date.now())
+  onMount(() => { const t = setInterval(() => (now = Date.now()), 1000); return () => clearInterval(t) })
+
+  /** Was gerade geschieht: Aktion mit Verbinden/Wecken, oder der Dienst schläft laut Zustand */
+  const live = $derived.by(() => {
+    if (busy && activity && (activity.phase === 'connecting' || activity.phase === 'waking' || activity.phase === 'working')) {
+      return { phase: activity.phase, label: activity.label, since: activity.since }
+    }
+    if (status.state === 'asleep') return { phase: 'waking' as const, label: 'Der Dienst schläft und wird gestartet …', since: asleepSince ?? now }
+    return null
+  })
+  const secs = $derived(live ? Math.max(0, Math.round((now - live.since) / 1000)) : 0)
+
   const SAYS: Record<ShareStatus['state'], string> = {
     none: 'Noch nicht online. Beim Teilen entsteht eine Kopie unter einer eigenen Adresse. Dein Ordner bleibt das Original.',
     sync: 'Lokal und online sind gleich.',
     local: 'Lokal ist neuer als online.',
     remote: 'Online wurde etwas geändert und noch nicht geholt.',
     conflict: 'Dateien wurden lokal und online geändert. Wähle je Datei, welche Fassung bleibt.',
-    asleep: 'Der Dienst schläft (Render Free) und startet gerade. Das dauert bis zu einer Minute. Lokal arbeitest du ungestört weiter.',
+    asleep: 'Der Dienst ist gerade nicht wach. Abgleichen ist erst möglich, wenn er gestartet ist.',
     restarted: 'Der Dienst wurde neu gestartet, die Online-Kopie ist weg. Dein lokales Deck stellt sie unter demselben Link wieder her.',
     unreachable: 'Der Dienst ist nicht erreichbar.',
   }
@@ -71,7 +89,23 @@
     </div>
   {/if}
 
-  <p class="sh-sum" role="status">{SAYS[status.state]}{status.state === 'unreachable' && status.error ? ` (${status.error})` : ''}</p>
+  {#if live}
+    <div class="sh-live" role="status" aria-live="polite">
+      <div class="sh-live-head">
+        <span class="sh-spin" aria-hidden="true"></span>
+        <b>{live.label}</b>
+        <span class="sh-time">{secs} s</span>
+      </div>
+      {#if live.phase === 'connecting'}
+        <p class="sh-hint">Hashmark fragt {status.server.replace(/^https?:\/\//, '')} an. Antwortet der Dienst nicht sofort, schläft er vermutlich.</p>
+      {:else if live.phase === 'waking'}
+        <p class="sh-hint">{WAKING_TEXT}</p>
+        {#if secs > 60}<p class="sh-hint sh-warn">{WAKING_SLOW_TEXT}</p>{/if}
+      {/if}
+    </div>
+  {/if}
+
+  <p class="sh-sum" role="status">{status.state === 'unreachable' && status.error ? status.error : SAYS[status.state]}</p>
 
   {#if shown.length && status.state !== 'asleep'}
     <ul class="sh-files">
@@ -111,7 +145,10 @@
     </div>
   {/if}
 
-  {#if error}<p class="sh-error" role="alert">{error}</p>{/if}
+  {#if error}
+    <p class="sh-error" role="alert">{error}</p>
+    <div class="sh-row"><button disabled={busy !== ''} onclick={onrefresh}>Erneut versuchen</button></div>
+  {/if}
   <p class="sh-hint">Online ist eine Kopie. Das Original bleibt in deinem Ordner.{status.shared ? ' Online geänderte Dateien holst du hier zurück, bevor der Dienst neu startet.' : ''}</p>
 
   {#if status.shared}

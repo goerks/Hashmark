@@ -1,6 +1,7 @@
 // Client für die Datei-API des Dev-Servers (src/vite/editor-api.ts).
 
 import type { ShareStatus } from '../../share/client.ts'
+import type { Activity } from '../../share/reasons.ts'
 import { apiBase, authHeaders } from '../session.ts'
 
 export interface FileEntry { path: string; kind: 'markdown' | 'yaml' | 'image' | 'template' | 'style' }
@@ -34,6 +35,7 @@ export const api = {
   pptx: (query: string) => call('GET', '/pptx', { query }).then((r) => r.blob()),
   /** Teilen (nur lokal): Zustand abfragen bzw. Aktion ausführen, die Antwort ist immer der neue Zustand */
   shareStatus: (): Promise<ShareStatus> => call('GET', '/share/status').then((r) => r.json()),
+  shareActivity: (): Promise<Activity> => call('GET', '/share/activity').then((r) => r.json()),
   share: (action: 'start' | 'push' | 'pull' | 'stop' | 'config' | 'resolve', body: Record<string, unknown> = {}): Promise<ShareStatus> =>
     call('POST', `/share/${action}`, {}, JSON.stringify(body)).then((r) => r.json()),
   upload: (file: File): Promise<{ path: string }> => call('POST', '/upload', { name: file.name || 'bild.png' }, file).then((r) => r.json()),

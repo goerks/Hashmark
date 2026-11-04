@@ -1,6 +1,6 @@
 // Teilen: Dateiregeln, Sessions im Webdienst, Abgleich-Client (hochladen, holen, Konflikt, Wiederherstellen)
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import fs from 'node:fs'
 import http from 'node:http'
 import os from 'node:os'
@@ -146,6 +146,7 @@ describe('Abgleich-Client gegen den Dienst', () => {
     store = new SessionStore({ dir: tmp('svc'), key: 'geheim' })
     server = http.createServer((req, res) => {
       const pathname = new URL(req.url ?? '/', 'http://x').pathname
+      if (pathname === '/healthz') return void res.end('ok') // wie der echte Dienst: so erkennt der Client, dass er wach ist
       void handleSessionsApi(store, { changed: () => {} }, req, res, pathname).then((done) => { if (!done) { res.statusCode = 404; res.end() } })
     })
     await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
@@ -268,7 +269,6 @@ describe('Abgleich-Client gegen den Dienst', () => {
   })
   it('meldet einen nicht erreichbaren Dienst, ohne Dateien anzufassen', async () => {
     await share.start(deck)
-    process.env.HASHMARK_SHARE_URL = 'http://127.0.0.1:1'
     // der Server steht in der Merkdatei des Decks: dort bleibt die alte Adresse
     const s = await share.status(deck)
     expect(['unreachable', 'sync']).toContain(s.state)
@@ -306,5 +306,140 @@ describe('Schnittstelle des Dienstes', () => {
     expect(closed.key).toBeUndefined()
     expect(HttpError).toBeTruthy()
     await new Promise<void>((r) => { server.closeAllConnections(); server.close(() => r()) })
+  })
+})
+
+describe('Dienst schläft und startet beim ersten Aufruf (Render Free)', () => {
+  const oldEnv = { ...process.env }
+  let server: http.Server | undefined
+  let store: SessionStore
+
+  /** Dienst, der die ersten `cold` Aufrufe von /healthz wie Render beim Aufwachen beantwortet (Wartehinweis, 503) */
+  async function service(opts: { cold?: number; delayMs?: number; sessions?: boolean; hang?: boolean; healthz?: (res: http.ServerResponse) => void } = {}) {
+    let seen = 0
+    store = new SessionStore({ dir: tmp('cold'), key: 'geheim' })
+    server = http.createServer((req, res) => {
+      if (opts.hang) return // antwortet nie (Dienst schläft)
+      const pathname = new URL(req.url ?? '/', 'http://x').pathname
+      if (pathname === '/healthz') {
+        if (opts.healthz) return opts.healthz(res)
+        seen++
+        if (seen <= (opts.cold ?? 0)) {
+          const answer = () => { res.statusCode = 503; res.setHeader('Content-Type', 'text/html'); res.end('<html>Application loading</html>') }
+          return opts.delayMs ? void setTimeout(answer, opts.delayMs) : answer()
+        }
+        res.setHeader('Content-Type', 'text/plain')
+        return void res.end('ok')
+      }
+      if (opts.sessions === false) { res.statusCode = 404; return void res.end() }
+      void handleSessionsApi(store, { changed: () => {} }, req, res, pathname).then((done) => { if (!done) { res.statusCode = 404; res.end() } })
+    })
+    await new Promise<void>((r) => server!.listen(0, '127.0.0.1', r))
+    return `http://127.0.0.1:${(server.address() as AddressInfo).port}`
+  }
+
+  const phases = () => {
+    const seen: string[] = []
+    const off = share.onActivity((a) => { if (seen[seen.length - 1] !== a.phase) seen.push(a.phase) })
+    return { seen, off }
+  }
+  const caught = (p: Promise<unknown>) => p.then(() => null, (e: share.ShareError) => e)
+
+  beforeEach(() => {
+    process.env.HASHMARK_HOME = tmp('home')
+    process.env.HASHMARK_SHARE_KEY = 'geheim'
+    process.env.HASHMARK_WAKE_POLL_MS = '20'
+    process.env.HASHMARK_WAKE_AFTER_MS = '1'
+    process.env.HASHMARK_WAKE_TIMEOUT_MS = '3000'
+    process.env.HASHMARK_PROBE_TIMEOUT_MS = '1000'
+  })
+  afterEach(async () => {
+    process.env = { ...oldEnv }
+    if (server) await new Promise<void>((r) => { server!.closeAllConnections(); server!.close(() => r()) })
+    server = undefined
+  })
+
+  it('wartet auf den schlafenden Dienst und meldet „Dienst wird gestartet“, bis er antwortet', async () => {
+    const base = await service({ cold: 4 })
+    const p = phases()
+    await share.ensureAwake(base)
+    p.off()
+    expect(p.seen).toEqual(['connecting', 'waking'])
+  })
+  it('zeigt „verbinde“ statt „schläft“, wenn der Dienst sofort antwortet', async () => {
+    const base = await service()
+    const p = phases()
+    await share.ensureAwake(base)
+    p.off()
+    expect(p.seen).toEqual(['connecting'])
+  })
+  it('hält hängende Aufrufe aus und versucht es erneut', async () => {
+    process.env.HASHMARK_PROBE_TIMEOUT_MS = '60'
+    const base = await service({ cold: 2, delayMs: 400 })
+    await share.ensureAwake(base)
+    expect(share.getActivity().phase).toBe('waking')
+  })
+  it('gibt nach der Wartezeit auf und nennt den Grund', async () => {
+    process.env.HASHMARK_WAKE_TIMEOUT_MS = '250'
+    const base = await service({ cold: 1_000_000 })
+    const e = await caught(share.ensureAwake(base))
+    expect(e?.code).toBe('asleep')
+    expect(e?.reason).toBe('timeout')
+    expect(e?.message).toMatch(/Dienst startet nicht/)
+    expect(e?.message).toMatch(/Render-Dashboard/)
+    const a = share.getActivity()
+    expect(a.phase).toBe('failed')
+    expect(a.reason).toBe('timeout')
+  })
+  it('bricht bei dauerhaften Fehlern sofort mit Grund ab: Adresse, Verbindung, falscher Dienst', async () => {
+    const t0 = Date.now()
+    const dns = await caught(share.ensureAwake('http://nicht-vorhanden.invalid'))
+    expect(dns?.reason).toBe('dns')
+    expect(dns?.message).toMatch(/Adresse nicht gefunden/)
+    // freier Port ohne Dienst (Port 1 und andere „schlechte“ Ports verbietet fetch selbst)
+    const free = await service()
+    const closedPort = (server!.address() as AddressInfo).port
+    await new Promise<void>((r) => { server!.closeAllConnections(); server!.close(() => r()) })
+    const refused = await caught(share.ensureAwake(`http://127.0.0.1:${closedPort}`))
+    expect(refused?.reason).toBe('refused')
+    const base = await service({ healthz: (res) => { res.statusCode = 404; res.end() } })
+    const wrong = await caught(share.ensureAwake(base))
+    expect(wrong?.reason).toBe('wrong')
+    expect(Date.now() - t0).toBeLessThan(2500)
+  })
+  it('teilt mit, dass der Dienst läuft, aber das Teilen ausgeschaltet ist', async () => {
+    const base = await service({ sessions: false })
+    process.env.HASHMARK_SHARE_URL = base
+    const deck = tmp('deck')
+    write(deck, '01.md', '# Eins\n')
+    const e = await caught(share.start(deck))
+    expect(e?.reason).toBe('unsupported')
+    expect(e?.message).toMatch(/SESSIONS=1/)
+  })
+  it('teilt beim Kaltstart trotzdem: erst wecken, dann hochladen', async () => {
+    const base = await service({ cold: 3 })
+    process.env.HASHMARK_SHARE_URL = base
+    const deck = tmp('deck')
+    write(deck, '01.md', '# Eins\n')
+    const p = phases()
+    const s = await share.start(deck)
+    p.off()
+    expect(s.state).toBe('sync')
+    expect(p.seen.slice(0, 2)).toEqual(['connecting', 'waking'])
+    expect(p.seen).toContain('working')
+    expect(share.getActivity().phase).toBe('idle')
+  })
+  it('meldet beim Zustand „schläft“, statt zu hängen', async () => {
+    const base = await service({ hang: true })
+    process.env.HASHMARK_SHARE_URL = base
+    const deck = tmp('deck')
+    write(deck, '01.md', '# Eins\n')
+    // geteilt wurde vorher: Eintrag von Hand, der Dienst antwortet jetzt nicht (er schläft)
+    fs.mkdirSync(process.env.HASHMARK_HOME!, { recursive: true })
+    fs.writeFileSync(path.join(process.env.HASHMARK_HOME!, 'share.json'), JSON.stringify({ decks: { [path.resolve(deck)]: { id: ID, editToken: EDIT, ownerToken: OWNER, base: {}, server: base } } }))
+    const s = await share.status(deck, { timeout: 100 })
+    expect(s.state).toBe('asleep')
+    expect(s.shared).toBe(true)
+    expect(s.links?.view).toBe(`${base}/s/${ID}/`)
   })
 })
