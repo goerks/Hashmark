@@ -20,7 +20,7 @@ export function hashmarkLive(): Plugin {
     load(id) {
       // Top-Level-await: die Seiten starten erst, wenn das Deck da ist – wie beim eingebauten Modul
       if (id === LIVE_DECK) {
-        return `const res = await fetch('/__hashmark/deck.json', { cache: 'no-store' })\nexport default await res.json()\n`
+        return `const res = await fetch((window.__HASHMARK_SESSION__?.base ?? '') + '/__hashmark/deck.json', { cache: 'no-store' })\nexport default await res.json()\n`
       }
       // Theme kommt als <link> (siehe unten), damit ein Deck-Wechsel keinen neuen Build braucht
       if (id === LIVE_THEME) return 'export {}\n'

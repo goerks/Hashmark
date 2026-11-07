@@ -7,6 +7,9 @@
 # Umgebung:  PORT             Standard 10000 (Render setzt ihn selbst)
 #            DECK_DIR         Deck-Ordner, Standard /data/deck
 #            DECK_SEED        wird beim ersten Start in einen leeren DECK_DIR kopiert (Standard: Beispiel-Deck)
+#            SESSIONS         1 = geteilte Präsentationen unter /s/<id>/ zulassen (Render Free: flüchtig, kein Datenträger nötig)
+#            SHARE_KEY        geheimer Schlüssel zum Anlegen von Sessions (ohne ihn lässt sich nichts hochladen)
+#            SESSION_MAX_MB / SESSIONS_MAX_MB   Grenzen je Session bzw. insgesamt (Standard 20 / 200)
 #            SITE_DIR         gebaute Webseite unter /webseite/ (nur in der Vorschau eines Pull Requests gefüllt)
 # Vorschau eines Pull Requests: die fertig gebaute Webseite (make docs) unter /webseite/. Die Pipeline ersetzt diese Stufe per
 # `build-contexts: webseite=<ordner>` (der Ordner enthält site/); ohne das bleibt sie leer und der Webdienst zeigt keine Webseite.
@@ -33,13 +36,19 @@ RUN node src/desktop/runtime-build.ts
 # Vorschau eines Pull Requests: --build-arg SEED=abnahme --build-arg SEED_RESET=1 zeigt die Abnahme-Präsentation statt des Beispiels
 ARG SEED=examples/hashmark-demo
 ARG SEED_RESET=0
+# Teilen (Sessions) ist im Image eingeschaltet. Anlegen geht nur mit SHARE_KEY: Auf Render setzt man ihn als Umgebungsvariable des Dienstes
+# (sie gilt vor dem Wert hier). In der Vorschau eines Pull Requests setzt docker.yml einen Vorschau-Schlüssel (vorschau-pr-<Nr>), damit sich
+# ohne Einrichtung teilen lässt; die Vorschau wird beim Schließen des PR gelöscht. Im Normalbetrieb bleibt er leer (nichts lässt sich anlegen).
+ARG PREVIEW_SHARE_KEY=
 
 ENV NODE_ENV=production \
     PORT=10000 \
     DECK_DIR=/data/deck \
     DECK_SEED=/app/${SEED} \
     DECK_SEED_RESET=${SEED_RESET} \
-    SITE_DIR=/app/webseite
+    SITE_DIR=/app/webseite \
+    SESSIONS=1 \
+    SHARE_KEY=${PREVIEW_SHARE_KEY}
 
 EXPOSE 10000
 

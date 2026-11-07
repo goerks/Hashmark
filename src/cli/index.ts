@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// CLI: hashmark dev | edit | serve | build | preview | export | pdf | pptx | check | trust
+// CLI: hashmark dev | edit | serve | build | preview | export | pdf | pptx | check | trust | share | push | pull | resolve | unshare
 
 import path from 'node:path'
 import cac from 'cac'
@@ -11,6 +11,7 @@ import { exportPdf } from './pdf.ts'
 import { exportPptx } from './pptx.ts'
 import { serve } from './serve.ts'
 import { runTrust } from './trust.ts'
+import { runShare, type ShareOptions } from './share.ts'
 import { printQuery } from '../core/print.ts'
 
 /** `--host` ohne Wert = alle Netzwerk-Interfaces, sonst die angegebene Adresse */
@@ -58,6 +59,12 @@ cli
       reseed: process.env.DECK_SEED_RESET === '1',
       host: opts.host,
       port: Number(opts.port ?? process.env.PORT ?? 3030),
+      sessions: process.env.SESSIONS === '1' ? {
+        key: process.env.SHARE_KEY,
+        dir: process.env.SESSIONS_DIR,
+        maxSessionMb: process.env.SESSION_MAX_MB ? Number(process.env.SESSION_MAX_MB) : undefined,
+        maxTotalMb: process.env.SESSIONS_MAX_MB ? Number(process.env.SESSIONS_MAX_MB) : undefined,
+      } : undefined,
       siteDir: process.env.SITE_DIR || undefined,
     })
   })
@@ -144,6 +151,30 @@ cli
   .action(async (deck = '.', opts: { yes?: boolean; list?: boolean; revoke?: string }) => {
     process.exitCode = await runTrust(deck, opts)
   })
+
+cli
+  .command('share [deck]', 'Deck online teilen (oder Zustand des geteilten Decks zeigen); gibt Links zum Ansehen und Bearbeiten aus')
+  .option('--server <url>', 'Adresse des Webdienstes (wird gemerkt; sonst HASHMARK_SHARE_URL)')
+  .option('--key <schlüssel>', 'Dienst-Schlüssel zum Anlegen (wird gemerkt; sonst HASHMARK_SHARE_KEY)')
+  .option('--status', 'nur Zustand zeigen')
+  .action(async (deck = '.', opts: ShareOptions) => { process.exitCode = await runShare('share', deck, opts) })
+
+cli
+  .command('push [deck]', 'Lokale Änderungen des geteilten Decks hochladen')
+  .action(async (deck = '.', opts: ShareOptions) => { process.exitCode = await runShare('push', deck, opts) })
+
+cli
+  .command('pull [deck]', 'Online-Änderungen des geteilten Decks holen')
+  .action(async (deck = '.', opts: ShareOptions) => { process.exitCode = await runShare('pull', deck, opts) })
+
+cli
+  .command('resolve <datei> [deck]', 'Konflikt einer Datei lösen')
+  .option('--keep <seite>', 'local = lokale Fassung behalten, online = Online-Fassung übernehmen')
+  .action(async (file: string, deck = '.', opts: ShareOptions) => { process.exitCode = await runShare('resolve', deck, opts, file) })
+
+cli
+  .command('unshare [deck]', 'Teilen beenden und die Online-Kopie löschen')
+  .action(async (deck = '.', opts: ShareOptions) => { process.exitCode = await runShare('unshare', deck, opts) })
 
 cli.help()
 cli.parse()

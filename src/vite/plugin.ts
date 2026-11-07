@@ -11,6 +11,7 @@ import { PLAN_PATH } from '../core/plan.ts'
 import { MAX_EMBED_BYTES, isVideoUrl, mediaName } from '../core/media.ts'
 import { ASSET_PREFIX, MEDIA_MIME, toDataUri } from '../core/render.ts'
 import { editorApi, planApi } from './editor-api.ts'
+import { shareApi } from '../share/api.ts'
 import { serveFile } from './serve-file.ts'
 
 export const DECK_ID = 'virtual:hashmark/deck'
@@ -109,7 +110,10 @@ export function hashmark(options: HashmarkOptions): Plugin {
       current.then((r) => server.watcher.add(r.themeFiles), () => {})
       // Fahrpläne gibt es auch ohne Editor (make dev): sie gehören zur Präsentation
       server.middlewares.use(planApi(() => deckDir))
-      if (options.editor) server.middlewares.use(editorApi(deckDir))
+      if (options.editor) {
+        server.middlewares.use(shareApi(deckDir))
+        server.middlewares.use(editorApi(deckDir))
+      }
       if (options.examples) {
         const root = options.examples
         // GET: Liste + aktuelles Deck; POST {name}: Deck wechseln (nur Ordner aus der Liste), danach lädt die Seite neu

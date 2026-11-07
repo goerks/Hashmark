@@ -123,7 +123,7 @@ export function createSidecar({ dataDir, emit, log = () => {} }: SidecarOptions)
         const result = await pre.result.catch(() => undefined)
         if (result && !isStale(dir, result, pre.at)) initial = result
       }
-      const s = await startLiveServer({ deckDir: dir, runtimeDir, onAppAction, initial, log })
+      const s = await startLiveServer({ deckDir: dir, runtimeDir, onAppAction, initial, log, share: true })
       log(`[hashmark] Deck geöffnet in ${ms(t0)}${initial ? ' (vorab gelesen)' : ''}: ${dir}`)
       server = s
       deckDir = dir

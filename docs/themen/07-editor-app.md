@@ -68,3 +68,25 @@ Das Image läuft auf jedem Container-Dienst: Port aus `PORT`, Health Check `/hea
 
 **Wichtig:** Ohne Festplatte ist das Dateisystem bei Render flüchtig, Änderungen aus dem Editor gehen bei jedem Neustart verloren (kostenlose Dienste haben keine Festplatte). Mit der Festplatte auf `/data` bleiben sie erhalten. Eine Live-Instanz mit Beispiel-Deck läuft unter `https://hashmark.onrender.com`.
 :::
+
+## Online teilen {id=teilen}
+
+| Aktion | So geht es |
+| --- | --- |
+| Teilen | im Editor **Teilen**, dann „Online teilen“ (oder `hashmark share`) |
+| Ansehen | Link „Ansehen“: Präsentation, `?reader` und Presenter, ohne Anmeldung |
+| Bearbeiten | Link „Bearbeiten“: derselbe Editor im Browser, nur mit diesem Link |
+| Abgleichen | im Dialog „Änderungen holen“ bzw. „Dateien hochladen“ (oder `hashmark pull`, `hashmark push`) |
+| Beenden | „Teilen beenden“ (oder `hashmark unshare`) |
+
+::: notes
+Teilen stellt eine **Kopie** deiner Präsentation unter einer eigenen, nicht erratbaren Adresse in den Webdienst. Dein Ordner bleibt das Original. Wer den Link „Ansehen“ hat, sieht die Präsentation; wer den Link „Bearbeiten“ hat, ändert sie im Editor im Browser. Jede geteilte Präsentation hat ihre eigene Adresse (`/s/<kennung>/`), es gibt keine Konten.
+
+**Abgleich:** Neben „Teilen“ zeigt ein Chip, ob lokal und online gleich sind. In der Dateiliste markieren ↑ (lokal neuer), ↓ (online neuer) und ! (Konflikt) die Dateien. Hast du beide Seiten geändert, wählst du je Datei „Lokal behalten“ oder „Online übernehmen“, Hashmark überschreibt nie still.
+
+**Der Dienst vergisst:** Auf dem kostenlosen Render-Tarif gibt es keinen dauerhaften Speicher. Nach 15 Minuten ohne Zugriff schläft der Dienst (der erste Aufruf danach dauert bis zu einer Minute), und beim Neustart ist die Online-Kopie weg. Der Chip zeigt „Online-Kopie fehlt“, „Online wiederherstellen“ stellt sie unter **demselben Link** wieder her. Was online geändert und noch nicht geholt wurde, geht dabei verloren: **hole Online-Änderungen regelmäßig.**
+
+**Der Dienst wird erst gestartet:** Render startet den schlafenden Dienst erst beim ersten Aufruf. Beim Teilen und Abgleichen fragt Hashmark deshalb zuerst, ob der Dienst wach ist, und zeigt im Dialog (und im Chip) mit Sekundenzähler, was gerade geschieht: „Verbinde …“, „Der Dienst schläft und wird gestartet …“, dann „Lade Änderungen hoch …“. Das dauert meist 30 bis 60 Sekunden, Hashmark wartet bis etwa 100 Sekunden. Geht es nicht, steht der Grund da: Adresse nicht gefunden, Verbindung abgelehnt, Zertifikat, kein Hashmark-Dienst, Teilen am Dienst ausgeschaltet, Schlüssel abgelehnt oder „Dienst startet nicht“ (dann im Render-Dashboard Ereignisse und Logs prüfen). Dasselbe zeigt die Befehlszeile.
+
+**Einrichten (einmalig):** Der Betreiber setzt im Webdienst `SESSIONS=1` und einen geheimen `SHARE_KEY`. Du trägst im Dialog (oder mit `hashmark share --server <adresse> --key <schlüssel>`) Adresse und Schlüssel ein. Der Schlüssel erlaubt nur das Anlegen. Kommentieren und Passwortschutz sind noch nicht dabei.
+:::

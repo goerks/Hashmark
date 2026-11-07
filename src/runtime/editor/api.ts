@@ -1,5 +1,9 @@
 // Client für die Datei-API des Dev-Servers (src/vite/editor-api.ts).
 
+import type { ShareStatus } from '../../share/client.ts'
+import type { Activity } from '../../share/reasons.ts'
+import { apiBase, authHeaders } from '../session.ts'
+
 export interface FileEntry { path: string; kind: 'markdown' | 'yaml' | 'image' | 'template' | 'style' }
 
 export interface NewComponent { name: string; description?: string; attrs?: string[]; children?: boolean }
@@ -8,7 +12,7 @@ export const NO_API = 'Keine Datei-API: Der Editor braucht den Server von `make 
 
 async function call(method: string, route: string, params: Record<string, string> = {}, body?: BodyInit): Promise<Response> {
   const query = new URLSearchParams(params).toString()
-  const res = await fetch(`/__hashmark${route}${query ? `?${query}` : ''}`, { method, body, headers: { 'X-Hashmark-Editor': '1' } })
+  const res = await fetch(`${apiBase()}/__hashmark${route}${query ? `?${query}` : ''}`, { method, body, headers: { 'X-Hashmark-Editor': '1', ...authHeaders() } })
   if (!res.ok) {
     let msg = res.statusText
     try { msg = (await res.json()).error ?? msg } catch { /* kein JSON */ }
@@ -29,6 +33,11 @@ export const api = {
     call('POST', '/new-component', {}, JSON.stringify(input)).then((r) => r.json()),
   /** PowerPoint-Datei vom Server rendern lassen (braucht Edge/Chrome auf dem Server) */
   pptx: (query: string) => call('GET', '/pptx', { query }).then((r) => r.blob()),
+  /** Teilen (nur lokal): Zustand abfragen bzw. Aktion ausführen, die Antwort ist immer der neue Zustand */
+  shareStatus: (): Promise<ShareStatus> => call('GET', '/share/status').then((r) => r.json()),
+  shareActivity: (): Promise<Activity> => call('GET', '/share/activity').then((r) => r.json()),
+  share: (action: 'start' | 'push' | 'pull' | 'stop' | 'forget' | 'config' | 'resolve', body: Record<string, unknown> = {}): Promise<ShareStatus> =>
+    call('POST', `/share/${action}`, {}, JSON.stringify(body)).then((r) => r.json()),
   upload: (file: File): Promise<{ path: string }> => call('POST', '/upload', { name: file.name || 'bild.png' }, file).then((r) => r.json()),
 }
 

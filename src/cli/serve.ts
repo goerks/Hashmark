@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { ensureRuntime } from '../desktop/runtime-build.ts'
 import { startLiveServer } from '../desktop/live-server.ts'
+import os from 'node:os'
 import { realPath } from './paths.ts'
 
 export interface ServeOptions {
@@ -17,6 +18,8 @@ export interface ServeOptions {
   port: number
   /** fertig gebaute Webseite (make docs), unter /webseite/ ausgeliefert; nur in der Vorschau eines Pull Requests */
   siteDir?: string
+  /** geteilte Präsentationen (Sessions) zulassen; ohne Schlüssel lässt sich nichts anlegen */
+  sessions?: { key?: string; dir?: string; maxSessionMb?: number; maxTotalMb?: number }
 }
 
 const isEmpty = (dir: string) => !fs.existsSync(dir) || fs.readdirSync(dir).filter((f) => !f.startsWith('.')).length === 0
@@ -44,11 +47,22 @@ export async function serve(opts: ServeOptions) {
     deckDir: realPath(deckDir),
     runtimeDir,
     onAppAction: () => {},
-    web: { host: opts.host, port: opts.port, siteDir },
+    web: {
+      host: opts.host,
+      port: opts.port,
+      siteDir,
+      sessions: opts.sessions && {
+        dir: opts.sessions.dir ?? path.join(os.tmpdir(), 'hashmark-sessions'),
+        key: opts.sessions.key,
+        maxSessionBytes: opts.sessions.maxSessionMb ? opts.sessions.maxSessionMb * 1024 * 1024 : undefined,
+        maxTotalBytes: opts.sessions.maxTotalMb ? opts.sessions.maxTotalMb * 1024 * 1024 : undefined,
+      },
+    },
   })
   console.log(`[hashmark] Präsentation: ${server.url}`)
   if (siteDir) console.log(`[hashmark] Webseite:     ${server.url}webseite/`)
   console.log(`[hashmark] Editor:       ${server.url}editor.html (ohne Anmeldung)`)
+  if (opts.sessions) console.log(`[hashmark] Sessions:     ${server.url}s/<id>/ (${opts.sessions.key ? 'Anlegen mit Dienst-Schlüssel' : 'SHARE_KEY fehlt: es lassen sich keine Präsentationen anlegen'})`)
 
   const stop = () => { void server.close().then(() => process.exit(0)) }
   process.on('SIGTERM', stop)

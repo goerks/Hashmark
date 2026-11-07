@@ -2,10 +2,11 @@
 // sonst im localStorage des Browsers (Webdienst ohne Anmeldung, statischer Export).
 
 import { emptyPlanFile, parsePlanFile, type PlanFile } from '../core/plan.ts'
+import { authHeaders } from './session.ts'
 
 // relativ, damit Builds auch in Unterverzeichnissen laufen
 const API = './__hashmark/plan'
-const HEADERS = { 'X-Hashmark-Editor': '1', 'Content-Type': 'application/json' }
+const headers = () => ({ 'X-Hashmark-Editor': '1', 'Content-Type': 'application/json', ...authHeaders() })
 const storageKey = () => `hashmark:plan:${location.pathname}`
 /** gesetzt, solange der Server die letzte Änderung nicht angenommen hat: dann ist der Browser-Speicher neuer */
 const localKey = () => `${storageKey()}:local`
@@ -30,7 +31,7 @@ export async function loadPlanFile(): Promise<PlanFile> {
     if (local) return local
   }
   try {
-    const res = await fetch(API, { headers: HEADERS, cache: 'no-store' })
+    const res = await fetch(API, { headers: headers(), cache: 'no-store' })
     if (res.ok) {
       const raw = await res.json()
       // der Server kennt noch keine Datei: Browser-Speicher gilt weiter
@@ -50,7 +51,7 @@ export function savePlanFile(file: PlanFile): void {
   } catch { /* Speicher nicht verfügbar */ }
   clearTimeout(timer)
   timer = setTimeout(() => {
-    fetch(API, { method: 'PUT', headers: HEADERS, body: JSON.stringify(file) })
+    fetch(API, { method: 'PUT', headers: headers(), body: JSON.stringify(file) })
       .then((res) => { if (res.ok) try { localStorage.removeItem(localKey()) } catch { /* egal */ } })
       .catch(() => {})
   }, 300)

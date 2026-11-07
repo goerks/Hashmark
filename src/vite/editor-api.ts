@@ -19,7 +19,7 @@ const editable = (rel: string) => TEXT_EXT.test(rel) || componentKind(rel) !== n
 const MAX_BODY = 25 * 1024 * 1024
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i
 
-class HttpError extends Error {
+export class HttpError extends Error {
   status: number
   constructor(status: number, message: string) {
     super(message)
@@ -109,7 +109,7 @@ export function appApi(onAction: (action: Record<string, unknown>) => void): Con
 }
 
 /** Schutz aller schreibenden bzw. privaten Routen: erlaubter Host, Header (erzwingt CORS-Preflight), Ursprung passt zum Host */
-function guard(req: IncomingMessage, allowHost: (host: string) => boolean) {
+export function guard(req: IncomingMessage, allowHost: (host: string) => boolean) {
   if (!allowHost(req.headers.host ?? '')) throw new HttpError(403, 'Editor nur über localhost')
   if (req.headers['x-hashmark-editor'] !== '1') throw new HttpError(403, 'Header fehlt')
   // Browser schicken gespeicherte Zugangsdaten auch von fremden Seiten mit: der Ursprung muss zum Host passen
