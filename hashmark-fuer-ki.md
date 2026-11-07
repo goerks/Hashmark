@@ -566,8 +566,8 @@ Befehle (CLI `hashmark`, im Projekt über `make`):
 | --- | --- |
 | Dev-Server mit Live-Vorschau | `hashmark dev <deck>` |
 | Editor im Browser | `hashmark edit <deck>` |
-| statisches HTML | `hashmark build <deck>` |
-| Einzel-HTML | `hashmark export <deck>` |
+| statisches HTML | `hashmark build <deck>` (`--no-notes` lässt die Sprechernotizen weg) |
+| Einzel-HTML | `hashmark export <deck>` (`--no-notes` lässt die Sprechernotizen weg; ohne den Schalter nennt der Export, wie viele Folien Notizen haben) |
 | PDF (Pfad/Baum/gruppiert) | `hashmark pdf <deck>` |
 | PowerPoint | `hashmark pptx <deck>` |
 | **Prüfen** | `hashmark check <deck>` (Exit 1 bei Fehlern) |

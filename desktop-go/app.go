@@ -381,7 +381,9 @@ func (a *app) exportPPTX(query, suffix string) error {
 	return nil
 }
 
-func (a *app) exportHTML() error {
+// exportHTML schreibt das Deck als eine HTML-Datei. Ohne Notizen (withNotes = false) lässt der Sidecar die Sprechernotizen weg,
+// mit Notizen nennt die Meldung ihre Zahl, weil sie lesbar in der Datei stehen.
+func (a *app) exportHTML(withNotes bool) error {
 	d := a.currentDeck()
 	if d == nil {
 		return nil
@@ -393,7 +395,7 @@ func (a *app) exportHTML() error {
 	var res any
 	if err := a.withBusy("HTML-Export", func() error {
 		var e error
-		res, e = a.call("html", map[string]any{"out": out})
+		res, e = a.call("html", map[string]any{"out": out, "notes": withNotes})
 		return e
 	}); err != nil {
 		return err
@@ -403,6 +405,9 @@ func (a *app) exportHTML() error {
 	if m, ok := res.(map[string]any); ok {
 		if n, ok := m["media"].(float64); ok && n > 0 {
 			message += fmt.Sprintf("\n\nAchtung: %d Video(s) liegen im Ordner „%s“ neben der Datei. Beides zusammen weitergeben.", int(n), str(res, "mediaDir"))
+		}
+		if n, ok := m["notes"].(float64); ok && n > 0 {
+			message += fmt.Sprintf("\n\nAchtung: %d Folie(n) haben Notizen, sie stehen lesbar in der Datei. Zum Weitergeben: Datei › „Als HTML-Datei ohne Notizen exportieren …“.", int(n))
 		}
 	}
 	a.done(message, out)
@@ -493,6 +498,7 @@ func (a *app) menu() []menuItem {
 			it("example", "Beispiel-Deck öffnen", "", true),
 			sep,
 			it("export-html", "Als HTML-Datei exportieren …", "Strg+Umschalt+E", has),
+			it("export-html-clean", "Als HTML-Datei ohne Notizen exportieren …", "", has),
 			it("pdf-all", "PDF – alle Folien …", "Strg+Umschalt+P", has),
 			it("pdf-main", "PDF – nur Hauptpfad …", "", has),
 			it("pdf-steps", "PDF – jeder Schritt eine Seite …", "", has),
@@ -579,7 +585,9 @@ func (a *app) onMenu(id string) {
 			err = a.openDeckAt(dir)
 		}
 	case id == "export-html":
-		err = a.exportHTML()
+		err = a.exportHTML(true)
+	case id == "export-html-clean":
+		err = a.exportHTML(false)
 	case id == "pdf-all":
 		err = a.exportPDF("?print", "")
 	case id == "pdf-main":

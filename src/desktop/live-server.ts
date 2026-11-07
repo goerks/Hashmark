@@ -8,6 +8,7 @@ import http from 'node:http'
 import path from 'node:path'
 import type { AddressInfo } from 'node:net'
 import { loadDeck, type LoadResult } from '../core/deck.ts'
+import { stripNotes } from '../core/notes.ts'
 import { ASSET_PREFIX, MEDIA_MIME } from '../core/render.ts'
 import { appApi, editorApi, planApi } from '../vite/editor-api.ts'
 import { serveFile } from '../vite/serve-file.ts'
@@ -46,7 +47,9 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
   const log = opts.log ?? ((m: string) => console.error(m))
   let current: LoadResult | null = null
   let payload: Payload = { error: 'Deck wird geladen …' }
+  // Verbindungen (Server-Sent Events), die Notizen brauchen (Presenter, Lesemodus, Editor)
   const clients = new Set<http.ServerResponse>()
+  const wantsNotes = new WeakSet<http.ServerResponse>()
 
   async function load(): Promise<{ themeChanged: boolean }> {
     const before = current?.themeCss
@@ -64,10 +67,21 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     for (const res of clients) res.write(`event: ${event}\ndata: ${data}\n\n`)
   }
 
+  /**
+   * Nutzlast für eine Seite. Im Webdienst (`web`) fehlen die Notizen, außer die Seite verlangt sie mit `?notes=1`
+   * (Presenter-View, Lesemodus, Editor). Das hält sie aus der einfachen öffentlichen Ansicht, ist aber kein Schutz:
+   * Der Webdienst hat keine Anmeldung, Presenter und Editor sind für jeden mit der Adresse offen.
+   */
+  const payloadFor = (notes: boolean): Payload => (!opts.web || notes || !('deck' in payload) ? payload : { deck: stripNotes(payload.deck) })
+
   async function reload() {
     const { themeChanged } = await load()
     if (themeChanged) broadcast('reload', '{}')
-    else broadcast('deck', JSON.stringify(payload))
+    else {
+      const full = JSON.stringify(payloadFor(true))
+      const slim = opts.web ? JSON.stringify(payloadFor(false)) : full
+      for (const res of clients) res.write(`event: deck\ndata: ${wantsNotes.has(res) ? full : slim}\n\n`)
+    }
   }
 
   if (opts.initial) {
@@ -113,7 +127,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
     if (pathname === '/__hashmark/deck.json') {
       res.setHeader('Content-Type', 'application/json')
       res.setHeader('Cache-Control', 'no-store')
-      return res.end(JSON.stringify(payload))
+      return res.end(JSON.stringify(payloadFor(new URL(req.url ?? '/', 'http://x').searchParams.get('notes') === '1')))
     }
     if (pathname === '/__hashmark/theme.css') {
       res.setHeader('Content-Type', 'text/css; charset=utf-8')
@@ -124,6 +138,7 @@ export async function startLiveServer(opts: LiveServerOptions): Promise<LiveServ
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-store', Connection: 'keep-alive' })
       res.write(': verbunden\n\n')
       clients.add(res)
+      if (new URL(req.url ?? '/', 'http://x').searchParams.get('notes') === '1') wantsNotes.add(res)
       req.on('close', () => clients.delete(res))
       return
     }

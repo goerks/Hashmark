@@ -156,10 +156,12 @@ export function createSidecar({ dataDir, emit, log = () => {} }: SidecarOptions)
     async html(r) {
       if (!deckDir) throw new Error('Kein Deck geöffnet')
       const out = str(r.out, 'out')
-      const [{ exportSingleFile, mediaSink }, { config }] = await Promise.all([import('../cli/export.ts'), import('../cli/config.ts')])
+      const [{ exportSingleFile, mediaSink }, { config }, { countDeckNotes }] = await Promise.all([import('../cli/export.ts'), import('../cli/config.ts'), import('../cli/notes.ts')])
       const media = mediaSink(out)
-      await exportSingleFile(config(deckDir, { logLevel: 'warn' }, { inlineAssets: true, media }, { cacheDir: path.join(dataDir, 'vite-cache') }), out, media)
-      return { out, media: media.files.size, mediaDir: media.dir }
+      // `notes: false` = ohne Sprechernotizen (Menü „Als HTML-Datei ohne Notizen exportieren“), sonst mit und die Anzahl im Ergebnis
+      const withNotes = r.notes !== false
+      await exportSingleFile(config(deckDir, { logLevel: 'warn' }, { inlineAssets: true, media, notes: withNotes }, { cacheDir: path.join(dataDir, 'vite-cache') }), out, media)
+      return { out, media: media.files.size, mediaDir: media.dir, notes: withNotes ? await countDeckNotes(deckDir) : 0 }
     },
   }
 

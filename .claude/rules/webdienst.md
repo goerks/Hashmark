@@ -9,6 +9,7 @@ paths:
 
 # Webdienst (`hashmark serve`, Docker/Render)
 
+- **Notizen:** Im Webdienst liefert `live-server.ts` das Deck (`/__hashmark/deck.json`) und die Änderungen (`/__hashmark/events`) ohne Sprechernotizen, außer die Seite fragt mit `?notes=1` (Presenter-View, Lesemodus, Druck, Editor, Regel `pageNeedsNotes` in `src/core/notes.ts`, im Live-Plugin und in `deck-source.ts`). Das ist **kein Schutz**: Presenter und Editor sind ohne Anmeldung offen. In der Desktop-App (kein `web`) bleiben die Notizen immer drin. Der Notiz-Overlay (N) in der einfachen Präsentation fehlt im Webdienst.
 - Ein Prozess, ein Container: `live-server.ts` mit Option `web` liefert die Präsentation öffentlich und `/editor.html` plus Datei-API **ohne jede Anmeldung** (bewusste Entscheidung des Auftraggebers, es gibt kein `EDITOR_PASSWORD` mehr; wer die Adresse kennt, kann das Deck ändern). `/healthz` für Render. Live-Instanz: https://hashmark.onrender.com
 - Die Datei-API prüft im Webbetrieb weiter den Header `X-Hashmark-Editor` und dass `Origin` zum `Host` passt (ohne Anmeldung ist das der einzige Schutz davor, dass fremde Webseiten im Browser eines Besuchers die Datei-API ansprechen). `/__hashmark/app` bleibt localhost-only.
 - Das Image installiert online per `npm ci` (der Vendor-Cache enthält nur Windows-Binärdateien) und baut die Runtime beim Bauen vor. Läuft als root, weil Render-Festplatten root gehören.

@@ -45,6 +45,8 @@ Schritte werden zu **Einblend-Animationen** (ein Klick je Schritt, Listen und Co
 ::: notes
 `make export` (in der App Datei › Als HTML-Datei exportieren) erzeugt eine einzelne HTML-Datei mit allem: Folien, Bilder, Schriften, Presenter-View. Sie läuft auf jedem Rechner per Doppelklick, ohne Server und ohne Internet.
 
+**Notizen** stehen lesbar in der Datei (Quelltext und Presenter-View). Der Export nennt, wie viele Folien Notizen haben. Zum Weitergeben ohne Notizen: `hashmark export --no-notes` (und `hashmark build --no-notes`), in der App Datei › Als HTML-Datei ohne Notizen exportieren. Im öffentlichen Webdienst fehlen die Notizen in der einfachen Ansicht der Präsentation; Presenter-View, Lesemodus und Editor zeigen sie, denn der Webdienst hat keine Anmeldung und ist **kein Schutz** für vertrauliche Notizen.
+
 **Videos** sind groß: Sie werden nicht eingebettet, sondern in einen Ordner `<name>-medien` neben die Datei gelegt. Gib beides zusammen weiter. Mit `embedMedia: true` in der `deck.yaml` werden Videos bis 25 MB je Datei eingebettet. PDF und PowerPoint zeigen das Standbild.
 :::
 
