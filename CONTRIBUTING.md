@@ -59,6 +59,10 @@ Der Auftraggeber muss keinen Git-Befehl kennen. Ein Hook verhindert Commits und 
 | `make deps-update` | Pakete online aktualisieren und im Cache ablegen |
 | `make clean` / `make distclean` | `dist/` bzw. zusätzlich `node_modules/` löschen |
 
+## Lizenz und Beiträge
+
+Hashmark steht unter der Functional Source License (FSL-1.1-ALv2, Datei `LICENSE`). Mit einem Beitrag (Pull Request) erklärst du dich einverstanden, dass er unter derselben Lizenz steht. Neue Bibliotheken müssen dazu passen: MIT, ISC, BSD, Apache-2.0 und ähnliche sind in Ordnung. Bibliotheken mit starkem Copyleft (GPL, AGPL) kommen nicht ins Projekt; bei doppelt lizenzierten Paketen wählen wir die freizügige Seite. Lizenzen mit Copyleft auf Dateiebene (MPL, EPL) nur, wenn der Code unverändert bleibt, und mit Eintrag in `THIRD-PARTY-NOTICES.md`.
+
 ## Dokumentation
 
 Die Dokumentation ist selbst mit Hashmark gebaut: Startseite (`scripts/docs-landing.ts`), acht Funktionsseiten (`scripts/docs-features.ts`), Handbuch (`docs/`, ein Hashmark-Deck mit Lesemodus in drei Teilen: Lernen, Themen, Nachschlagen) und alle Beispiele. Die Bilder der Webseite nimmt `node scripts/make-screenshots.ts --out <ordner>` aus der echten App auf; die Pipeline macht das bei jedem Bau, `HASHMARK_SHOTS=<ordner>` gibt sie an `make docs` weiter. `make docs-serve` zeigt sie lokal. Auf GitHub baut `pages.yml` sie bei jedem Push auf `main` und nach jedem Release (einmalig: Settings → Pages → Source „GitHub Actions“). Die Erklärtexte stehen im Handbuch in `::: notes`; der Lesemodus zeigt sie als Fließtext.

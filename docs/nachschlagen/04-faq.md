@@ -54,10 +54,14 @@ Ein Deck besteht aus Markdown-Dateien. Diff, Review und Versionsverwaltung funkt
 
 ## Was darf ich mit Hashmark tun? {id=faq-lizenz}
 
-Frei nutzen, ändern und weitergeben, **nicht kommerziell**.
+Frei nutzen, ändern und weitergeben, **auch kommerziell**, nur nicht als Konkurrenzprodukt.
 
 ::: notes
-Hashmark steht unter der PolyForm Noncommercial License 1.0.0. Für kommerzielle Nutzung fragst du vorher an. Der Volltext liegt als Datei `LICENSE` im Repository.
+Hashmark steht unter der Functional Source License 1.1 mit Apache-2.0 als spätere Lizenz (FSL-1.1-ALv2). Der Volltext liegt als Datei `LICENSE` im Repository.
+
+Du darfst Hashmark frei nutzen, ändern und weitergeben, auch in einer Firma und für Vorträge, mit denen du Geld verdienst. Nicht erlaubt ist, Hashmark oder eine kaum veränderte Fassung als Konkurrenzprodukt anzubieten, zum Beispiel als eigenes Präsentations-Programm oder als gehosteten Dienst mit denselben Funktionen. Zwei Jahre nach der Veröffentlichung einer Version wird genau diese Version automatisch zu Apache 2.0 und ist dann ohne diese Einschränkung frei.
+
+Präsentationen, die du mit Hashmark erstellst, gehören dir. Die Lizenz betrifft das Programm, nicht deine Inhalte. Die Lizenzen der enthaltenen Bibliotheken stehen in `THIRD-PARTY-NOTICES.md`.
 :::
 
 ## Die App stürzt ab oder zeigt einen Fehler {id=faq-fehler}
