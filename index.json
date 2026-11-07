@@ -1,0 +1,18 @@
+[
+  {
+    "name": "01-dateiliste.jpg",
+    "caption": "Der Editor: links die Dateien und der neue Bereich „Komponenten“, in der Mitte der Text, rechts die Vorschau."
+  },
+  {
+    "name": "07-dialog.jpg",
+    "caption": "Neue Komponente: Name, Beschreibung, Attribute und Aufbau eintragen. Der Dialog meldet ungültige oder vergebene Namen sofort."
+  },
+  {
+    "name": "08-neu.jpg",
+    "caption": "Angelegt: Vorlage und Gestaltung stehen in der Liste, die neue Vorlage ist geöffnet, mit Kopf und Beispiel."
+  },
+  {
+    "name": "09-beispiel.jpg",
+    "caption": "Mit „Beispiel in Folie ansehen“ landet das Beispiel aus dem Kopf als Folie am Ende, die Vorschau zeigt die neue Komponente."
+  }
+]
