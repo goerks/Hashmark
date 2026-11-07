@@ -19,7 +19,7 @@ Prüfen: Im Editor (`make edit`) steht neben „PDF“ und „PPTX“ ein neuer 
 
 # So probierst du es aus
 
-1. Dienst mit `SESSIONS=1` und `SHARE_KEY=geheim` starten (Render: Umgebungsvariablen setzen)
+1. Adresse der Vorschau (Kommentar im PR) und Schlüssel `vorschau-pr-<Nr>` bereithalten
 2. Editor lokal öffnen, **Teilen** klicken, Adresse und Schlüssel eintragen
 3. **Online teilen**: zwei Links erscheinen
 4. Link „Ansehen“ in einem zweiten Fenster öffnen

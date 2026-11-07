@@ -433,3 +433,8 @@ button.sh-chip { cursor: pointer; }
 .sh-chip.sh-pulse i { animation: sh-pulse 1.2s ease-in-out infinite; }
 @keyframes sh-pulse { 50% { opacity: 0.25; } }
 @media (prefers-reduced-motion: reduce) { .sh-spin, .sh-chip.sh-pulse i { animation: none; } }
+
+.sh-conn { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--ed-muted); font-size: 12.5px; }
+.sh-conn b { color: var(--ed-fg); font-weight: 600; }
+.sh .sh-link-btn { padding: 0; border: 0; background: none; color: var(--ed-accent); font-weight: 600; font-size: 12.5px; }
+.sh .sh-link-btn:hover:not(:disabled) { background: none; text-decoration: underline; }

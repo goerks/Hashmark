@@ -13,7 +13,7 @@
     error: string
     activity: Activity | null
     asleepSince: number | null
-    onaction: (action: 'start' | 'push' | 'pull' | 'stop' | 'config' | 'resolve', body?: Record<string, unknown>) => void
+    onaction: (action: 'start' | 'push' | 'pull' | 'stop' | 'forget' | 'config' | 'resolve', body?: Record<string, unknown>) => void
     onrefresh: () => void
     onclose: () => void
   } = $props()
@@ -24,7 +24,15 @@
   let confirmStop = $state(false)
   let copied = $state('')
 
-  $effect(() => { if (!server) server = status.server })
+  /** Eingabefelder für Adresse und Schlüssel: ohne Schlüssel gleich offen, sonst über „Ändern“ (auch nach dem Teilen) */
+  let editing = $state(false)
+  const showFields = $derived(editing || (!status.shared && !status.configured))
+  const openFields = () => { server = status.server; key = ''; editing = true }
+  const saveFields = () => { onaction('config', { server: server.trim(), key: key.trim() }); editing = false; key = '' }
+  const hostOf = (s: string) => s.replace(/^https?:\/\//, '')
+  $effect(() => { if (!showFields) server = status.server })
+  /** Dienst nicht erreichbar oder abgelehnt: der Eintrag lässt sich lokal verwerfen, ohne den Dienst zu fragen */
+  const stuck = $derived(status.shared && (status.state === 'unreachable' || (!!error && !busy)))
 
   // Laufende Zeit für den Zähler beim Warten auf den Dienst
   let now = $state(Date.now())
@@ -125,11 +133,22 @@
     </ul>
   {/if}
 
-  {#if !status.shared && !status.configured}
-    <label class="sh-field">Adresse des Dienstes<input bind:value={server} autocomplete="off" spellcheck="false" /></label>
-    <label class="sh-field">Dienst-Schlüssel<input bind:value={key} type="password" autocomplete="off" placeholder="vom Betreiber des Dienstes" /></label>
-    <div class="sh-row"><button class="sh-prim" disabled={!key.trim() || busy !== ''} onclick={() => onaction('config', { server: server.trim(), key: key.trim() })}>Speichern</button></div>
+  {#if showFields}
+    <label class="sh-field">Adresse des Dienstes
+      <input bind:value={server} autocomplete="off" spellcheck="false" placeholder="hashmark.onrender.com oder localhost:10000" />
+    </label>
+    <label class="sh-field">Dienst-Schlüssel
+      <input bind:value={key} type="password" autocomplete="off" placeholder={status.configured ? 'leer lassen, um den gespeicherten zu behalten' : 'vom Betreiber des Dienstes'} />
+    </label>
+    <div class="sh-row">
+      <button class="sh-prim" disabled={busy !== '' || !server.trim() || (!status.configured && !key.trim())} onclick={saveFields}>Speichern</button>
+      {#if status.configured}<button onclick={() => (editing = false)}>Abbrechen</button>{/if}
+    </div>
   {:else}
+    <p class="sh-conn">
+      <span>Dienst: <b>{hostOf(status.server)}</b> · Schlüssel {status.configured ? 'gespeichert' : 'fehlt'}</span>
+      <button class="sh-link-btn" disabled={busy !== ''} onclick={openFields}>Ändern</button>
+    </p>
     <div class="sh-row">
       {#if !status.shared}
         <button class="sh-prim" disabled={busy !== ''} onclick={() => onaction('start')}>{busy === 'start' ? 'Lädt hoch …' : 'Online teilen'}</button>
@@ -150,6 +169,11 @@
     <div class="sh-row"><button disabled={busy !== ''} onclick={onrefresh}>Erneut versuchen</button></div>
   {/if}
   <p class="sh-hint">Online ist eine Kopie. Das Original bleibt in deinem Ordner.{status.shared ? ' Online geänderte Dateien holst du hier zurück, bevor der Dienst neu startet.' : ''}</p>
+
+  {#if stuck}
+    <p class="sh-hint">Passt die Adresse nicht mehr, ändere sie oben, oder löse die Verbindung nur lokal, ohne den Dienst zu fragen.</p>
+    <div class="sh-row end"><button disabled={busy !== ''} onclick={() => onaction('forget')}>Nur lokal zurücksetzen</button></div>
+  {/if}
 
   {#if status.shared}
     <div class="sh-row end">

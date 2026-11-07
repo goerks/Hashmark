@@ -96,7 +96,7 @@
     }
   }
 
-  async function shareAction(action: 'start' | 'push' | 'pull' | 'stop' | 'config' | 'resolve', body: Record<string, unknown> = {}) {
+  async function shareAction(action: 'start' | 'push' | 'pull' | 'stop' | 'forget' | 'config' | 'resolve', body: Record<string, unknown> = {}) {
     shareBusy = action
     shareError = ''
     pollActivity(true)

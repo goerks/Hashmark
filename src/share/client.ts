@@ -159,17 +159,39 @@ function saveConfig(c: Config) {
 const keyOf = (deckDir: string) => path.resolve(deckDir)
 const random = (bytes: number) => crypto.randomBytes(bytes).toString('base64url')
 
-export function setServer(server: string | undefined, key: string | undefined) {
+/**
+ * Adresse des Dienstes aus einer Eingabe machen: `localhost:10000`, `192.168.1.5:10000` oder `hashmark.onrender.com`.
+ * Ohne Angabe gilt `http://` für lokale Namen und IP-Adressen, sonst `https://`. Pfad und Schrägstrich am Ende fallen weg.
+ */
+export function normalizeServer(input: string): string {
+  const text = input.trim()
+  if (!text) return ''
+  const local = /^(localhost|\[[0-9a-f:]+\]|\d{1,3}(\.\d{1,3}){3}|[^./:]+)(:\d+)?(\/|$)/i.test(text.replace(/^[a-z]+:\/\//i, ''))
+  const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(text) ? text : `${local ? 'http' : 'https'}://${text}`
+  try {
+    const u = new URL(withScheme)
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('Schema')
+    return u.origin
+  } catch {
+    throw new ShareError('config', `Adresse „${input.trim()}“ ist ungültig. Beispiele: hashmark.onrender.com oder localhost:10000`)
+  }
+}
+
+/** Adresse und Schlüssel des Dienstes merken. Leere Werte lassen das Gemerkte unverändert; `null` löscht es. */
+export function setServer(server: string | null | undefined, key: string | null | undefined) {
   const c = loadConfig()
-  if (server !== undefined) c.server = server.replace(/\/+$/, '') || undefined
-  if (key !== undefined) c.key = key || undefined
+  if (server === null) c.server = undefined
+  else if (server !== undefined && server.trim() !== '') c.server = normalizeServer(server)
+  if (key === null) c.key = undefined
+  else if (key !== undefined && key.trim() !== '') c.key = key.trim()
   saveConfig(c)
 }
 
+/** Gemerktes zuerst (was man im Dialog oder mit --server eingibt), dann die Umgebung, dann der Standard */
 export function settings() {
   const c = loadConfig()
-  const key = process.env.HASHMARK_SHARE_KEY ?? c.key
-  return { server: (process.env.HASHMARK_SHARE_URL ?? c.server ?? DEFAULT_SERVER).replace(/\/+$/, ''), key }
+  const key = c.key ?? process.env.HASHMARK_SHARE_KEY
+  return { server: normalizeServer(c.server ?? process.env.HASHMARK_SHARE_URL ?? DEFAULT_SERVER), key }
 }
 
 const linksOf = (r: Record_) => ({ view: `${r.server}/s/${r.id}/`, edit: `${r.server}/s/${r.id}/editor.html#k=${r.editToken}` })
@@ -288,17 +310,16 @@ export async function start(deckDir: string): Promise<ShareStatus> {
   const { server, key } = settings()
   if (!key) throw new ShareError('config', 'Dienst-Schlüssel fehlt (hashmark share --key …)')
   const cfg = loadConfig()
-  let rec = cfg.decks[keyOf(deckDir)]
-  if (!rec) {
-    rec = { id: random(16), editToken: random(24), ownerToken: random(24), base: {}, server }
-    cfg.decks[keyOf(deckDir)] = rec
-    saveConfig(cfg)
-  }
+  // Erst nach dem Anlegen merken: scheitert es (falsche Adresse, falscher Schlüssel), bleibt nichts Halbes zurück,
+  // und die Adresse lässt sich im Dialog wieder ändern. Ein vorhandener Eintrag (Wiederherstellen) behält seine Adresse.
+  const existing = cfg.decks[keyOf(deckDir)]
+  const rec: Record_ = existing ?? { id: random(16), editToken: random(24), ownerToken: random(24), base: {}, server }
   // frisch angelegt oder wiederhergestellt: online ist leer, alles lokal ist neu. Gab es die Session noch, bleibt der Abgleichstand.
-  const created = await withDienst(server, 'Lege die Online-Kopie an …', () => createRemote(rec, key))
+  const created = await withDienst(rec.server, 'Lege die Online-Kopie an …', () => createRemote(rec, key))
   if (created) rec.base = {}
+  cfg.decks[keyOf(deckDir)] = rec
   saveConfig(cfg)
-  await withDienst(server, 'Lade die Dateien hoch …', () => pushInner(deckDir))
+  await withDienst(rec.server, 'Lade die Dateien hoch …', () => pushInner(deckDir))
   return status(deckDir)
 }
 
@@ -417,6 +438,24 @@ export const push = (deckDir: string, only?: string[]) => withDienst(recOf(deckD
 export const pull = (deckDir: string, only?: string[]) => withDienst(recOf(deckDir).server, 'Hole Änderungen …', () => pullInner(deckDir, only))
 /** Konflikt lösen: lokale Fassung nach online (`local`) oder Online-Fassung nach lokal (`remote`) */
 export const resolve = (deckDir: string, p: string, keep: 'local' | 'remote') => withDienst(recOf(deckDir).server, 'Löse den Konflikt …', () => resolveInner(deckDir, p, keep))
+
+export const isShared = (deckDir: string): boolean => !!loadConfig().decks[keyOf(deckDir)]
+
+/** Der Dienst hat eine andere Adresse bekommen (z. B. neuer Render-Name): dieselbe Session dort weiterführen */
+export function retarget(deckDir: string, server: string): void {
+  const cfg = loadConfig()
+  const rec = cfg.decks[keyOf(deckDir)]
+  if (!rec) throw new ShareError('config', 'Dieses Deck ist nicht geteilt')
+  rec.server = normalizeServer(server)
+  saveConfig(cfg)
+}
+
+/** Nur lokal vergessen, ohne den Dienst zu fragen (falsche Adresse, Dienst für immer weg). Die Online-Kopie, falls es sie gibt, bleibt dort liegen. */
+export function forget(deckDir: string): void {
+  const cfg = loadConfig()
+  delete cfg.decks[keyOf(deckDir)]
+  saveConfig(cfg)
+}
 
 /** Teilen beenden: Online-Kopie löschen (ist sie schon weg oder der Dienst nicht erreichbar, genügt das) und das lokale Merkblatt entfernen */
 export async function stop(deckDir: string): Promise<void> {

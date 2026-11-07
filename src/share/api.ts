@@ -37,9 +37,14 @@ export function shareApi(deckDir: string, options: EditorApiOptions = {}): Conne
       if (req.method !== 'POST') throw new HttpError(405, 'Nur POST')
       const body = await json(req)
       switch (route) {
-        case 'config':
-          share.setServer(typeof body.server === 'string' ? body.server : undefined, typeof body.key === 'string' ? body.key : undefined)
+        case 'config': {
+          const server = typeof body.server === 'string' ? body.server : undefined
+          share.setServer(server, typeof body.key === 'string' ? body.key : undefined)
+          // ist das Deck schon geteilt, gilt die neue Adresse für diese Session (die alte Adresse war falsch oder hat sich geändert)
+          if (server?.trim() && share.isShared(deckDir)) share.retarget(deckDir, server)
           return send(200, await share.status(deckDir))
+        }
+        case 'forget': share.forget(deckDir); return send(200, await share.status(deckDir))
         case 'start': await share.start(deckDir); return send(200, await share.status(deckDir))
         case 'push': await share.push(deckDir); return send(200, await share.status(deckDir))
         case 'pull': await share.pull(deckDir); return send(200, await share.status(deckDir))

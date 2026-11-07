@@ -443,3 +443,66 @@ describe('Dienst schläft und startet beim ersten Aufruf (Render Free)', () => {
     expect(s.links?.view).toBe(`${base}/s/${ID}/`)
   })
 })
+
+describe('Adresse und Schlüssel ändern', () => {
+  const oldEnv = { ...process.env }
+  beforeEach(() => {
+    process.env.HASHMARK_HOME = tmp('home')
+    delete process.env.HASHMARK_SHARE_URL
+    delete process.env.HASHMARK_SHARE_KEY
+    process.env.HASHMARK_WAKE_TIMEOUT_MS = '300'
+    process.env.HASHMARK_WAKE_POLL_MS = '20'
+  })
+  afterEach(() => { process.env = { ...oldEnv } })
+  const caught = (p: Promise<unknown>) => p.then(() => null, (e: share.ShareError) => e)
+
+  it('macht aus Eingaben mit und ohne Schema eine Adresse', () => {
+    expect(share.normalizeServer('localhost:10000')).toBe('http://localhost:10000')
+    expect(share.normalizeServer('192.168.1.5:10000')).toBe('http://192.168.1.5:10000')
+    expect(share.normalizeServer('meinpc:10000')).toBe('http://meinpc:10000')
+    expect(share.normalizeServer('hashmark.onrender.com')).toBe('https://hashmark.onrender.com')
+    expect(share.normalizeServer(' https://hashmark.onrender.com/ ')).toBe('https://hashmark.onrender.com')
+    expect(share.normalizeServer('http://x:1/pfad')).toBe('http://x:1')
+    expect(attempt(() => share.normalizeServer('ftp://x'))?.code).toBe('config')
+  })
+  it('lässt sich beliebig oft ändern; leere Felder löschen nichts; Gemerktes gilt vor der Umgebung', () => {
+    process.env.HASHMARK_SHARE_URL = 'http://aus-umgebung:1'
+    expect(share.settings().server).toBe('http://aus-umgebung:1')
+    share.setServer('localhost:10000', 'geheim')
+    expect(share.settings()).toEqual({ server: 'http://localhost:10000', key: 'geheim' })
+    share.setServer('hashmark.onrender.com', '')
+    expect(share.settings()).toEqual({ server: 'https://hashmark.onrender.com', key: 'geheim' })
+    share.setServer('', 'neu')
+    expect(share.settings()).toEqual({ server: 'https://hashmark.onrender.com', key: 'neu' })
+    share.setServer(null, null)
+    expect(share.settings().key).toBeUndefined()
+    expect(share.settings().server).toBe('http://aus-umgebung:1')
+  })
+  it('merkt sich nichts Halbes, wenn das erste Teilen scheitert', async () => {
+    const deck = tmp('deck')
+    write(deck, '01.md', '# Eins\n')
+    share.setServer('http://nicht-vorhanden.invalid', 'k')
+    const e = await caught(share.start(deck))
+    expect(e?.reason).toBe('dns')
+    const s = await share.status(deck)
+    expect(s.shared).toBe(false)
+    expect(s.server).toBe('http://nicht-vorhanden.invalid')
+    // und die Adresse lässt sich danach ändern
+    share.setServer('localhost:12345', undefined)
+    expect((await share.status(deck)).server).toBe('http://localhost:12345')
+  })
+  it('führt eine geteilte Session unter neuer Adresse weiter oder vergisst sie lokal', async () => {
+    const deck = tmp('deck')
+    write(deck, '01.md', '# Eins\n')
+    fs.mkdirSync(process.env.HASHMARK_HOME!, { recursive: true })
+    fs.writeFileSync(path.join(process.env.HASHMARK_HOME!, 'share.json'), JSON.stringify({ decks: { [path.resolve(deck)]: { id: ID, editToken: EDIT, ownerToken: OWNER, base: {}, server: 'http://alt:1' } } }))
+    expect(share.isShared(deck)).toBe(true)
+    share.retarget(deck, 'hashmark.onrender.com')
+    const s = await share.status(deck, { timeout: 50 })
+    expect(s.server).toBe('https://hashmark.onrender.com')
+    expect(s.links?.view).toBe(`https://hashmark.onrender.com/s/${ID}/`)
+    share.forget(deck)
+    expect(share.isShared(deck)).toBe(false)
+    expect(fs.existsSync(path.join(deck, '01.md'))).toBe(true)
+  })
+})

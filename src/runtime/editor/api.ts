@@ -36,7 +36,7 @@ export const api = {
   /** Teilen (nur lokal): Zustand abfragen bzw. Aktion ausführen, die Antwort ist immer der neue Zustand */
   shareStatus: (): Promise<ShareStatus> => call('GET', '/share/status').then((r) => r.json()),
   shareActivity: (): Promise<Activity> => call('GET', '/share/activity').then((r) => r.json()),
-  share: (action: 'start' | 'push' | 'pull' | 'stop' | 'config' | 'resolve', body: Record<string, unknown> = {}): Promise<ShareStatus> =>
+  share: (action: 'start' | 'push' | 'pull' | 'stop' | 'forget' | 'config' | 'resolve', body: Record<string, unknown> = {}): Promise<ShareStatus> =>
     call('POST', `/share/${action}`, {}, JSON.stringify(body)).then((r) => r.json()),
   upload: (file: File): Promise<{ path: string }> => call('POST', '/upload', { name: file.name || 'bild.png' }, file).then((r) => r.json()),
 }
