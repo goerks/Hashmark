@@ -2,6 +2,7 @@
 // Schutz: nur localhost, nur mit Header X-Hashmark-Editor (erzwingt CORS-Preflight → keine fremden Seiten),
 // nur Pfade innerhalb des Deck-Ordners und nur erlaubte Dateitypen.
 
+import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -13,6 +14,9 @@ import { IMAGE_MIME } from '../core/render.ts'
 import { componentKind, scaffoldComponent } from '../core/component-edit.ts'
 
 export const API_PREFIX = '/__hashmark'
+
+/** Version einer Datei: Prüfsumme ihres Textes. Der Editor schickt sie beim Speichern mit (`X-Hashmark-Base`). */
+export const versionOf = (text: string): string => crypto.createHash('sha256').update(text).digest('hex').slice(0, 16)
 const TEXT_EXT = /\.(md|ya?ml)$/i
 /** Textdateien, die der Editor lesen und schreiben darf: Markdown, YAML und Komponenten (components/*.html, *.css) */
 const editable = (rel: string) => TEXT_EXT.test(rel) || componentKind(rel) !== null
@@ -152,7 +156,10 @@ export function editorApi(deckDir: string, options: EditorApiOptions = {}): Conn
       if (route === '/file' && req.method === 'GET') {
         const abs = inside(deckDir, rel)
         if (!editable(toPosix(path.relative(deckDir, abs)))) throw new HttpError(415, 'Nur .md, .yaml und components/*.html|css')
-        return send(200, await fs.readFile(abs, 'utf8'), 'text/plain; charset=utf-8')
+        const text = await fs.readFile(abs, 'utf8')
+        // die Version (Prüfsumme des Inhalts) merkt sich der Editor und schickt sie beim Speichern mit (Konflikterkennung, Ticket #52)
+        res.setHeader('X-Hashmark-Version', versionOf(text))
+        return send(200, text, 'text/plain; charset=utf-8')
       }
       if (route === '/file' && req.method === 'PUT') {
         const abs = inside(deckDir, rel)
@@ -160,8 +167,14 @@ export function editorApi(deckDir: string, options: EditorApiOptions = {}): Conn
         const text = (await body(req)).toString('utf8')
         // nur schreiben, wenn sich etwas ändert (sonst unnötiger Reload)
         const old = await fs.readFile(abs, 'utf8').catch(() => null)
+        // Hat sich die Datei seit dem Lesen geändert (zweites Fenster, anderer Nutzer im Webdienst), wird nicht überschrieben,
+        // sondern der Konflikt gemeldet. Ohne Angabe der Version (ältere Clients) und bei gleichem Inhalt gibt es keinen Konflikt.
+        const base = req.headers['x-hashmark-base']
+        if (old !== null && old !== text && typeof base === 'string' && base !== '' && base !== versionOf(old)) {
+          return send(409, { error: 'Die Datei wurde inzwischen geändert.', conflict: true, version: versionOf(old), text: old })
+        }
         if (old !== text) await fs.writeFile(abs, text)
-        return send(200, { ok: true })
+        return send(200, { ok: true, version: versionOf(text) })
       }
       if (route === '/pptx' && req.method === 'GET') {
         // Export im Browser-Editor: der Server rendert seine eigene Druckansicht mit Edge/Chrome und liefert die Datei

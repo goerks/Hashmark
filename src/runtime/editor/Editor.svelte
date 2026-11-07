@@ -6,7 +6,8 @@
   import { lineOfSlide, nodeAtLine, pathToNode } from '../../core/sourcemap.ts'
   import { printQuery } from '../../core/print.ts'
   import { SNIPPETS } from '../../core/snippets.ts'
-  import { api, relativeTo, type FileEntry, type NewComponent } from './api.ts'
+  import { api, ConflictError, relativeTo, type FileEntry, type NewComponent } from './api.ts'
+  import { diffCounts, diffLines } from '../../core/diff.ts'
   import { createEditor, type Editor, type Lang } from './codemirror.ts'
   import { componentKind } from '../../core/component-edit.ts'
   import { readMetaHead } from '../../core/components.ts'
@@ -20,7 +21,7 @@
   import { onDeckUpdate } from '../deck-source.ts'
 
   type Payload = { deck: Deck } | { error: string }
-  type Status = 'saved' | 'dirty' | 'saving' | 'error'
+  type Status = 'saved' | 'dirty' | 'saving' | 'error' | 'conflict'
   type Mode = 'write' | 'split' | 'preview'
   type Found = Problem & { found: string }
 
@@ -64,6 +65,11 @@
   let imageInput: HTMLInputElement
   let ed: Editor
   let savedText = ''
+  /** Version der Datei beim letzten Lesen oder Speichern (Konflikterkennung, Ticket #52) */
+  let savedVersion = ''
+  /** Die Datei wurde woanders geändert: Stand auf dem Server, bis der Nutzer entscheidet. Autosave pausiert solange. */
+  let conflict = $state.raw<{ text: string; version: string } | null>(null)
+  let showDiff = $state(false)
   /** zuletzt geöffnete Folien-Datei: dorthin kommt das Beispiel einer Komponente */
   let lastSlideFile: string | null = null
   let cursorLine = 1
@@ -117,9 +123,13 @@
   async function openFile(path: string, opts: { line?: number; select?: boolean } = {}) {
     if (path !== current) {
       await save()
-      const text = await api.read(path)
+      // ein offener Konflikt der alten Datei bleibt nicht liegen: wer wechselt, entscheidet sich damit nicht, also bleibt die Datei geöffnet
+      if (status === 'conflict') { flash('Zuerst den Konflikt klären (Meine Fassung behalten oder Datei neu laden).'); return }
+      const read = await api.readFile(path)
+      const text = read.text
       ed.load(text, kindOf(path))
       savedText = text
+      savedVersion = read.version
       current = path
       if (kindOf(path) === 'markdown') lastSlideFile = path
       status = 'saved'
@@ -132,6 +142,8 @@
   async function save() {
     clearTimeout(saveTimer)
     if (!current) return
+    // bei einem offenen Konflikt wird nichts geschrieben, sonst wäre die fremde Änderung weg
+    if (status === 'conflict') return
     const text = ed.text()
     if (text === savedText) {
       if (status !== 'error') status = 'saved'
@@ -139,14 +151,49 @@
     }
     status = 'saving'
     try {
-      await api.write(current, text)
+      const written = await api.write(current, text, savedVersion)
       savedText = text
+      if (written.version) savedVersion = written.version
       status = ed.text() === text ? 'saved' : 'dirty'
     } catch (e) {
+      if (e instanceof ConflictError) {
+        conflict = { text: e.text, version: e.version }
+        showDiff = false
+        status = 'conflict'
+        return
+      }
       status = 'error'
       flash(`Speichern fehlgeschlagen: ${(e as Error).message}`)
     }
   }
+
+  /** Konflikt: den eigenen Stand behalten und die Datei damit überschreiben */
+  async function keepMine() {
+    if (!conflict) return
+    savedVersion = conflict.version
+    conflict = null
+    showDiff = false
+    status = 'dirty'
+    await save()
+  }
+
+  /** Konflikt: die Datei vom Server übernehmen, der eigene Stand geht verloren */
+  function loadTheirs() {
+    if (!conflict) return
+    ed.replace(conflict.text)
+    savedText = conflict.text
+    savedVersion = conflict.version
+    conflict = null
+    showDiff = false
+    status = 'saved'
+  }
+
+  /** Unterschiede zwischen der Datei (alt) und dem eigenen Stand (neu), nur die geänderten Zeilen, höchstens 40 */
+  const diffRows = $derived.by(() => {
+    if (!conflict || !showDiff) return null
+    const diff = diffLines(conflict.text, ed.text())
+    return { counts: diffCounts(diff), lines: diff.filter((l) => l.type !== 'same').slice(0, 40) }
+  })
 
   async function newFile() {
     const name = prompt('Neue Datei (relativ zum Deck), z. B. 05-ausblick.md')
@@ -403,7 +450,7 @@
   }
 
   const statusText: Record<Status, string> = {
-    saved: 'Gespeichert', dirty: 'Ungespeichert', saving: 'Speichert …', error: 'Fehler beim Speichern',
+    saved: 'Gespeichert', dirty: 'Ungespeichert', saving: 'Speichert …', error: 'Fehler beim Speichern', conflict: 'Konflikt',
   }
 
   onMount(() => {
@@ -460,18 +507,27 @@
       deck = payload.deck
       setTimeout(readThemeLayouts, 400)
       if (current && status === 'saved') {
-        const text = await api.read(current).catch(() => null)
-        if (text !== null && text !== savedText && text !== ed.text()) {
-          ed.replace(text)
-          savedText = text
+        const read = await api.readFile(current).catch(() => null)
+        if (read && read.text !== savedText && read.text !== ed.text()) {
+          ed.replace(read.text)
+          savedText = read.text
+          savedVersion = read.version
           status = 'saved'
+        }
+      } else if (current && status === 'dirty') {
+        // Eigene Änderungen offen und die Datei hat sich woanders geändert: den Konflikt sofort zeigen statt erst beim Speichern
+        const read = await api.readFile(current).catch(() => null)
+        if (read && status === 'dirty' && read.version !== savedVersion && read.text !== ed.text()) {
+          conflict = { text: read.text, version: read.version }
+          showDiff = false
+          status = 'conflict'
         }
       }
       if (follow) setTimeout(syncPreview, 60)
     })
 
     const beforeUnload = (e: BeforeUnloadEvent) => {
-      if (status === 'dirty' || status === 'saving') e.preventDefault()
+      if (status === 'dirty' || status === 'saving' || status === 'conflict') e.preventDefault()
     }
     window.addEventListener('beforeunload', beforeUnload)
 
@@ -551,6 +607,27 @@
       {/if}
     </span>
   </header>
+
+  {#if status === 'conflict' && conflict}
+    <div class="ed-conflict" role="alert">
+      <div class="ed-conflict-text">
+        <strong>{current} wurde inzwischen geändert.</strong>
+        <span>In einem anderen Fenster oder von jemand anderem. Dein Stand ist noch nicht gespeichert, damit nichts überschrieben wird.</span>
+      </div>
+      <div class="ed-conflict-actions">
+        <button class="primary" onclick={keepMine}>Meine Fassung behalten</button>
+        <button onclick={loadTheirs}>Datei neu laden</button>
+        <button onclick={() => (showDiff = !showDiff)} aria-expanded={showDiff}>{showDiff ? 'Unterschiede ausblenden' : 'Unterschiede zeigen'}</button>
+      </div>
+      {#if diffRows}
+        <div class="ed-diff" aria-label="Unterschiede">
+          <p>{diffRows.counts.del} Zeile(n) nur in der Datei, {diffRows.counts.add} Zeile(n) nur bei dir</p>
+          <pre>{#each diffRows.lines as l}<span class="d-{l.type}">{l.type === 'del' ? '− Datei: ' : '+ Du:    '}{l.text}</span>
+{/each}</pre>
+        </div>
+      {/if}
+    </div>
+  {/if}
 
   <div class="ed-main" style="grid-template-columns: {columns}">
     <aside class="ed-side" aria-label="Dateien und Gliederung">

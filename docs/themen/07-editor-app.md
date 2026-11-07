@@ -25,6 +25,8 @@ Links steht der Markdown-Text, rechts die Folie an der Stelle des Cursors. Jede 
 
 Beim Bearbeiten einer eigenen Komponente (Dateiliste, `components/…html`) schlägt der Editor nach `{{ wert |` die Funktionen vor (`percent`, `number`, `date` …) und erklärt sie, nach `date:` die Datumsstile und nach `{{#if name ` den Vergleich (`is`, `is not`). Fehler in der Vorlage erscheinen mit Zeile, ohne zu speichern.
 
+**Wird eine Datei gleichzeitig woanders geändert** (zweites Fenster, im Webdienst eine andere Person, ein anderes Programm), überschreibt der Editor sie nicht. Oben erscheint ein Hinweis, die Anzeige steht auf „Konflikt“, und dein Stand bleibt unbeschadet im Editor. Drei Wege: **Meine Fassung behalten** (deine Fassung ersetzt die Datei), **Datei neu laden** (die Datei ersetzt deinen Stand) oder **Unterschiede zeigen** (welche Zeilen nur in der Datei und welche nur bei dir stehen). Solange der Konflikt offen ist, speichert der Editor nichts, und der Browser warnt beim Schließen.
+
 Aus dem Editor heraus präsentierst du (F5 in der App) und exportierst (PDF, PPTX, HTML).
 :::
 

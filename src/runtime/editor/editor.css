@@ -97,6 +97,19 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .ed-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--ed-ok); }
 .ed-status[data-status="dirty"] i, .ed-status[data-status="saving"] i { background: var(--ed-warn); }
 .ed-status[data-status="error"] { color: var(--ed-danger); font-weight: 600; }
+.ed-status[data-status="conflict"] { color: var(--ed-warn); font-weight: 600; }
+.ed-status[data-status="conflict"] i { background: var(--ed-warn); }
+/* Speicherkonflikt (Ticket #52): Hinweis über dem Text mit den drei Wegen */
+.ed-conflict { grid-row: auto; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--ed-warn); background: color-mix(in srgb, var(--ed-warn) 14%, var(--ed-bg)); font-size: 13px; }
+.ed-conflict-text { display: flex; flex-direction: column; gap: 2px; flex: 1 1 320px; min-width: 0; }
+.ed-conflict-text span { color: var(--ed-muted); }
+.ed-conflict-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ed-conflict-actions button { font: inherit; padding: 5px 11px; border-radius: 6px; border: 1px solid var(--ed-border); background: var(--ed-bg); color: var(--ed-fg); cursor: pointer; }
+.ed-conflict-actions button.primary { background: var(--ed-accent); color: var(--ed-bg); border-color: var(--ed-accent); font-weight: 600; }
+.ed-diff { flex: 1 1 100%; }
+.ed-diff p { margin: 0 0 4px; color: var(--ed-muted); }
+.ed-diff pre { margin: 0; max-height: 180px; overflow: auto; padding: 8px 10px; border: 1px solid var(--ed-border); border-radius: 6px; background: var(--ed-bg); font-family: var(--ed-mono, monospace); font-size: 12px; line-height: 1.5; }
+.ed-diff .d-del { color: var(--ed-danger); } .ed-diff .d-add { color: var(--ed-ok); }
 .ed-status[data-status="error"] i { background: var(--ed-danger); }
 .ed-find {
   display: inline-flex; align-items: center; gap: 8px; padding: 5px 8px 5px 10px; color: var(--ed-muted);
