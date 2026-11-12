@@ -38,7 +38,7 @@ APP_TARGETS := windows/amd64 windows/arm64 linux/amd64 linux/arm64 darwin/amd64 
 GIT_TAG := $(patsubst v%,%,$(shell git describe --tags --abbrev=0 2>nul || echo 0.0.0))
 VERSION ?= $(GIT_TAG).$(shell git rev-parse --short HEAD)
 
-.PHONY: docs docs-serve help setup node install app app-cross app-exe app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf pptx check build-examples docker-examples docker docker-run test new clean distclean
+.PHONY: docs docs-serve clips help setup node install app app-cross app-exe app-package app-test sidecar-smoke deps-update serve image image-run edit edit-no-open dev dev-open dev-lan build preview preview-lan export pdf pptx check build-examples docker-examples docker docker-run test new clean distclean
 
 help:
 	@echo Hashmark - Maechtige Praesentationen aus reinem Markdown
@@ -121,6 +121,11 @@ sidecar-smoke: node_modules
 # Dokumentation als statische Seiten: Startseite, Handbuch (docs/) und Beispiele nach $(DOCS_OUT)/; docs-serve zeigt sie auf http://localhost:$(DOCS_PORT)
 docs: node_modules
 	$(NODE) scripts\build-docs.ts --out "$(DOCS_OUT)"
+
+# Anleitungs-Clips (Ticket #90): Videos aus der App nach $(CLIPS_OUT), braucht ffmpeg im PATH
+CLIPS_OUT ?= export/clips
+clips: node_modules
+	$(NODE) scripts\make-clips.ts --out "$(CLIPS_OUT)"
 
 docs-serve: node_modules
 	$(NODE) scripts\build-docs.ts --out "$(DOCS_OUT)" --serve $(DOCS_PORT)
