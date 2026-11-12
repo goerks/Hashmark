@@ -159,6 +159,31 @@ jobs:
       - run: npm ci --cache "$RUNNER_TEMP/npm" --no-audit --no-fund
       - name: Bilder aufnehmen
         run: node scripts/make-screenshots.ts --out "$RUNNER_TEMP/shots"
+      # Anleitungs-Clips (Ticket #90, Spike): nur bei Änderung neu aufnehmen, sonst aus dem Zwischenspeicher
+      - name: Fingerabdruck der Clips
+        id: clips-hash
+        run: echo "key=$(node scripts/make-clips.ts --hash | tr '\n' '_')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        id: clips-cache
+        with:
+          path: ${{ runner.temp }}/clips-cache
+          key: clips-${{ steps.clips-hash.outputs.key }}
+      - name: Clips aufnehmen
+        continue-on-error: true # Spike: eine wackelige Aufnahme darf den Bau der Seiten nicht stoppen
+        run: |
+          command -v ffmpeg >/dev/null || sudo apt-get install -y --no-install-recommends ffmpeg
+          start=$SECONDS
+          node scripts/make-clips.ts --out "$RUNNER_TEMP/clips" --cache "$RUNNER_TEMP/clips-cache"
+          echo "Clips: $((SECONDS - start)) s (Zwischenspeicher getroffen: ${{ steps.clips-cache.outputs.cache-hit }})"
+          ls -l "$RUNNER_TEMP/clips"
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        with:
+          name: probe-clips
+          path: ${{ runner.temp }}/clips
+          retention-days: 7
+          if-no-files-found: warn
       - name: Dokumentation bauen
         env:
           HASHMARK_PROJECT_URL: ${{ github.server_url }}/${{ github.repository }}

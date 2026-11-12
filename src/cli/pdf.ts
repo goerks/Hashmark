@@ -63,8 +63,10 @@ async function connect(wsUrl: string) {
   let id = 0
   const pending = new Map<number, { resolve: (v: any) => void; reject: (e: Error) => void }>()
   const errors: string[] = []
+  const listeners = new Map<string, ((params: any) => void)[]>()
   ws.onmessage = (m) => {
     const msg = JSON.parse(String(m.data))
+    if (msg.method) for (const fn of listeners.get(msg.method) ?? []) fn(msg.params)
     if (msg.id && pending.has(msg.id)) {
       const p = pending.get(msg.id)!
       pending.delete(msg.id)
@@ -78,7 +80,9 @@ async function connect(wsUrl: string) {
       pending.set(i, { resolve, reject })
       ws.send(JSON.stringify({ id: i, method, params }))
     })
-  return { send, errors, close: () => ws.close() }
+  /** Ereignis des Browsers abonnieren, z. B. `Page.screencastFrame` (Anleitungs-Clips) */
+  const on = (method: string, fn: (params: any) => void) => { listeners.set(method, [...(listeners.get(method) ?? []), fn]) }
+  return { send, on, errors, close: () => ws.close() }
 }
 
 async function launch(browser: string, profile: string, extraArgs: string[] = []): Promise<{ proc: ChildProcess; port: number }> {

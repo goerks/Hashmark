@@ -1,0 +1,7 @@
+title: Wochenende in Lissabon
+theme: dark-tech
+maxDepth: 3
+footer: Hashmark · Anleitung
+slideNumber: "{n} / {total}"
+mount:
+  - file: 01-lissabon.md
