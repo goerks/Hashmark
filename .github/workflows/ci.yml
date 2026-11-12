@@ -171,7 +171,8 @@ jobs:
       - name: Clips aufnehmen
         continue-on-error: true # Spike: eine wackelige Aufnahme darf den Bau der Seiten nicht stoppen
         run: |
-          command -v ffmpeg >/dev/null || sudo apt-get install -y --no-install-recommends ffmpeg
+          # ffmpeg nur nachinstallieren, wenn ein Clip neu aufgenommen werden muss (Zwischenspeicher leer)
+          [ "${{ steps.clips-cache.outputs.cache-hit }}" = "true" ] || command -v ffmpeg >/dev/null || sudo apt-get install -y --no-install-recommends ffmpeg
           start=$SECONDS
           node scripts/make-clips.ts --out "$RUNNER_TEMP/clips" --cache "$RUNNER_TEMP/clips-cache"
           echo "Clips: $((SECONDS - start)) s (Zwischenspeicher getroffen: ${{ steps.clips-cache.outputs.cache-hit }})"
